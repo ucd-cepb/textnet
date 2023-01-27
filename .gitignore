@@ -1,0 +1,39 @@
+# Add Project-specific Files HERE
+
+
+# DataLab Project Directory Structure
+data/
+outputs/
+*.pdf
+
+
+# R
+*.rds
+.RData
+.Rhistory
+
+
+# Python
+__pycache__/
+*.py[cod]
+.python-version
+.ipynb_checkpoints
+
+
+# Operating System Metadata
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+.DS_Store
+.AppleDouble
+.LSOverride
+Network Trash Folder
+Temporary Items
+.apdisk
