@@ -1,0 +1,105 @@
+---
+title: "POL_279_Assign2"
+author: "E Zufall"
+date: "2/2/2023"
+output: pdf_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../reports") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview of Network Data
+
+I have a collection of 114 networks, each made from one of 114 Groundwater Sustainability Plans. The full text is extracted from pdf format and converted into a series of character strings, in which each character string represents one page of the pdf. Then, each page of the pdf is run through a Natural Language Processing algorithm that tags "entities" that appear together in a sentence, and results are aggregated for the entire plan as a whole. An adjacency matrix is constructed, in which the weight of a tie between entity i and entity j represents the number of sentences entity i and entity j appear in together. In constructing the network, three types of entities are considered as part of the governance network: organizations, geopolitical entities, and people. Here is a table that shows summary statistics of the 114 networks. The GSP ID is a four-digit code that represents a unique Groundwater Sustainability Plan. 
+
+```{r packg, message=F, warning=F}
+library(network)
+library(sna)
+library(igraph)
+library(intergraph)
+library(tidyverse)
+```
+
+```{r summ}
+#igr <- graph_from_adjacency_matrix(adj_mat_subset, mode = "undirected", 
+#                                   weighted = TRUE, diag = FALSE)
+
+network_properties <- readRDS("../data/network_properties") %>% 
+  select(!num_communities)
+network_properties$density <- signif(x = as.numeric(network_properties$density),
+                                     digits = 4)
+network_properties$connectedness <- signif(x = 
+                      as.numeric(network_properties$connectedness), digits = 4)
+network_properties$centralization <- signif(x =
+        as.numeric(network_properties$centralization), digits = 4)
+print(network_properties)
+
+```
+
+For this assignment, I selected three GSPs: 0124, 0061, and 0047. I think that centrality (as measured by eigenvector centrality) will differ among the three types of entities.
+
+## Hypothesis
+Hypothesis: I think that centrality is going to be the highest among ORGs and the lowest among GPEs. 
+
+Rationale: ORGs are going to be connected with other ORGs and GPEs because they probably have multiple instances of collaboration in different GPEs. People are going to be less central than ORGs because ORGs run the show, do most of the actions discussed in the plan, and are connected to other important ORGs. GPEs are not going to be as connected to other GPEs because, since we are looking at plan texts, the language is going to bias toward actors, rather than locations. GPEs might not be as connected to other major central nodes because the actors will probably be more highly connected, and they are more likely to be connected to each other rather than to GPEs. Since ORGs are expected to be highly connected in general and are also likely to be connected to other ORGs who are also likely to be highly connected, their eigenvector centrality is expected to be highest.
+
+I will use a one-way ANOVA test for testing my hypothesis.
+
+## Results
+
+```{r libs, message=F, warning=F}
+library(ggplot2)
+library(ggpubr)
+library(broom)
+library(AICcmodavg)
+```
+
+```{r anovas}
+gsp_text_with_meta <- readRDS("../data/prepped_for_sna")
+gspids <- unique(gsp_text_with_meta$gsp_id)
+
+list <- c(99,33,45)
+
+for(m in list){
+  print(paste0("GSP ID ",gspids[m]))
+  centr_df <- readRDS(paste0("../data/node_attr_",gspids[m]))
+  centr_df <- centr_df %>% filter(type %in% c("ORG","GPE","PERSON"))
+  one_way_anova <- aov(eigenvector ~ as.factor(type), data = centr_df)
+  print(summary(one_way_anova))
+  print(one_way_anova$coefficients)
+  print(TukeyHSD(one_way_anova))
+}
+```
+
+## Discussion
+
+My hypothesis was incorrect -- in two of the three cases, the eigenvector centrality is highest for geopolitical entities! Although this is initially surprising, I think it is because location-specific words can be very common in these plans, for a few reasons. First, the everything that happens in the plan happens in a specific location, so these local locations are referred to over and over throughout the plan. Second, the location is also often included in page headers and footers. Although I tried to validate sentences to make sure headers and footers were not included, it is possible that some slipped through. Because so many things and actors are taking actions in a very localized set of GPEs, these GPEs are more likely to be central in the network. Because I only looked at three plans, I haven't come to a generalizable conclusion for why this difference occurs. I will have to look at all 114 plans and comb through the node attributes more closely to understand the behavior.
+
+As we had not learned the local clustering technique yet, I did not correlate the centrality and clustering measures. However, as an example of how to run a correlation on centrality measures, I evaluated the correlation between the eigenvector centrality and the betweenness centrality for nodes in each of the three networks.
+
+```{r pressure}
+
+rm(centr_df)
+gsp_text_with_meta <- readRDS("../data/prepped_for_sna")
+gspids <- unique(gsp_text_with_meta$gsp_id)
+
+list <- c(99,33,45)
+
+for(m in list){
+  print(paste0("GSP ID ",gspids[m]))
+  centr_df <- readRDS(paste0("../data/node_attr_",gspids[m]))
+  centr_df <- centr_df %>% filter(type %in% c("ORG","GPE","PERSON"))
+  print(cor.test(centr_df$eigenvector, centr_df$between, 
+                    method = "pearson"))
+  plot(centr_df$eigenvector, centr_df$between)
+}
+
+
+```
+
+In conclusion, GPEs seem to have the highest eigenvector centrality because of the high frequency with which the plan action locations are referenced in reference to other important locations (such as other plan action locations) and important actors who are implementing or overseeing these actions. 
+
+There is also a strong positive correlation between betweenness centrality and eigenvector centrality for the two plans in which GPEs are the most central. It makes sense that there ought to be a positive correlation between the two centrality metrics, because an actor i that is connected to multiple highly central nodes will have a high betweenness, because it spans between not only those important first-order neighbors, but also all of the neighbors of those neighbors, of which there are relatively many for the highly central nodes surrounding the actor i. However, the fact that Plan 0047 behaved in a different way from the other two plans both in the ANOVA and in the correlation comparison tells me that perhaps there is something wrong with the data for Plan 0047. That one is also the plan that has a huge component that is completely disconnected from the other main component. I'll have to look into Plan 0047 more to see what might be the cause of these behaviors.

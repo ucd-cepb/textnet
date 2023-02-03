@@ -16,8 +16,8 @@ project.
 
 # COLLABORATOR PROJECT_NAME Project
 
-This repository contains code for COLLABORATOR's PROJECT_NAME project. The
-project is PROJECT_DESCRIPTION. The goal of our collaboration is PROJECT_GOAL.
+This repository contains code for Tyler Scott and Elise Zufall's Text-Based Network Extraction project. The
+project is to extract relationships between entities based on their co-occurrence within sentences of a text document. The goal of our collaboration is to provide these tools in an open-source package in R for social scientists and other users.
 
 Links:
 
