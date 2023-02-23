@@ -1,0 +1,106 @@
+---
+title: "POL_279_Assign4"
+author: "E Zufall"
+date: "2/22/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(statnet)
+```
+
+## Individual Network Characteristics
+
+Density
+The density of a binary network is given by $\frac{\sum_{i=1}^{n-1} \sum_{j=i+1}^{n} S_{ij}}{n(n-1)}$
+
+The density is minimized (0) when there are no edges in the network, as follows.
+```{r density_low}
+adj_mat1 <- matrix(rep(0,100), nrow=10)
+network1 <- network(adj_mat1)
+print(network.density(network1))
+```
+
+The density is maximized (1) when every possible edge is drawn, as follows.
+```{r density_high}
+adj_matn <- matrix(rep(1,100), nrow=10)
+networkn <- network(adj_matn)
+print(network.density(networkn))
+```
+
+
+Global Transitivity
+The global transitivity of a binary network is given by 
+$\frac{6\sum_{i\neq j\neq k} t_{ijk}}{(n-1)(n-2)}$ where $t_{ijk} = s_is_js_k$
+
+Components
+Components are found the reachability matrix
+$R = \sum_{i=1}^{n-1}S^i$, such that for component $q$, matrix entry $r_{ij} \neq 0$ for all nodes $i$, $j \in q$, and 0 for all $i \in q, j\notin q$, or $i \notin q, j\in q$. 
+
+Polarization
+
+Group (Degree) Centralization
+
+## Network Characteristic Pairs
+Density and Transitivity
+
+
+Density and Number of Components
+Transitivity and Number of Components
+Density and Polarization
+Transitivity and Polarization
+Polarization and Group (Degree) Centralization
+
+```{r density_transitivity}
+adj_mat1 <- matrix(rep(0,100), nrow=10)
+network1 <- network(adj_mat1)
+network.density(network1)
+gtrans(network1)
+
+adj_mat2 <- matrix(c(c(0,1,0,0,0,0,0,0,0,0),
+                     c(0,0,1,0,0,0,0,0,0,0),
+                     c(0,0,0,1,0,0,0,0,0,0),
+                     c(0,0,0,0,1,0,0,0,0,0),
+                     c(0,0,0,0,0,1,0,0,0,0),
+                     c(0,0,0,0,0,0,1,0,0,0),
+                     c(0,0,0,0,0,0,0,1,0,0),
+                     c(0,0,0,0,0,0,0,0,1,0),
+                     c(0,0,0,0,0,0,0,0,0,1),
+                     c(1,0,0,0,0,0,0,0,0,0)), byrow=T, nrow=10)
+network2 <- network(adj_mat2)
+network.density(network2)
+gtrans(network2)
+plot(network2)
+
+adj_mat3 <- matrix(c(c(0,1,1,0,0,0,0,0,0,0),
+                     c(1,0,1,0,0,0,0,0,0,0),
+                     c(1,1,0,0,0,0,0,0,0,0),
+                     c(0,0,0,0,1,1,0,0,0,0),
+                     c(0,0,0,1,0,1,0,0,0,0),
+                     c(0,0,0,1,1,0,0,0,0,0),
+                     c(0,0,0,0,0,0,0,1,1,0),
+                     c(0,0,0,0,0,0,1,0,1,0),
+                     c(0,0,0,0,0,0,1,1,0,0),
+                     c(0,0,0,0,0,0,0,0,0,0)), byrow=T, nrow=10)
+network3 <- network(adj_mat3)
+network.density(network3)
+gtrans(network3)
+plot(network3)
+
+adj_matn <- matrix(rep(1,100), nrow=10)
+networkn <- network(adj_matn)
+network.density(networkn)
+gtrans(networkn)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
