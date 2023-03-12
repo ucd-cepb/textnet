@@ -1,0 +1,520 @@
+---
+title: "POL_279_Assign4"
+author: "E Zufall"
+date: "2/22/2023"
+output: pdf_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../reports") })
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(statnet)
+library(sna)
+library(tidyverse)
+library(ggplot2)
+```
+
+# Individual Network Characteristics
+
+## Density
+The density of a binary network is given by $\frac{\sum_{i=1}^{n-1} \sum_{j=i+1}^{n} S_{ij}}{n(n-1)}$
+
+The density is minimized (0) when there are no edges in the network, as follows.
+```{r density_low}
+adj_mat1 <- matrix(rep(0,100), nrow=10)
+network1 <- network(adj_mat1)
+print(network.density(network1))
+```
+
+The density is maximized (1) when every possible edge is drawn, as follows.
+```{r density_high}
+adj_matn <- matrix(rep(1,100), nrow=10)
+diag(adj_matn) <- 0
+networkn <- network(adj_matn)
+print(network.density(networkn))
+```
+
+## Global Transitivity
+The global transitivity of a binary network is given by 
+$\frac{6\sum_{i\neq j\neq k} t_{ijk}}{(n-1)(n-2)}$ where $t_{ijk} = s_is_js_k$
+
+The transitivity is minimized (0) when there are no complete triangles in the network, as in this example.
+```{r trans_low}
+
+adj_mat2 <- matrix(c(c(0,1,0,0,0,0,0,0,0,0),
+                     c(0,0,1,0,0,0,0,0,0,0),
+                     c(0,0,0,1,0,0,0,0,0,0),
+                     c(0,0,0,0,1,0,0,0,0,0),
+                     c(0,0,0,0,0,1,0,0,0,0),
+                     c(0,0,0,0,0,0,1,0,0,0),
+                     c(0,0,0,0,0,0,0,1,0,0),
+                     c(0,0,1,0,0,0,0,0,1,0),
+                     c(0,0,0,0,0,0,0,0,0,1),
+                     c(1,0,0,0,0,0,0,0,0,0)), byrow=T, nrow=10)
+network2 <- network(adj_mat2)
+gtrans(network2)
+plot(network2)
+
+```
+
+The transitivity is maximized (1) when there are no incomplete triangles in the network, as in this example.
+```{r trans_high}
+adj_mat3 <- matrix(c(c(0,1,1,0,0,0,0,0,0),
+                     c(1,0,1,0,0,0,0,0,0),
+                     c(1,1,0,0,0,0,0,0,0),
+                     c(0,0,0,0,1,1,0,0,0),
+                     c(0,0,0,1,0,1,0,0,0),
+                     c(0,0,0,1,1,0,0,0,0),
+                     c(0,0,0,0,0,0,0,1,1),
+                     c(0,0,0,0,0,0,1,0,1),
+                     c(0,0,0,0,0,0,1,1,0)), byrow=T, nrow=9)
+network3 <- network(adj_mat3)
+print(gtrans(network3))
+plot(network3)
+```
+
+## Components
+Components are found the reachability matrix
+$R = \sum_{i=1}^{n-1}S^i$, such that for component $q$, matrix entry $r_{ij} \neq 0$ for all nodes $i$, $j \in q$, and 0 for all $i \in q, j\notin q$, or $i \notin q, j\in q$. 
+
+
+The number of components is minimized (1) when every node is reachable from every other node, as in this example.
+```{r comp_low}
+adj_mat5 <- matrix(c(c(0,1,1,0,0,0,0,0,0),
+                     c(1,0,1,0,0,0,0,0,1),
+                     c(1,1,0,0,0,1,0,0,0),
+                     c(0,0,0,0,1,1,0,0,0),
+                     c(0,0,0,1,0,1,0,0,0),
+                     c(0,0,1,1,1,0,1,0,0),
+                     c(0,0,0,0,0,1,0,1,1),
+                     c(0,0,0,0,0,0,1,0,1),
+                     c(0,1,0,0,0,0,1,1,0)), byrow=T, nrow=9)
+network5 <- network(adj_mat5)
+print(components(network5))
+plot(network5)
+```
+
+The number of components is maximized (n) when there are no edges, as in this example, because no nodes can reach any other nodes.
+```{r comp_high}
+adj_mat4 <- matrix(rep(0,100), nrow=10)
+network4 <- network(adj_mat4)
+print(components(network4))
+plot(network4)
+```
+
+## Polarization
+
+Polarization is found by $\frac{4\sum_{j=1}^k s_j(n-s_j)\sum_{q=1}^k \sum_{r=1}^k(gd_{qq}-gd_{qr})}{n^2 k^2 (k-1)}$
+where gd = $\frac{\sum_{i \in q}\sum_{j \in r}a_{ij}}{n_q n_r}$
+
+Polarization is minimized (0) when there is only one group.
+```{r pol_low}
+adj_mat10 <- matrix(rep(1,100), nrow=10)
+diag(adj_mat10) <- 0
+
+print("Min Polarization Adjacency Matrix in MaozNet")
+knitr::include_graphics("../screenshots/one_group_snip.png")
+t(read_csv("../screenshots/pol_test.csv"))
+```
+
+Polarization is maximized (1) when there are two equally sized, non-overlapping groups.
+```{r pol_high}
+adj_mat9 <- matrix(c(c(1,1,1,1,1,0,0,0,0,0),
+                     c(1,1,1,1,1,0,0,0,0,0),
+                     c(1,1,1,1,1,0,0,0,0,0),
+                     c(1,1,1,1,1,0,0,0,0,0),
+                     c(1,1,1,1,1,0,0,0,0,0),
+                     c(0,0,0,0,0,1,1,1,1,1),
+                     c(0,0,0,0,0,1,1,1,1,1),
+                     c(0,0,0,0,0,1,1,1,1,1),
+                     c(0,0,0,0,0,1,1,1,1,1),
+                     c(0,0,0,0,0,1,1,1,1,1)), byrow=T, nrow=10)
+
+print("Max Polarization Adjacency Matrix in MaozNet")
+knitr::include_graphics("../screenshots/pol_graph_snip.png")
+t(read_csv("../screenshots/pol_test_onegrp.csv"))
+
+```
+
+## Group (Degree) Centralization
+
+Group Centralization (degree) is found by $\frac{\sum_{i=1}^{n} (cd_{max}-c_{di})}{(n-1)(n-2)}$
+where $cd_{max}$ is the highest value of degree centrality in the network.
+
+Degree centrality for a binarized network where no self-ties are allowed is found by $\frac{\sum_{j=1}^{n}s_{ij}}{n-1}$
+
+The group centralization is minimized (0) when every node is equally central, as in this example.
+```{r cent_low}
+adj_mat6 <- matrix(rep(1,81), nrow=9)
+diag(adj_mat6) <- 0
+network6 <- network(adj_mat6)
+print(centralization(network6, FUN="degree"))
+plot(network6)
+```
+
+The group centralization is maximized (1) when there is one hub which all of the other nodes are exclusively connected to, as in this example.
+```{r cent_high}
+adj_mat7 <- matrix(c(c(0,1,1,1,1,1,1,1,1),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0),
+                     c(1,0,0,0,0,0,0,0,0)), byrow=T, nrow=9)
+
+network7 <- network(adj_mat7)
+print(centralization(network7, FUN="degree"))
+plot(network7)
+```
+
+# Network Characteristic Pairs
+## Density and Transitivity
+
+When density is zero or close to zero, transitivity is high because these are trivial cases where there are no paths of length 2 anywhere in the network. In other words, there are no friends of friends, so there can be no intransitive cases in which there are friends of friends of the ego who are not themselves friends with the ego. However, after these initial trivial cases, density and transitivity are extremely positively correlated for random networks, because the addition of edges increases the probability of closing a triangle. The more edges there are, the fewer opportunities there are for intransitive relationships. While it is possible to have relatively sparse graphs with maximum transitivity, in a random sense this is unlikely to happen because it requires all edges to be perfectly aligned in transitive triangle patterns.
+
+```{r density_transitivity}
+densities <- integer(length = 47)
+transitivities <- integer(length = 47)
+mat <- matrix(rep(1,100), nrow=10)
+net <- network(mat)
+densities[1] <- network.density(net)
+transitivities[1] <- gtrans(net)
+
+for(k in 1:5){
+  mat <- matrix(sample(c(0,1,1,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+2] <- network.density(net)
+  transitivities[9*(k-1)+2] <- gtrans(net)
+
+  mat <- matrix(sample(c(0,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+3] <- network.density(net)
+  transitivities[9*(k-1)+3] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+4] <- network.density(net)
+  transitivities[9*(k-1)+4] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+5] <- network.density(net)
+  transitivities[9*(k-1)+5] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+6] <- network.density(net)
+  transitivities[9*(k-1)+6] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+7] <- network.density(net)
+  transitivities[9*(k-1)+7] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+8] <- network.density(net)
+  transitivities[9*(k-1)+8] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+9] <- network.density(net)
+  transitivities[9*(k-1)+9] <- gtrans(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+10] <- network.density(net)
+  transitivities[9*(k-1)+10] <- gtrans(net)
+
+}
+
+mat <- matrix(rep(0,100), nrow=10)
+net <- network(mat)
+densities[47] <- network.density(net)
+transitivities[47] <- gtrans(net)
+
+tib <- tibble(densities,transitivities)
+ggplot(tib, aes(x=densities,y=transitivities))+geom_point()
+
+```
+
+
+## Density and Number of (Strongly Connected) Components
+Density and number of components are negatively correlated. This is because when there are no edges connecting the nodes, it is impossible to travel from one component to another, and thus each node is its own component. When edges get added, this merges components together, decreasing the total number of components until the density is so high that it is possible to travel from any node to any other node, thus making the number of components 1. Not all edges need to be drawn for this to happen, which is why the relationship quickly reaches 1 component and then is flat for the remaining right portion of the graph.
+
+```{r density_components}
+densities <- integer(length = 47)
+num_components <- integer(length = 47)
+mat <- matrix(rep(1,100), nrow=10)
+net <- network(mat)
+densities[1] <- network.density(net)
+#default calculates strongly connected components
+num_components[1] <- components(net)
+
+for(k in 1:5){
+  mat <- matrix(sample(c(0,1,1,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+2] <- network.density(net)
+  num_components[9*(k-1)+2] <- components(net)
+
+  mat <- matrix(sample(c(0,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+3] <- network.density(net)
+  num_components[9*(k-1)+3] <- components(net)
+  
+  mat <- matrix(sample(c(0,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+4] <- network.density(net)
+  num_components[9*(k-1)+4] <- components(net)
+  
+  mat <- matrix(sample(c(0,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+5] <- network.density(net)
+  num_components[9*(k-1)+5] <- components(net)
+  
+  mat <- matrix(sample(c(0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+6] <- network.density(net)
+  num_components[9*(k-1)+6] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+7] <- network.density(net)
+  num_components[9*(k-1)+7] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+8] <- network.density(net)
+  num_components[9*(k-1)+8] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+9] <- network.density(net)
+  num_components[9*(k-1)+9] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  densities[9*(k-1)+10] <- network.density(net)
+  num_components[9*(k-1)+10] <- components(net)
+
+}
+
+mat <- matrix(rep(0,100), nrow=10)
+net <- network(mat)
+densities[47] <- network.density(net)
+num_components[47] <- components(net)
+
+tib <- tibble(densities,num_components)
+ggplot(tib, aes(x=densities,y=num_components))+geom_point()
+
+```
+
+##Transitivity and Number of Components
+
+Although there is a negative relationship between transitivity and number of components, this relationship is less pronounced than the previous two sets of relationships we have explored. The exception is the trivial case where there are ten communities and no edges, because then there are no friends of friends who are not also friends, which makes transitivity equal to 1 even though there are no edges. There is a relationship because both the equation for finding triangles and that for finding components require multiplying the adjacency matrix by itself a certain number of times. Additionally, having a high transitivity, as we have previously seen, implies a high density, which tends to reduce the number of components by increasing the reachability of nodes. Perhaps part of the reason the trend is somewhat weak for low densities is because having high transitivity requires bunching up the available edges close together to make a triangle. Consider, for instance, a graph with ten nodes and three edges. Using those three edges to make a transitive relationship leaves more isolates (7) as their own communities in addition to the triangle for a total of 8 communities, whereas if the edges were spread out to create three separate dyads, this would leave 4 isolates, for a total of only 7 communities. This is a counteracting force, albeit a smaller one, to the negative correlation previously described.
+
+
+```{r transitivity_components}
+transitivities <- integer(length = 47)
+num_components <- integer(length = 47)
+mat <- matrix(rep(1,100), nrow=10)
+net <- network(mat)
+transitivities[1] <- gtrans(net)
+#default calculates strongly connected components
+num_components[1] <- components(net)
+
+for(k in 1:5){
+  mat <- matrix(sample(c(0,1,1,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+2] <- gtrans(net)
+  num_components[9*(k-1)+2] <- components(net)
+
+  mat <- matrix(sample(c(0,1,1,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+3] <- gtrans(net)
+  num_components[9*(k-1)+3] <- components(net)
+  
+  mat <- matrix(sample(c(0,1,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+4] <- gtrans(net)
+  num_components[9*(k-1)+4] <- components(net)
+  
+  mat <- matrix(sample(c(0,1,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+5] <- gtrans(net)
+  num_components[9*(k-1)+5] <- components(net)
+  
+  mat <- matrix(sample(c(0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+6] <- gtrans(net)
+  num_components[9*(k-1)+6] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+7] <- gtrans(net)
+  num_components[9*(k-1)+7] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+8] <- gtrans(net)
+  num_components[9*(k-1)+8] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+9] <- gtrans(net)
+  num_components[9*(k-1)+9] <- components(net)
+  
+  mat <- matrix(sample(c(0,0,0,0,0,0,0,1),100, replace = T), nrow=10)
+  net <- network(mat)
+  transitivities[9*(k-1)+10] <- gtrans(net)
+  num_components[9*(k-1)+10] <- components(net)
+
+}
+
+mat <- matrix(rep(0,100), nrow=10)
+net <- network(mat)
+transitivities[47] <- gtrans(net)
+num_components[47] <- components(net)
+
+tib <- tibble(transitivities,num_components)
+ggplot(tib, aes(x=transitivities,y=num_components))+geom_point()
+
+```
+
+## Density and Polarization
+Polarization is a non-linear relationship that shoots up from 0 to 1 when the network transitions from 1 to 2 groups, then decreases rapidly in an exponential-like decay. 
+
+Consider the high polarization example printed earlier in this report, with NPI of 1 and density of 0.44. Consider also the low polarization example printed earlier in this report, with NPI of 0 and density of 1. 
+
+From these examples we can construct a general pattern for the relationship between density and polarization that begins with a positive correlation until density = 0.44, and then converts to a negative correlation until density = 1.
+
+For a graph with no edges, polarization is very low, because the number of cliques is very high, and as we saw on slide 44 of Lecture 6, NPI is very low for a high number of groups. As the number of edges increases, the number of groups decreases, and therefore the NPI increases, representing a positive correlation between density and polarization, until NPI is at its maximum at two equal sized groups (which can happen when density = 0.44). Then NPI rapidly decreases as the density further increases from 0.44 to 1, because this erodes the division between the two groups until there is only one group. This negative correlation between NPI and density continues until NPI is finally minimized at 0 when density is maximized at 1. However, because NPI is very sensitive to group membership and equality of group size, this will make the relationship between density and NPI somewhat weaker. This theoretical relationship is not very visible in the graph below, perhaps because with only 11 random graphs it is difficult to achieve high levels of polarization to test that area of the domain.
+
+```{r pol_dens}
+NPI <- integer(length = 13)
+DIG <- integer(length = 13)
+DOG <- integer(length = 13)
+Density <- integer(length = 13)
+Transitivity <- integer(length = 13)
+
+#mat <- read_csv("npistats/mat1.csv", col_names = T, skip=1)[,2:11]
+st <- t(read_csv("npistats/mat1stat.csv"))
+NPI[1] <- unname(st["NPI",1])
+DIG[1] <- unname(st["DIG",1])
+DOG[1] <- unname(st["DOG",1])
+Density[1] <- unname(st["Density",1])
+Transitivity[1] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat2stat.csv"))
+NPI[2] <- unname(st["NPI",1])
+DIG[2] <- unname(st["DIG",1])
+DOG[2] <- unname(st["DOG",1])
+Density[2] <- unname(st["Density",1])
+Transitivity[2] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat3stat.csv"))
+NPI[3] <- unname(st["NPI",1])
+DIG[3] <- unname(st["DIG",1])
+DOG[3] <- unname(st["DOG",1])
+Density[3] <- unname(st["Density",1])
+Transitivity[3] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat4stat.csv"))
+NPI[4] <- unname(st["NPI",1])
+DIG[4] <- unname(st["DIG",1])
+DOG[4] <- unname(st["DOG",1])
+Density[4] <- unname(st["Density",1])
+Transitivity[4] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat5stat.csv"))
+NPI[5] <- unname(st["NPI",1])
+DIG[5] <- unname(st["DIG",1])
+DOG[5] <- unname(st["DOG",1])
+Density[5] <- unname(st["Density",1])
+Transitivity[5] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat6stat.csv"))
+NPI[6] <- unname(st["NPI",1])
+DIG[6] <- unname(st["DIG",1])
+DOG[6] <- unname(st["DOG",1])
+Density[6] <- unname(st["Density",1])
+Transitivity[6] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat7stat.csv"))
+NPI[7] <- unname(st["NPI",1])
+DIG[7] <- unname(st["DIG",1])
+DOG[7] <- unname(st["DOG",1])
+Density[7] <- unname(st["Density",1])
+Transitivity[7] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat8stat.csv"))
+NPI[8] <- unname(st["NPI",1])
+DIG[8] <- unname(st["DIG",1])
+DOG[8] <- unname(st["DOG",1])
+Density[8] <- unname(st["Density",1])
+Transitivity[8] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat9stat.csv"))
+NPI[9] <- unname(st["NPI",1])
+DIG[9] <- unname(st["DIG",1])
+DOG[9] <- unname(st["DOG",1])
+Density[9] <- unname(st["Density",1])
+Transitivity[9] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat10stat.csv"))
+NPI[10] <- unname(st["NPI",1])
+DIG[10] <- unname(st["DIG",1])
+DOG[10] <- unname(st["DOG",1])
+Density[10] <- unname(st["Density",1])
+Transitivity[10] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("npistats/mat11stat.csv"))
+NPI[11] <- unname(st["NPI",1])
+DIG[11] <- unname(st["DIG",1])
+DOG[11] <- unname(st["DOG",1])
+Density[11] <- unname(st["Density",1])
+Transitivity[11] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("../screenshots/pol_test.csv"))
+NPI[12] <- unname(st["NPI",1])
+DIG[12] <- unname(st["DIG",1])
+DOG[12] <- unname(st["DOG",1])
+Density[12] <- unname(st["Density",1])
+Transitivity[12] <- unname(st["Transitivity",1])
+
+st <- t(read_csv("../screenshots/pol_test_onegrp.csv"))
+NPI[13] <- unname(st["NPI",1])
+DIG[13] <- unname(st["DIG",1])
+DOG[13] <- unname(st["DOG",1])
+Density[13] <- unname(st["Density",1])
+Transitivity[13] <- unname(st["Transitivity",1])
+
+
+tib <- tibble(NPI, DIG, DOG, Density, Transitivity)
+ggplot(tib, aes(x=NPI,y=Density))+geom_point()+geom_smooth(method=lm)
+```
+
+## Transitivity and Polarization
+
+Consider the high polarization example printed earlier in this report, with NPI of 1 and transitivity of 1, when there are two distinct groups. Consider also the low polarization example printed earlier in this report, with NPI of 0 and transitivity of 1, when all edges are drawn. On page 54 of Lecture 6 we can see there is not a very strong linear relationship between NPI and transitivity. This makes sense because transitivity can be at its maximum both when NPI is at its minimum and when NPI is at its maximum. Likewise, suppose we remove some of the edges from the two groups, or some of the edges from the single group. Transitivity would be greatly reduced, and yet the polarization could still be low for a more sparsely connected single group, and high for two sparsely connected groups.
+
+We could also gain insight by noting that there is a moderate negative relationship between number of components and transitivity, except for the edge case when there are no edges. Since NPI increases as number of components decreases (except when going from 2 to 1 component), this could mean NPI increases as transitivity increases until there are two groups, at which point NPI decreases as the two groups become less differentiated and merge into one group. However, there is a wide range of transitivities that correspond to two components (as we can see from the graph earlier in this report, ranging at times from transitivity = 0.2 to 0.6 for instances with two components). Because of this muddy relationship, it is difficult to pinpoint the transitivity value for which NPI goes from a positive correlation to a negative one, which makes the correlation a rather weak relationship. This curve is somewhat visible in the plot below, although it is very messy because of the edge cases on the extreme left and right of the graph.
+
+```{r pol_trans}
+tib <- tibble(NPI, DIG, DOG, Density, Transitivity)
+ggplot(tib, aes(x=NPI,y=Transitivity))+geom_point()+geom_smooth(method=lm)
+```
+
+## Polarization and Group (Degree) Centralization
+
+Consider the high polarization example printed earlier in this report, with NPI of 1, DIG of 0, and DOG of 0, when there are two distinct groups. Consider also the low polarization example printed earlier in this report, with NPI of 0, DIG of 0, and DOG of 0, when all edges are drawn. So it is possible to have minimum group centralization at either a maximum or a minimum NPI! The low DIG and DOG are because we drew every edge within the groups, so there is no "group leader" who is any more central than the other group members. We know, however, from page 54 of Lecture 6 that there is a positive correlation between NPI and DIG. How can this be, when DIG and DOG are 0 for both high and low extreme values of NPI? This could be because when there are "group leaders", it is likely that the peripheral nodes do not have as many edges, which could minimize the number of edges between groups, thereby increasing the NPI. However, this trend is not apparent from the 11 random graphs I generated and exported metrics for; rather, there is not a significant correlation since the error bars contain the line with a slope of zero, but the trend appears to be somewhat negative.
+
+```{r pol_centr}
+ggplot(tib, aes(x=NPI,y=DIG))+geom_point()+geom_smooth(method=lm)
+```
+
+
+
