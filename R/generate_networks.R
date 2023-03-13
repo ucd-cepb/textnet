@@ -7,7 +7,11 @@ library(tidyverse)
 library(tidytext)
 library(quanteda)
 library(pbapply)
+library(stringr)
 source('R/generate_proper_names.R')
+#imported file from open source package govscienceuseR
+govsci_agencies <- readRDS("data/govscienceuseR_agencies.RDS")
+
 
 #prerequisites: step 1, install python
 #step 2, install miniconda from https://conda.io/miniconda.html
@@ -200,11 +204,40 @@ for (m in 1:length(gspids)){
   adj_mat <- readRDS(paste0("data/adjmat_orig_",gspids[m]))
   entities_subset <- readRDS(paste0("data/entities_subset_",gspids[m]))
   
+#combining full and abbreviated agency names
+ cleaned_names <- rownames(adj_mat) %>% str_remove_all("[^[:alnum:]]") %>% 
+   str_remove_all("^the") %>% str_remove_all("^The")
+  
+ govsci_agencies$Agency <- govsci_agencies$Agency %>% 
+   str_remove_all("[^[:alnum:]]")
+ 
+
+abbr <- function(strng){
+  
+   if (!identical(grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr,useBytes = T), integer(0))){
+     return(govsci_agencies$Agency[grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr, useBytes = T)] )
+   }
+  else
+    return(strng)
+}
+ 
+abbr_names <- sapply(cleaned_names, abbr)
+ 
+rownames(adj_mat) <- abbr_names
+colnames(adj_mat) <- abbr_names
+
+ordered_adj_mat <- adj_mat[order(rownames(adj_mat)),]
+ordered_adj_mat <- ordered_adj_mat[,order(colnames(adj_mat))]
+
+dupl_combined_adj_mat <- rowsum(ordered_adj_mat, group = rownames(ordered_adj_mat), na.rm=T)
+
+dupl_combined_adj_mat <- t(rowsum(t(dupl_combined_adj_mat), group = colnames(dupl_combined_adj_mat), na.rm = T))
+ 
   library(network)
   library(pbapply)
   library(data.table)
   
-  if(!file.exists(paste0("data/network_",gspids[m]))){
+  if(!file.exists(paste0("data/network_maincomponents_",gspids[m]))){
     #removing node clusters who are only connected to other nodes in their same sentence
     #since this likely either a parsing mistake or a restating of the entity name in a different way
     
