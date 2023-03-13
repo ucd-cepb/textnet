@@ -66,7 +66,6 @@ rm(gsp_text_with_meta)
 for (m in 1:length(gspids)){
   
   if(draw_edges==TRUE){
-    if(!file.exists(paste0("data/network_maincomponents_",gspids[m]))){
       if(!file.exists(paste0("data/parsed_",gspids[m]))){
         single_plan_text <- unlist(gsp_planonly[gsp_id==gspids[m]]$text)
         parsedtxt <- spacy_parse(single_plan_text,
@@ -94,6 +93,9 @@ for (m in 1:length(gspids)){
                  any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
                  any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj"))
       
+      #TODO check this language
+      entities_valid <- entities %>% 
+        filter(doc_id %in% valid_sentences$doc_id & sentence_id %in% valid_sentences$sentence_id)
       
       #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
       
@@ -321,10 +323,8 @@ for (m in 1:length(gspids)){
       print(paste0("identical check: ", identical(network_entities$entity, name)))
       network::set.vertex.attribute(agency_net, "type", network_entities$entity_type)
       saveRDS(agency_net, paste0("data/network_maincomponents_",gspids[m]))
-    }    
-    else{
-      agency_net <- readRDS(paste0("data/network_maincomponents_",gspids[m]))
-    }
+        
+
   } 
 
   
