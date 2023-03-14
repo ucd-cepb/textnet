@@ -17,6 +17,8 @@ library(data.table)
 source('R/generate_proper_names.R')
 #imported file from open source package govscienceuseR
 govsci_agencies <- readRDS("data/govscienceuseR_agencies.RDS")
+#editing DWR cell as a test
+#govsci_agencies$Abbr[grep("California Department of Water Resources",govsci_agencies$Agency)] <- "\bDWR\b"
 
 
 #prerequisites: step 1, install python
@@ -85,23 +87,11 @@ for (m in 1:length(gspids)){
       #part 2: identify entities
       entities <- entity_extract(parsedtxt,type="all")
       
-      #removes invalid sentences with no root
-      #only keeps sentences that have a subject and object
-      #does not keep sentences with compound subject and no object
-      valid_sentences <- parsedtxt %>% group_by(doc_id, sentence_id) %>% 
-        filter(any(dep_rel == "ROOT") &
-                 any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
-                 any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj"))
       
-      #TODO check this language
-      entities_valid <- entities %>% 
-        filter(doc_id %in% valid_sentences$doc_id & sentence_id %in% valid_sentences$sentence_id)
       
-      #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
       
-      #step 2 (opt) dependency parsing (disambiguating pronouns)
-      
-      #step 3 types of verbs -- analyzing types, groupings
+      #TODO step 2 (opt) dependency parsing (disambiguating pronouns)      
+      #TODO step 3 types of verbs -- analyzing types, groupings
       #Verb Group 13: Change of Possession
       #Verb Group 15: Hold and Keep
       #Verb Group 26: Verbs of Creation and Transformation
@@ -118,83 +108,94 @@ for (m in 1:length(gspids)){
       #Verb Group 104: Spending Time Verbs
       #Verb Group 105: Use Verbs
       #Verb Group 107: Involve Verbs
-      
       #Support? Teach? Educate?
-      
-      
-      #step 4 = Uses Verbnet database from Univ of Colorado, nature of verbs, categorization. match with verb cats from verbnet
+      #TODO step 4 = Uses Verbnet database from Univ of Colorado, nature of verbs, categorization. match with verb cats from verbnet
       #verbnet <- xmlToList("data_raw/verbnet3.3/cooperate-73.1.xml")
       #verbnet2 <- read_xml("data_raw/verbnet3.3/cooperate-73.1.xml")
       #xml_find_all(verbnet2, "/pathway//entry")
+      #TODO step 5 (opt) lemmatization - how do we chop the verbs? do we use lemma or not
+      #TODO step 6 (opt) hedging and polarity on verbs (should be able to rely on POS tagging) (Bethard and Martin, 2006)
       
-      #step 5 (opt) lemmatization - how do we chop the verbs? do we use lemma or not
-      #step 6 (opt) hedging and polarity (should be able to rely on POS tagging)
-      
-      #step 7 cross-reference database of agency names
-      
-      
-      
-      #create catalog of unique entities and orgs, arranged by num mentions
-      #include most common entity type listed for each entity
-      entities_cut <- entities[entities$entity_type=="ORG" | 
-                                 entities$entity_type=="GPE" | 
-                                 entities$entity_type=="PERSON",
-      ][,c('entity', 'entity_type')]%>% 
-        group_by(entity, entity_type) %>% summarize(n()) %>% arrange(desc(`n()`))
-      
-      entities_subset <- entities_cut[!duplicated(entities_cut[ , "entity"]), ]
-      rm(entities_cut)
-      
-      
-      #later add:     conduct hedging detection on verbs
-      #later add:     conduct polarity detection on verbs
-      #part 5: use event extraction (define event) based on 
-      #later add        non-hedging, positive verb relationships between entities (Bethard and Martin, 2006)
-      #verb net lexicon -- dictionary of verbs
-      #focus on one or two plans
       #1 million char max
       #could call pdftotext, then run cleaning, then collapse into giant string, then tokenizer
       #deal with generic nouns when we scale up eg county that refer to different counties
       
       
-      all_ents <- unique(c(entities_subset$entity, pr_names_grouped))
+      #removes invalid sentences with no root
+      #only keeps sentences that have a subject and object
+      #does not keep sentences with compound subject and no object
+      valid_sentences <- parsedtxt %>% group_by(doc_id, sentence_id) %>% 
+        filter(any(dep_rel == "ROOT") &
+                 any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
+                 any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj"))
+      #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
+      
+      entities_valid <- entities %>% 
+        filter(doc_id %in% valid_sentences$doc_id & sentence_id %in% valid_sentences$sentence_id)
+      rm(entities)
+      
+      #combining full and abbreviated agency names
+      entities_valid$entity <- entities_valid$entity %>% str_remove_all("[^[:alnum:]]") %>% 
+        str_remove_all("^the") %>% str_remove_all("^The") %>% tolower()
+      
+      govsci_agencies$Agency <- govsci_agencies$Agency %>% 
+        str_remove_all("[^[:alnum:]]") %>% 
+        str_remove_all("^the") %>% str_remove_all("^The") %>% tolower()
+      
+      
+      abbr <- function(strng){
+        
+        if (!identical(grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr,useBytes = F), integer(0))){
+          return(govsci_agencies$Agency[grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr, useBytes = F)] )
+        }
+        else
+          return(strng)
+      }
+      
+      entities_valid$entity <- sapply(entities_valid$entity, abbr)
+      print(paste0("combining agency names complete: ",gspids[m]))
+      
+      #create catalog of unique entities and orgs, arranged by num mentions
+      ordered_rownames <- entities_valid %>% 
+        group_by(entity, entity_type) %>% summarize(num_mentions = n()) %>% arrange(desc(num_mentions))
+      
+      entities_valid <- full_join(ordered_rownames, entities_valid)
+    
+      #drop unwanted entity types and only keep ORG, GPE, PERSON
+      entities_OrgGpePerson <- entities_valid[entities_valid$entity_type=="ORG" | 
+                                                entities_valid$entity_type=="GPE" | 
+                                                entities_valid$entity_type=="PERSON",]%>% 
+            group_by(entity, entity_type) %>% summarize(num_mentions,doc_id,sentence_id) %>% arrange(desc(num_mentions))
+      entities_unique <- entities_OrgGpePerson %>% group_by(entity, entity_type, num_mentions) %>% 
+            group_keys %>% arrange(entity, desc(num_mentions)) 
+      rm(entities_valid)
+      #include most common of the three entity types listed for each entity
+      new_type <- entities_unique[!duplicated(entities_unique$entity),] %>% select(!num_mentions)
+      new_num_mentions <- entities_unique %>% group_by(entity) %>% summarize(new_sum = sum(num_mentions))
+      entities_unique_new <- full_join(new_type, new_num_mentions) %>% filter(nchar(entity)>0)
+      #passes identical test
+      #identical(entities_unique[!duplicated(entities_unique$entity),]$entity,entities_unique_new$entity)
+      rm(entities_unique)
+      
+      all_ents <- entities_unique_new$entity
       adj_mat <- matrix(0, nrow = length(all_ents), 
                         ncol = length(all_ents),
                         dimnames = list(all_ents,all_ents)
       )
-      #if sentence contains 2+
-      #"ORG" "GPE" "PERSON" or matches agency database
-      #connected_entities <- valid_sentences  %>% filter(sum(
-      #              entity=="ORG_I" | 
-      #             entity=="ORG_B" | 
-      #            entity=="GPE_I" | 
-      #           entity=="GPE_B" |
-      #          entity=="PERSON_I" |
-      #         entity=="PERSON_B" |
-      #        token %in% pr_names_grouped)>1)
-      entities_mini_df <- entities[entities$entity_type=="ORG" | 
-                                     entities$entity_type=="GPE" | 
-                                     entities$entity_type=="PERSON"|
-                                     entities$entity %in% pr_names_grouped,]
       
-      entities_tiny_df <- entities_mini_df %>% 
-        filter(doc_id %in% valid_sentences$doc_id & sentence_id %in% valid_sentences$sentence_id)
+      #adjacency matrix structure
+      rownames(adj_mat) <- all_ents
+      colnames(adj_mat) <- all_ents
       
-      #only_entities <- connected_entities %>% filter(entity=="ORG_I" | 
-      #                                                 entity=="ORG_B" | 
-      #                                                entity=="GPE_I" | 
-      #                                               entity=="GPE_B" |
-      #                                              entity=="PERSON_I" |
-      #                                             entity=="PERSON_B" |
-      #                                            token %in% pr_names_grouped) 
-      
-      entities_grouped <- entities_tiny_df %>% group_by(doc_id, sentence_id)
-      rm(entities_tiny_df)
-      #TODO unique of entities_grouped so as to not have loops
-      
+      #formatting list of entities for creating combos
+      entities_OrgGpePerson_no_type <- entities_OrgGpePerson %>% ungroup() %>% select(!c(entity_type, num_mentions))
+      entities_grouped <- left_join(entities_unique_new, entities_OrgGpePerson_no_type, by = "entity") %>% group_by(doc_id, sentence_id)
+      saveRDS(entities_grouped, paste0("data/entities_grouped_",gspids[m]))
+      rm(entities_OrgGpePerson)
+      rm(entities_OrgGpePerson_no_type)
       #then increment edge between entities in adjacency matrix by 1
       combos <- group_map(entities_grouped, ~ if(length(.x$entity)>1)combn(.x$entity,2))
-      rm(entities_grouped)
+      rm(entities_grouped) #to save memory temporarily
       
       for(s in 1:length(combos)){
         if(!is.null(combos[[s]])){
@@ -211,97 +212,48 @@ for (m in 1:length(gspids)){
       print(paste0("raw adjmat complete: ",gspids[m]))
       #preserving original adj_mat
       saveRDS(adj_mat, paste0("data/adjmat_orig_",gspids[m]))
-      saveRDS(entities_subset, paste0("data/entities_subset_",gspids[m]))
-  
       
-      adj_mat <- readRDS(paste0("data/adjmat_orig_",gspids[m]))
-      entities_subset <- readRDS(paste0("data/entities_subset_",gspids[m]))
+      #adj_mat <- readRDS(paste0("data/adjmat_orig_",gspids[m]))
+      entities_grouped <- readRDS(paste0("data/entities_grouped_",gspids[m]))
       
       
-      #combining full and abbreviated agency names
-       cleaned_names <- rownames(adj_mat) %>% str_remove_all("[^[:alnum:]]") %>% 
-           str_remove_all("^the") %>% str_remove_all("^The")
-      
-      govsci_agencies$Agency <- govsci_agencies$Agency %>% 
-         str_remove_all("[^[:alnum:]]")
-     
-      
-      abbr <- function(strng){
-        
-         if (!identical(grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr,useBytes = T), integer(0))){
-           return(govsci_agencies$Agency[grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr, useBytes = T)] )
-         }
-        else
-          return(strng)
-      }
-       
-      abbr_names <- sapply(cleaned_names, abbr)
-       
-      rownames(adj_mat) <- abbr_names
-      colnames(adj_mat) <- abbr_names
-      
-      ordered_adj_mat <- adj_mat[order(rownames(adj_mat)),]
-      ordered_adj_mat <- ordered_adj_mat[,order(colnames(adj_mat))]
-      
-      dupl_combined_adj_mat <- rowsum(ordered_adj_mat, group = rownames(ordered_adj_mat), na.rm=T)
-      
-      dupl_combined_adj_mat <- t(rowsum(t(dupl_combined_adj_mat), group = colnames(dupl_combined_adj_mat), na.rm = T))
-      diag(dupl_combined_adj_mat) <- 0
-      
-      dupl_combined_adj_mat[dupl_combined_adj_mat > 0] <- 1
-    
-      
-      print(paste0("combining agency names complete: ",gspids[m]))
   
       #removing node clusters who are only connected to other nodes in their same sentence
       #since this likely either a parsing mistake or a restating of the entity name in a different way
       
       #split each sentence into a different df
-      sent_by_grp <- split(entities, list(entities$doc_id, entities$sentence_id))
+      sent_by_grp <- split(entities_grouped, list(entities_grouped$doc_id, entities_grouped$sentence_id))
+      print(paste0("sentence group splitting complete: ",gspids[m]))
       #start list of entities to remove
       names_to_remove <- character(0)
       for (sent_num in 1:length(sent_by_grp)){
         num_entities <- nrow(sent_by_grp[[sent_num]])
-        #initialize empty (FALSE) vector stating whether entities are exclusive
-        is_exclusive <- logical(num_entities)
-        #check if all entities in that sentence are exclusive to that sentence
-        for(entity_num in 1:num_entities){
-          #check if each entity is in multiple sentences 
-          if(!(nrow(distinct(entities[entities$entity == sent_by_grp[[sent_num]]$entity[entity_num],],
-                             doc_id, sentence_id,.keep_all=T))>1)){
-            is_exclusive[entity_num] <- T
+        if(num_entities > 0){
+          #initialize empty (FALSE) vector stating whether entities are exclusive
+          is_exclusive <- logical(num_entities)
+          #check if all entities in that sentence are exclusive to that sentence
+          for(entity_num in 1:num_entities){
+            #check if each entity is in multiple sentences 
+            if(!(nrow(distinct(entities_grouped[entities_grouped$entity == sent_by_grp[[sent_num]]$entity[entity_num],],
+                               doc_id, sentence_id,.keep_all=T))>1)){
+              is_exclusive[entity_num] <- T
+            }
+          }#TODO - should the following if go above this brace?
+          #if there are no entities in that sentence that exist outside of that sentence,
+          if(sum(is_exclusive)==num_entities){
+            #add the entities in that sentence to a "no list" to remove later 
+            names_to_remove <- append(names_to_remove, sent_by_grp[[sent_num]]$entity)
           }
-        }#TODO - should the following if go above this brace?
-        #if there are no entities in that sentence that exist outside of that sentence,
-        if(sum(is_exclusive)==num_entities){
-          #add the entities in that sentence to a "no list" to remove later 
-          names_to_remove <- append(names_to_remove, sent_by_grp[[sent_num]]$entity)
         }
+        
       }
+      print(paste0("identifying isolated sentences complete: ",gspids[m]))
+      
       #get rid of rows and columns for all entities on the "no list"
       #TODO decide whether to use sparseMatrix as follows: adj_mat <- as(adj_mat, "sparseMatrix")
       adj_mat <- adj_mat[!(rownames(adj_mat)%in%names_to_remove),!(colnames(adj_mat)%in%names_to_remove)]
       
       print(paste0("removing isolated sentences complete: ",gspids[m]))
-  #     old cleaning method that only searches for adjacent dyads. doesn't work now that
-  #     the data is organized by number of mentions, rather than sentence appearance order
-  #     for(i in 1:nrow(adj_mat)){
-  #      if(sum(adj_mat[i,])==1 & (ncol(adj_mat)>i && adj_mat[i,i+1]==1)){
-  #        adj_mat[i,i+1] <- 0
-  #        adj_mat[i+1,i] <- 0
-  #      }
-   #     if(sum(adj_mat[i,])==1 & (i > 1 && adj_mat[i,i-1]==1)){
-  #        adj_mat[i,i-1] <- 0
-  #        adj_mat[i-1,i] <- 0
-  #      }
-  #    }
-      
-  #    #testing to see if it worked. Should only print organizations who were in the middle of a cluster of three
-  #    #for(i in 1:nrow(adj_mat)){
-  #    #   if(sum(adj_mat[i,])==1 & ((ncol(adj_mat)>i && adj_mat[i,i+1]==1) | (i > 1 && adj_mat[i,i-1]==1))){
-  #    #      print(i)
-  #    #   }
-  #    #}
       
       #removing isolates
       adj_mat_subset <- adj_mat[rowSums(adj_mat)>0,]
@@ -312,13 +264,9 @@ for (m in 1:length(gspids)){
                                      directed = FALSE, ignore.eval = F, names.eval = "weights")
       
       name <- network::get.vertex.attribute(agency_net, "vertex.names")
-      
       #setting node attribute of entity type
-      entities_mini_df <- entities_mini_df %>% 
-        group_by(entity, entity_type) %>% summarize(n()) %>% arrange(desc(`n()`))
-      network_entities <- entities_mini_df[!duplicated(entities_mini_df[ , "entity"]), ]
-      network_entities <- network_entities[network_entities$entity %in% name,]
-      network_entities <- network_entities[match(name, network_entities$entity),]
+      
+      network_entities <- entities_unique_new[match(name, entities_unique_new$entity),]
       #order equivalence check
       print(paste0("identical check: ", identical(network_entities$entity, name)))
       network::set.vertex.attribute(agency_net, "type", network_entities$entity_type)
