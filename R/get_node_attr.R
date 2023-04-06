@@ -8,7 +8,7 @@ gspids <- unique(gsp_text_with_meta$gsp_id)
 for(m in 1:length(gspids)){
   
   if(!file.exists(paste0("data/node_attr_",gspids[m]))){
-    agency_net <- readRDS(paste0("data/network_",gspids[m]))
+    agency_net <- readRDS(paste0("data/network_maincomponents_",gspids[m]))
     closens <- sna::closeness(agency_net, gmode = "graph", cmode="undirected")
     between <- sna::betweenness(agency_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(agency_net, gmode = "graph", cmode = "undirected")

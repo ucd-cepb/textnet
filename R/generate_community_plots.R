@@ -6,7 +6,7 @@ gsp_text_with_meta <- readRDS("data/prepped_for_sna")
 gspids <- unique(gsp_text_with_meta$gsp_id)
 
 for(m in 1:length(gspids)){
-  agency_net <- readRDS(paste0("data/network_",gspids[m]))
+  agency_net <- readRDS(paste0("data/network_maincomponents_",gspids[m]))
   
   igr <- asIgraph(agency_net)
   set.seed(327856)
