@@ -44,6 +44,7 @@ if(generate_phrases){
 
 if(test_data==TRUE){
   test_collabs <- ("Invalid_sentence. Only one organization exists. National_Conservation_Service and US_Dept_of_Ag are to work together on providing the GSA the appropriate regulation language. Yolo County is to send the GSA all correspondence related to the basin setting. They shall report to the Board. The CDC will collaborate with NASA on the project. NRA's partners will include the FBI and several other agencies. The GSA is to submit their plan to the consultant. When the NSA meets with organizations such as the SWRCB, it is to take care to copy them on all correspondence. If they partner together, the GDE plan must be documented. The GSAs may not outsource their work to any other organizations. Sacramento Water Board may work with other partners as deemed necessary. Davis City Council may decide to incorporate the recommendations of BCDC.")
+  test_deprel <- ("Invalid_sentence. Only one organization exists. National_Conservation_Service and US_Dept_of_Ag are to work together on providing the GSA the appropriate regulation language. Yolo County is to send the GSA all correspondence related to the basin setting. They shall report to the Board. The CDC will collaborate with NASA on the project. NRA's partners will include the FBI and several other agencies. The GSA is to submit their plan to the consultant. When the NSA meets with organizations such as the SWRCB, it is to take care to copy them on all correspondence. If they partner together, the GDE plan must be documented. The GSAs may not outsource their work to any other organizations. Sacramento Water Board may work with other partners as deemed necessary. Davis City Council may decide to incorporate the recommendations of BCDC.")
   
   test_parse <- spacy_parse(test_collabs,
                             pos = T,
@@ -87,6 +88,15 @@ for (m in 1:length(gspids)){
       #part 2: identify entities
       entities <- entity_extract(parsedtxt,type="all")
       
+      roots <- parsedtxt %>% filter(dep_rel == "ROOT")
+      #add dependency parsing tags to entities like this:
+      #break apart entities at underlines to form tok
+      #find all section of rows in parsedtxt where doc id and sentence id are correct and the section of 
+      #tokens is equivalent to tok
+      #create new cols of entity_extract: is_obj and is_subj
+      #if at least one of the rows involved is dobj, pobj, or any other obj, is_obj = true
+      #same for subj
+      #filter for !empty is_obj or is_subj
       
       
       
@@ -121,11 +131,11 @@ for (m in 1:length(gspids)){
       #deal with generic nouns when we scale up eg county that refer to different counties
       
       
-      #removes invalid sentences with no root
+      #removes invalid sentences with no verb
       #only keeps sentences that have a subject and object
       #does not keep sentences with compound subject and no object
       valid_sentences <- parsedtxt %>% group_by(doc_id, sentence_id) %>% 
-        filter(any(dep_rel == "ROOT") &
+        filter(any(pos == "VERB") &
                  any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
                  any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj"))
       #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
