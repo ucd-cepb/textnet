@@ -1,5 +1,7 @@
 generate_phrases <- FALSE
 test_data <- FALSE
+mini_data <- T
+#mini_data uses only a 50-page sample to make testing and editing go faster
 draw_edges <- T
 #FALSE
 
@@ -43,8 +45,7 @@ if(generate_phrases){
 }
 
 if(test_data==TRUE){
-  test_collabs <- ("Invalid_sentence. Only one organization exists. National_Conservation_Service and US_Dept_of_Ag are to work together on providing the GSA the appropriate regulation language. Yolo County is to send the GSA all correspondence related to the basin setting. They shall report to the Board. The CDC will collaborate with NASA on the project. NRA's partners will include the FBI and several other agencies. The GSA is to submit their plan to the consultant. When the NSA meets with organizations such as the SWRCB, it is to take care to copy them on all correspondence. If they partner together, the GDE plan must be documented. The GSAs may not outsource their work to any other organizations. Sacramento Water Board may work with other partners as deemed necessary. Davis City Council may decide to incorporate the recommendations of BCDC.")
-  test_deprel <- ("Invalid_sentence. Only one organization exists. National_Conservation_Service and US_Dept_of_Ag are to work together on providing the GSA the appropriate regulation language. Yolo County is to send the GSA all correspondence related to the basin setting. They shall report to the Board. The CDC will collaborate with NASA on the project. NRA's partners will include the FBI and several other agencies. The GSA is to submit their plan to the consultant. When the NSA meets with organizations such as the SWRCB, it is to take care to copy them on all correspondence. If they partner together, the GDE plan must be documented. The GSAs may not outsource their work to any other organizations. Sacramento Water Board may work with other partners as deemed necessary. Davis City Council may decide to incorporate the recommendations of BCDC.")
+  test_collabs <- ("Invalid_sentence. DWR and DOT collaborate with the GSA to implement CDFA regulations. They are working with her. Only one organization exists. National_Conservation_Service and US_Dept_of_Ag are to work together on providing the GSA the appropriate regulation language. Yolo County is to send the GSA all correspondence related to the basin setting. They shall report to the Board. The CDC will collaborate with NASA on the project. NRA's partners will include the FBI and several other agencies. The GSA is to submit their plan to the consultant. When the NSA meets with organizations such as the SWRCB, it is to take care to copy them on all correspondence. If they partner together, the GDE plan must be documented. The GSAs may not outsource their work to any other organizations. Sacramento Water Board may work with other partners as deemed necessary. Davis City Council may decide to incorporate the recommendations of BCDC.")
   
   test_parse <- spacy_parse(test_collabs,
                             pos = T,
@@ -67,10 +68,18 @@ rm(gsp_text_with_meta)
 
 
 for (m in 1:length(gspids)){
-  
+  if(mini_data==T){
+    parsefileexists <- file.exists(paste0("data/parsed_mini_",gspids[m]))
+  }else{
+    parsefileexists - file.exists(paste0("data/parsed_",gspids[m]))
+  }
   if(draw_edges==TRUE){
-      if(!file.exists(paste0("data/parsed_",gspids[m]))){
+      if(!parsefileexists){
         single_plan_text <- unlist(gsp_planonly[gsp_id==gspids[m]]$text)
+        
+        if(mini_data==T){
+          single_plan_text <- single_plan_text[1:50]
+        }
         parsedtxt <- spacy_parse(single_plan_text,
                                  pos = T,
                                  tag = T,
@@ -78,17 +87,25 @@ for (m in 1:length(gspids)){
                                  entity = T,
                                  dependency = T,
                                  nounphrase = T)
-        saveRDS(parsedtxt, paste0("data/parsed_",gspids[m]))
+        if(mini_data==F){
+          saveRDS(parsedtxt, paste0("data/parsed_",gspids[m]))
+        }else{
+          saveRDS(parsedtxt, paste0("data/parsed_mini_",gspids[m]))
+        }
       }
       print(paste0("parsing complete: ",gspids[m]))
       
-      parsedtxt <- readRDS(paste0("data/parsed_",gspids[m]))
+      if(mini_data==F){
+        parsedtxt <- readRDS(paste0("data/parsed_",gspids[m]))
+      }else{
+        parsedtxt <- readRDS(paste0("data/parsed_mini_",gspids[m]))
+      }
       #part 1: POS tagging with spacy
       
       #part 2: identify entities
-      entities <- entity_extract(parsedtxt,type="all")
+      entities <- entity_extract(parsedtxt,type="all") %>% mutate(doc_sent = paste0(doc_id, "_", sentence_id))
       
-      roots <- parsedtxt %>% filter(dep_rel == "ROOT")
+      verbs <- parsedtxt %>% filter(pos == "VERB")
       #add dependency parsing tags to entities like this:
       #break apart entities at underlines to form tok
       #find all section of rows in parsedtxt where doc id and sentence id are correct and the section of 
@@ -137,11 +154,12 @@ for (m in 1:length(gspids)){
       valid_sentences <- parsedtxt %>% group_by(doc_id, sentence_id) %>% 
         filter(any(pos == "VERB") &
                  any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
-                 any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj"))
+                 any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj")) %>% 
+        mutate(doc_sent = paste0(doc_id, "_", sentence_id))
       #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
       
       entities_valid <- entities %>% 
-        filter(doc_id %in% valid_sentences$doc_id & sentence_id %in% valid_sentences$sentence_id)
+        filter(doc_sent %in% valid_sentences$doc_sent)
       rm(entities)
       
       #combining full and abbreviated agency names
@@ -165,17 +183,17 @@ for (m in 1:length(gspids)){
       entities_valid$entity <- sapply(entities_valid$entity, abbr)
       print(paste0("combining agency names complete: ",gspids[m]))
       
-      #create catalog of unique entities and orgs, arranged by num mentions
-      ordered_rownames <- entities_valid %>% 
+      #create catalog of unique entities and entity types, arranged by num mentions
+      ordered_entities <- entities_valid %>% 
         group_by(entity, entity_type) %>% summarize(num_mentions = n()) %>% arrange(desc(num_mentions))
-      
-      entities_valid <- full_join(ordered_rownames, entities_valid)
+      #appending num_mentions to entities_valid and arranging by num_mentions
+      entities_valid <- full_join(ordered_entities, entities_valid)
     
       #drop unwanted entity types and only keep ORG, GPE, PERSON
       entities_OrgGpePerson <- entities_valid[entities_valid$entity_type=="ORG" | 
                                                 entities_valid$entity_type=="GPE" | 
                                                 entities_valid$entity_type=="PERSON",]%>% 
-            group_by(entity, entity_type) %>% summarize(num_mentions,doc_id,sentence_id) %>% arrange(desc(num_mentions))
+            group_by(entity, entity_type) %>% summarize(num_mentions,doc_sent) %>% arrange(desc(num_mentions))
       entities_unique <- entities_OrgGpePerson %>% group_by(entity, entity_type, num_mentions) %>% 
             group_keys %>% arrange(entity, desc(num_mentions)) 
       rm(entities_valid)
@@ -200,7 +218,11 @@ for (m in 1:length(gspids)){
       #formatting list of entities for creating combos
       entities_OrgGpePerson_no_type <- entities_OrgGpePerson %>% ungroup() %>% select(!c(entity_type, num_mentions))
       entities_grouped <- left_join(entities_unique_new, entities_OrgGpePerson_no_type, by = "entity") %>% group_by(doc_id, sentence_id)
-      saveRDS(entities_grouped, paste0("data/entities_grouped_",gspids[m]))
+      if(mini_data==F){
+        saveRDS(entities_grouped, paste0("data/entities_grouped_",gspids[m]))
+      }else{
+        saveRDS(entities_grouped, paste0("data/entities_grouped_mini_",gspids[m]))
+      }
       rm(entities_OrgGpePerson)
       rm(entities_OrgGpePerson_no_type)
       #then increment edge between entities in adjacency matrix by 1
@@ -221,10 +243,15 @@ for (m in 1:length(gspids)){
       
       print(paste0("raw adjmat complete: ",gspids[m]))
       #preserving original adj_mat
-      saveRDS(adj_mat, paste0("data/adjmat_orig_",gspids[m]))
+      if(mini_data==F){
+        saveRDS(adj_mat, paste0("data/adjmat_orig_",gspids[m]))
+        entities_grouped <- readRDS(paste0("data/entities_grouped_",gspids[m]))
+      }else{
+        entities_grouped <- readRDS(paste0("data/entities_grouped_mini_",gspids[m]))
+      }
       
       #adj_mat <- readRDS(paste0("data/adjmat_orig_",gspids[m]))
-      entities_grouped <- readRDS(paste0("data/entities_grouped_",gspids[m]))
+      
       
       
   
@@ -280,7 +307,12 @@ for (m in 1:length(gspids)){
       #order equivalence check
       print(paste0("identical check: ", identical(network_entities$entity, name)))
       network::set.vertex.attribute(agency_net, "type", network_entities$entity_type)
-      saveRDS(agency_net, paste0("data/network_maincomponents_",gspids[m]))
+      if(mini_data==F){
+        saveRDS(agency_net, paste0("data/network_maincomponents_",gspids[m]))
+      }else{
+        saveRDS(agency_net, paste0("data/network_maincomponents_mini_",gspids[m]))
+      }
+      
         
 
   } 
