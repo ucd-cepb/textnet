@@ -147,16 +147,7 @@ for (m in 1:length(gspids)){
       #could call pdftotext, then run cleaning, then collapse into giant string, then tokenizer
       #deal with generic nouns when we scale up eg county that refer to different counties
       
-      
-      #removes invalid sentences with no verb
-      #only keeps sentences that have a subject and object
-      #does not keep sentences with compound subject and no object
-      valid_sentences <- parsedtxt %>% group_by(doc_id, sentence_id) %>% 
-        filter(any(pos == "VERB") &
-                 any(dep_rel == "nsubj" | dep_rel == "nsubjpass") & 
-                 any(dep_rel == "pobj" | dep_rel == "iobj" | dep_rel == "dative" | dep_rel == "dobj")) %>% 
-        mutate(doc_sent = paste0(doc_id, "_", sentence_id))
-      #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
+
       
       entities_valid <- entities %>% 
         filter(doc_sent %in% valid_sentences$doc_sent)
