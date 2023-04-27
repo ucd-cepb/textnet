@@ -146,20 +146,19 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   #to distinguish "eat, drink, and be merry" from "bring and read books"
   
   #add temporary entity_ids so the other rows don't get collapsed
-  temp_entity_ids <- seq(-1,-sum(is.na(spacy_result[,entity_id])),length.out = sum(is.na(spacy_result[,entity_id])))
+  temp_entity_ids <- seq(-sum(is.na(spacy_result[,entity_id])),-1,length.out = sum(is.na(spacy_result[,entity_id])))
   spacy_result[is.na(entity_id), `:=`(entity_id, temp_entity_ids)]
   
   #collapse entity rows 
-  entities <- spacy_result[, lapply(.SD, function(x) ifelse(length(unique(x))>1,x,unique(x))), 
-                           by = entity_id, .SDcols = c("doc_sent", 
-                                                       "token_id",
-                                                       #"head_token_id", 
-                                                       #"tag",
-                                                       # "primary_dep_rel", 
-                                                       "entity_type")]
+  entities_collapsed <- spacy_result[,lapply(spacy_result, function(x) tapply(x, spacy_result$entity_id, function(j){as.vector(j)}))]
+  entity_reorder <- match(sort(unique(spacy_result$entity_id)),unique(spacy_result$entity_id))
+  entities_collapsed <- cbind(entities_collapsed, entity_id = sort(unique(spacy_result$entity_id)))
+  
   #concatenate words in entity name
-  entities[, `:=`(entity, spacy_result[, lapply(.SD, function(x) paste(x, 
-                                                                       collapse = concatenator)), by = entity_id, .SDcols = c("token")]$token)]
+  entity_name <- spacy_result[,lapply(.SD,function(x) paste(x, collapse=concatenator)),by=entity_id, .SDcols=c("token")]$token[entity_reorder]
+  entities_collapsed[, `:=`(entity_name, spacy_result[, lapply(.SD, function(x) paste(x, 
+                                                                       collapse = concatenator)), by = entity_id, .SDcols = c("token")]$token[entity_reorder])]
+  
   
   
   
