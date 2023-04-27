@@ -53,6 +53,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   head_verb_name <- vector(mode = "list", length = length(doc_sent_list))
   head_verb_lemma <- vector(mode = "list", length = length(doc_sent_list))
   head_verb_tense <- vector(mode = "list", length = length(doc_sent_list))
+  parent_verb_id <- vector(mode = "list", length = length(doc_sent_list))
   
   for(doc_sent_num in 1:length(doc_sent_list)){
     source_or_target[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
@@ -60,6 +61,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
     head_verb_name[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
     head_verb_lemma[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
     head_verb_tense[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
+    parent_verb_id[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
     
     for(tok_num in 1:length(spacy_result[doc_sent==doc_sent_list[doc_sent_num],doc_sent])){
       #generates array designating source or target for each word, by doc_sent
@@ -110,6 +112,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
         head_verb_name[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token]
         head_verb_lemma[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,lemma]
         head_verb_tense[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,tag]
+        parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
 
       }else if(source_or_target[[doc_sent_num]][tok_num]=="source"){
         current_token_is_verb <- F
@@ -125,7 +128,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
         head_verb_name[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token]
         head_verb_lemma[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,lemma]
         head_verb_tense[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,tag]
-        
+        parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
         
       }else if(!is.na(source_or_target[[doc_sent_num]][tok_num])){
           print(paste0("Anomaly ",source_or_target[[doc_sent_num]][tok_num],
@@ -139,8 +142,15 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
                         head_verb_id = unlist(head_verb_id),
                         head_verb_name = unlist(head_verb_name),
                         head_verb_lemma = unlist(head_verb_lemma),
-                        head_verb_tense = unlist(head_verb_tense))
+                        head_verb_tense = unlist(head_verb_tense),
+                        parent_verb_id = unlist(parent_verb_id))
   
+  rm(source_or_target)
+  rm(head_verb_id)
+  rm(head_verb_name)
+  rm(head_verb_lemma)
+  rm(head_verb_tense)
+  rm(parent_verb_id)
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
   #adopt the other verb's object
   #to distinguish "eat, drink, and be merry" from "bring and read books"
@@ -161,20 +171,78 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   
   entities_collapsed <- setDT(lapply(entities_collapsed, function(y) lapply(y, function(x) if(length(unique(x))==1) as.vector(unique(x)) else as.vector(x))))
   
+  #make unique head_verb_id and head_token_id identifier for each doc_sent
+  entities_collapsed[, `:=`(doc_sent_verb, paste0(doc_sent, "_", head_verb_id))]
+  entities_collapsed[, `:=`(doc_sent_parent, paste0(doc_sent, "_", parent_verb_id))]
+  entities_collapsed[, `:=`(doc_sent_head_tok, paste0(doc_sent, "_", head_token_id))]
   
+  #tag each head_tok that has a negation child
+        entities_collapsed[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_verb]
+        #entities_collapsed[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_head_tok]
+  #TODO fix the negation algorithm
+  #is the head_tok a verb?
+  #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
+  #as.numeric(str_extract(entities_collapsed$doc_sent_head_tok, "(\\d+)$"))
+  #entities_collapsed[unlist(entities_collapsed$doc_sent)
+  #entities_collapsed$pos[)]
   
+  #str_extract(entities_collapsed$doc_sent_head_tok, "(\\d+)$")
   
+  #entities are the only ones with multiple values per element, and they are not going to be neg, so it's ok to use only the first value
+  #View(lapply(entities_collapsed[,head_token_id], function(x) entities_collapsed[x]))
+  #sapply(entities_collapsed[,head_token_id],"[[",1)
+  #unlist(entities_collapsed[,doc_sent])
+  
+  #entities_collapsed[sapply(entities_collapsed[,head_token_id],"[[",1), pos] %in% c("VERB", "AUX")
   #transform spacy_result into edgelist, with columns source, target, verb, lemma, verb tense, and neg Y/N
-  #for each verb:
-  #make list of all sources. If the verb doesn't have any sources, 
-  #trace to the verb ID that this verb points to and selects the sources for that verb.
-  #   End loop if self-reference, revisits an index, or if ROOT
-  #then subset these sources by which ones are entities and list them
-  #make list of targets that are entities
-  #mark the name of the verb
-  #mark the lemma of the verb
-  #mark the verb tense
-  #mark whether the verb has a neg
+  
+  #start with verb properties: head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, neg, and parent_verb_id
+  verb_dt <- entities_collapsed[,list(doc_sent_verb, head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, parent_verb_id, doc_sent_parent, neg)]
+  
+  verb_dt <- distinct(verb_dt)
+  
+  #remove verbs with neg
+  verb_dt <- verb_dt[neg==F]
+  
+  ind <- match(c("head_verb_id"),colnames(verb_dt))
+  
+  for(j in ind) set(verb_dt, j =j ,value = as.numeric(verb_dt[[j]]))
+  #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
+  
+  #verbs_that_have_neg <- entities_collapsed[,if(any(dep_rel=="neg")) .SD, by=doc_sent_verb]
+  #has_neg <- 
+  
+  #now, for each verb, make a list of all sources. 
+  #TODO If the verb doesn't have any sources, 
+  #TODO trace to the verb ID that this verb points to and selects the sources for that verb.
+  
+  source_target_list <- entities_collapsed[,.(entity_name, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent)]
+  
+  #only keep actual entities
+  source_target_list <- source_target_list[entity_id>0]
+  
+  ind <- match(c("entity_name","entity_type","source_or_target","doc_sent_verb","doc_sent_parent"),colnames(source_target_list))
+
+  for(j in ind) set(source_target_list, j =j ,value = as.character(source_target_list[[j]]))
+  
+  ind <- match(c("entity_id"),colnames(source_target_list))
+  
+  for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
+  
+  source_target_list <- tibble(source_target_list)
+  st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_name)
+  
+  st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target)
+
+  View(inner_join(st_pivot, verb_dt, by = c("doc_sent_verb", "doc_sent_parent")))
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
