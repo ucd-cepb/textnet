@@ -133,10 +133,6 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
                         head_verb_lemma = unlist(head_verb_lemma),
                         head_verb_tense = unlist(head_verb_tense))
 
-  head_verb_id <- unlist(head_verb_id)
-  head_verb_name 
-  head_verb_lemma 
-  head_verb_tense 
   
     
 
