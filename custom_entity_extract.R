@@ -159,6 +159,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   entities_collapsed[, `:=`(entity_name, spacy_result[, lapply(.SD, function(x) paste(x, 
                                                                        collapse = concatenator)), by = entity_id, .SDcols = c("token")]$token[entity_reorder])]
   
+  entities_collapsed <- setDT(lapply(entities_collapsed, function(y) lapply(y, function(x) if(length(unique(x))==1) as.vector(unique(x)) else as.vector(x))))
   
   
   
