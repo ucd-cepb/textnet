@@ -1,4 +1,12 @@
-entities <- entity_extract(parsedtxt,type="all") %>% mutate(doc_sent = paste0(doc_id, "_", sentence_id))
+#sample parsedtxt
+parsedtxt <- spacy_parse(c("Meg Johnson and Evan McGee sit and discuss the Department of Transportation while the Department of Energy does nothing." ,
+                           "Frances Potter and Beatrix Lovegood sit and discuss poetry with Jim Robinson.", 
+                           "What she said makes sense", "What she said was well received", 
+                           "To hike in the mountains is to experience the best of nature.", 
+                           "For us to not attempt to solve the problem is for us to acknowledge defeat."),
+                         pos=T, tag=T, lemma=T, entity=T, dependency=T, nounphrase=T)
+
+#entities <- entity_extract(parsedtxt,type="all") %>% mutate(doc_sent = paste0(doc_id, "_", sentence_id))
 
 type = "all"
 x = parsedtxt
@@ -71,12 +79,12 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
           #if you find an appositive, stop -- it's a duplicate and should not be counted
           spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,dep_rel] %in% c("appos") ~ "remove",
           
+          #If head_token_id trail traces back to a verb before hitting a subject, --> target
+          spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,pos] %in% c("VERB","AUX") ~ "target",
+          
           #if you find a subject, stop
           #If head_token_id trail traces back to a subject before hitting a verb, --> source
           spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,dep_rel] %in% c("nsubj","nsubjpass","csubj","csubjpass","agent","expl") ~ "source",
-          
-          #If head_token_id trail traces back to a verb before hitting a subject, --> target
-          spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,pos] %in% c("VERB","AUX") ~ "target",
           
           #If head_token_id trail traces back to root that is not a verb, --> "root_not_verb"
           spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,dep_rel] == "ROOT" ~ "root_not_verb",
@@ -132,24 +140,19 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
                         head_verb_name = unlist(head_verb_name),
                         head_verb_lemma = unlist(head_verb_lemma),
                         head_verb_tense = unlist(head_verb_tense))
-
-  
-    
-
-  
-  
   
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
   #adopt the other verb's object
   #to distinguish "eat, drink, and be merry" from "bring and read books"
   
-  
+  #add temporary entity_ids so the other rows don't get collapsed
+  temp_entity_ids <- seq(-1,-sum(is.na(spacy_result[,entity_id])),length.out = sum(is.na(spacy_result[,entity_id])))
+  spacy_result[is.na(entity_id), `:=`(entity_id, temp_entity_ids)]
   
   #collapse entity rows 
-  #TODO adjust so this doesn't get rid of other rows
-  entities <- spacy_result[, lapply(.SD, function(x) x[1]), 
-                           by = entity_id, .SDcols = c("doc_id", "sentence_id", "doc_sent", 
-                                                       # "token_id",
+  entities <- spacy_result[, lapply(.SD, function(x) ifelse(length(unique(x))>1,x,unique(x))), 
+                           by = entity_id, .SDcols = c("doc_sent", 
+                                                       "token_id",
                                                        #"head_token_id", 
                                                        #"tag",
                                                        # "primary_dep_rel", 
