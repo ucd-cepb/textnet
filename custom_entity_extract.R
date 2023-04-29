@@ -274,6 +274,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
   View(edgelist)
   
+  edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
   
   
