@@ -210,13 +210,31 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
   
   #verbs_that_have_neg <- entities_collapsed[,if(any(dep_rel=="neg")) .SD, by=doc_sent_verb]
-  #has_neg <- 
+ 
   
-  #now, for each verb, make a list of all sources. 
-  #TODO If the verb doesn't have any sources, 
-  #TODO trace to the verb ID that this verb points to and selects the sources for that verb.
   
-  source_target_list <- entities_collapsed[,.(entity_name, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent)]
+  #does the verb have any sources?
+  entities_collapsed[, `:=`(has_sources, any(source_or_target=="source")), by = doc_sent_verb]
+  
+  source_target_list <- entities_collapsed[,.(entity_name, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent, has_sources)]
+  
+  #If the verb doesn't have any sources, 
+  #this traces to the verb ID that this verb points to and selects the sources for that verb.
+  #TODO create while loop that searches all parent verbs in the sentence for sources, not just the immediate one 
+  verbs_without_sources <- sapply(which(entities_collapsed$has_sources==F),function(x)source_target_list[x]$doc_sent_verb)
+  parents <- sapply(which(entities_collapsed$has_sources==F),function(x)source_target_list[x]$doc_sent_parent)
+  sources_have_been_adopted <- vector(length = length(verbs_without_sources))
+  for(p in 1:length(parents)){
+    if(!sources_have_been_adopted[p]){
+      adopted_dt <- source_target_list[doc_sent_verb==parents[p] & source_or_target == "source"]
+      adopted_dt[, `:=`(doc_sent_verb, verbs_without_sources[p])]
+      source_target_list <- rbindlist(list(source_target_list, adopted_dt))
+    }
+    
+    sources_have_been_adopted[which(verbs_without_sources == verbs_without_sources[p])] <- T
+    
+  }
+  
   
   #only keep actual entities
   source_target_list <- source_target_list[entity_id>0]
@@ -230,11 +248,15 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
   
   source_target_list <- tibble(source_target_list)
-  st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_name)
   
+  
+  
+  #create all combos of source and target by doc_sent_verb
+  st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_name)
   st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target)
 
-  View(inner_join(st_pivot, verb_dt, by = c("doc_sent_verb", "doc_sent_parent")))
+  edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb", "doc_sent_parent"))
+  View(edgelist)
   
   
   
