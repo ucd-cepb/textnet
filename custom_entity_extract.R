@@ -56,30 +56,33 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   parent_verb_id <- vector(mode = "list", length = length(doc_sent_list))
   
   for(doc_sent_num in 1:length(doc_sent_list)){
-    source_or_target[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
-    head_verb_id[[doc_sent_num]] <- vector(mode = "numeric", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
-    head_verb_name[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
-    head_verb_lemma[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
-    head_verb_tense[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
-    parent_verb_id[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_num, doc_sent]))
+    print(paste0("beginning doc_sent ",doc_sent_list[doc_sent_num]))
+    source_or_target[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
+    head_verb_id[[doc_sent_num]] <- vector(mode = "numeric", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
+    head_verb_name[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
+    head_verb_lemma[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
+    head_verb_tense[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
+    parent_verb_id[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
     
     for(tok_num in 1:length(spacy_result[doc_sent==doc_sent_list[doc_sent_num],doc_sent])){
+      #TODO this for loop is very slow
       #generates array designating source or target for each word, by doc_sent
       initial_token_id <- tok_num
       current_token_id <- initial_token_id
       head_tok_id <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][tok_num,head_token_id]
       
       source_or_target[[doc_sent_num]][tok_num] <- NA
+      break_while_counter <- 0
       #while loop
       #this categorizes each word as either source or target and 
       #saves it as a new column. Identifies head_verb_id and saves it as a new column
-      while(is.na(source_or_target[[doc_sent_num]][tok_num])){
+      while(is.na(source_or_target[[doc_sent_num]][tok_num]) & break_while_counter < 15){
         
         source_or_target[[doc_sent_num]][tok_num] <- case_when(
           
           #if head_token_id trail traces back to an appositive before hitting anything else --> NA
           #if you find an appositive, stop -- it's a duplicate and should not be counted
-          spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,dep_rel] %in% c("appos") ~ "remove",
+          spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,dep_rel] %in% c("appos") ~ "appos",
           
           #If head_token_id trail traces back to a verb before hitting a subject, --> target
           spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,pos] %in% c("VERB","AUX") ~ "target",
@@ -103,7 +106,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
           current_token_id <- head_tok_id
           head_tok_id <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,head_token_id]
         }
-        
+        break_while_counter <- break_while_counter + 1
       }#end of while
       
       if(source_or_target[[doc_sent_num]][tok_num]=="target"){
@@ -115,25 +118,37 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
         parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
 
       }else if(source_or_target[[doc_sent_num]][tok_num]=="source"){
+        #TODO what to call "sources" that point to roots that aren't verbs?
         current_token_is_verb <- F
-        while(!current_token_is_verb){
+        source_while_counter <- 0
+        while(!current_token_is_verb & source_while_counter < 10){
           current_token_is_verb <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,pos]%in%c("VERB","AUX")
           if(!current_token_is_verb){
             current_token_id <- head_tok_id
             head_tok_id <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,head_token_id]
           }
+          source_while_counter <- source_while_counter + 1
         }
         #if source_or_target == source , set head_verb_id as first verb it hits
-        head_verb_id[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token_id]
-        head_verb_name[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token]
-        head_verb_lemma[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,lemma]
-        head_verb_tense[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,tag]
-        parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
+        if(current_token_is_verb){
+          head_verb_id[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token_id]
+          head_verb_name[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token]
+          head_verb_lemma[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,lemma]
+          head_verb_tense[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,tag]
+          parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
+        }else{
+          head_verb_id[[doc_sent_num]][tok_num] <- NA
+          head_verb_name[[doc_sent_num]][tok_num] <- NA
+          head_verb_lemma[[doc_sent_num]][tok_num] <- NA
+          head_verb_tense[[doc_sent_num]][tok_num] <- NA
+          parent_verb_id[[doc_sent_num]][tok_num] <- NA
+        }
+        
         
       }else if(!is.na(source_or_target[[doc_sent_num]][tok_num])){
           print(paste0("Anomaly ",source_or_target[[doc_sent_num]][tok_num],
-                       " found at doc_sent_num ", doc_sent_num, ", tok_num ", tok_num))
-        }
+                       " found at doc_sent ", doc_sent_list[doc_sent_num], ", tok_num ", tok_num))
+      }
     }#end of for tok_num
   }#end of for doc_sent_num
   
@@ -204,9 +219,10 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   #remove verbs with neg
   verb_dt <- verb_dt[neg==F]
   
-  ind <- match(c("head_verb_id"),colnames(verb_dt))
+  #ind <- match(c("head_verb_id"),colnames(verb_dt))
+  #set(verb_dt, j = ind ,value = as.numeric(verb_dt[[ind]]))
   
-  for(j in ind) set(verb_dt, j =j ,value = as.numeric(verb_dt[[j]]))
+  
   #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
   
   #verbs_that_have_neg <- entities_collapsed[,if(any(dep_rel=="neg")) .SD, by=doc_sent_verb]
@@ -253,9 +269,9 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   
   #create all combos of source and target by doc_sent_verb
   st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_name)
-  st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target)
+  st_pivot <- st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target)
 
-  edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb", "doc_sent_parent"))
+  edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
   View(edgelist)
   
   
@@ -280,3 +296,8 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   as.data.frame(entities[, list(doc_id, sentence_id, entity, 
                                 entity_type)])
 }
+
+#TODO value adds:
+#TODO don't import subjects unless there's a cc; otherwise, import the object??
+#TODO import the object that "which" refers to
+#TODO other non-entities we care about? eg "stakeholders"?
