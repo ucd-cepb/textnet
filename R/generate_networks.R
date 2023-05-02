@@ -72,7 +72,7 @@ for (m in 1:length(gspids)){
   if(mini_data==T){
     parsefileexists <- file.exists(paste0("data/parsed_mini_",gspids[m]))
   }else{
-    parsefileexists - file.exists(paste0("data/parsed_",gspids[m]))
+    parsefileexists <- file.exists(paste0("data/parsed_",gspids[m]))
   }
   if(draw_edges==TRUE){
       if(!parsefileexists){
