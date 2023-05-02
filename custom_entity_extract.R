@@ -1,21 +1,20 @@
 #sample parsedtxt
-parsedtxt <- spacy_parse(c("Meg Johnson and Evan McGee sit and discuss the Department of Transportation while the Department of Energy does nothing." ,
-                           "Frances Potter and Beatrix Lovegood sit and discuss poetry with Jim Robinson.", 
-                           "What she said makes sense", "What she said was well received", 
-                           "To hike in the mountains is to experience the best of nature.", 
-                           "For us to not attempt to solve the problem is for us to acknowledge defeat."),
-                         pos=T, tag=T, lemma=T, entity=T, dependency=T, nounphrase=T)
+#parsedtxt <- spacy_parse(c("Meg Johnson and Evan McGee sit and discuss the Department of Transportation while the Department of Energy does nothing." ,
+#                           "Frances Potter and Beatrix Lovegood sit and discuss poetry with Jim Robinson.", 
+#                           "What she said makes sense", "What she said was well received", 
+#                           "To hike in the mountains is to experience the best of nature.", 
+#                           "For us to not attempt to solve the problem is for us to acknowledge defeat."),
+#                         pos=T, tag=T, lemma=T, entity=T, dependency=T, nounphrase=T)
 
 #entities <- entity_extract(parsedtxt,type="all") %>% mutate(doc_sent = paste0(doc_id, "_", sentence_id))
 
-type = "all"
-x = parsedtxt
-concatenator= "_"
 
-getAnywhere(methods("entity_extract"))
+#x = parsedtxt
+#concatenator= "_"
 
-function (x, type = c("named", "extended", "all"), concatenator = "_") 
-{
+#getAnywhere(methods("entity_extract"))
+
+custom_entity_extract <- function (x, concatenator = "_",file_ext) {
   x <- x %>% mutate(doc_sent = paste0(doc_id, "_", sentence_id))
   
   #removes invalid sentences with no verb
@@ -32,7 +31,7 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   
   spacy_result <- data.table::as.data.table(x)
   #entity_type <- entity <- iob <- entity_id <- .SD <- `:=` <- sentence_id <- doc_id <- NULL
-  #type <- match.arg(type)
+  
   if (!"entity" %in% names(spacy_result)) {
     stop("no entities in parsed object: rerun spacy_parse() with entity = TRUE")
   }
@@ -65,7 +64,6 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
     parent_verb_id[[doc_sent_num]] <- vector(mode = "character", length = length(spacy_result[doc_sent==doc_sent_list[doc_sent_num], doc_sent]))
     
     for(tok_num in 1:length(spacy_result[doc_sent==doc_sent_list[doc_sent_num],doc_sent])){
-      #TODO this for loop is very slow
       #generates array designating source or target for each word, by doc_sent
       initial_token_id <- tok_num
       current_token_id <- initial_token_id
@@ -180,12 +178,16 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   entities_collapsed <- cbind(entities_collapsed, entity_id = sort(unique(spacy_result$entity_id)))
   
   #concatenate words in entity name
-  entity_name <- spacy_result[,lapply(.SD,function(x) paste(x, collapse=concatenator)),by=entity_id, .SDcols=c("token")]$token[entity_reorder]
+  #entity_name <- spacy_result[,lapply(.SD,function(x) paste(x, collapse=concatenator)),by=entity_id, .SDcols=c("token")]$token[entity_reorder]
   entities_collapsed[, `:=`(entity_name, spacy_result[, lapply(.SD, function(x) paste(x, 
                                                                        collapse = concatenator)), by = entity_id, .SDcols = c("token")]$token[entity_reorder])]
   
+  entities_collapsed$entity_name <- entities_collapsed$entity_name %>% str_remove_all("[^[:alnum:]]") %>% 
+    str_remove_all("^the") %>% str_remove_all("^The") %>% tolower()
+  
   entities_collapsed <- setDT(lapply(entities_collapsed, function(y) lapply(y, function(x) if(length(unique(x))==1) as.vector(unique(x)) else as.vector(x))))
   
+  nodelist <- entities_collapsed[nchar(entities_collapsed$entity_type)>0]
   #make unique head_verb_id and head_token_id identifier for each doc_sent
   entities_collapsed[, `:=`(doc_sent_verb, paste0(doc_sent, "_", head_verb_id))]
   entities_collapsed[, `:=`(doc_sent_parent, paste0(doc_sent, "_", parent_verb_id))]
@@ -272,33 +274,77 @@ function (x, type = c("named", "extended", "all"), concatenator = "_")
   st_pivot <- st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target)
 
   edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
-  View(edgelist)
   
   edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
+  nodelist <- nodelist[,.(entity_type, entity_name)]
+  #create catalog of unique entity names and entity types, arranged by num mentions
+  nodelist <- as_tibble(nodelist) %>% group_by(entity_type, entity_name) %>% 
+    summarize(num_mentions = n()) %>% arrange(desc(num_mentions))
+    
+
+  nodelist_OrgGpePerson <- nodelist[nodelist$entity_type=="ORG" | 
+                                      nodelist$entity_type=="GPE" | 
+                                      nodelist$entity_type=="PERSON",]%>% 
+                                  group_by(entity_name, entity_type) %>% 
+                                  summarize(num_mentions) %>% arrange(desc(num_mentions))
+  nodelist <- nodelist_OrgGpePerson %>% group_by(entity_name, entity_type, num_mentions) %>% 
+    group_keys %>% arrange(entity_name, desc(num_mentions)) 
   
+  #include most common of the three entity types listed for each entity
+  new_type <- nodelist[!duplicated(nodelist$entity_name),] %>% select(!num_mentions)
+  nodelist <- nodelist %>% group_by(entity_name) %>% summarize(new_sum = sum(num_mentions))
+  nodelist <- full_join(new_type, nodelist) %>% filter(nchar(entity_name)>0)
   
+  saveRDS(nodelist, paste0("data/nodelist/",file_ext))
+  saveRDS(edgelist, paste0("data/edgelist/",file_ext))
   
-  
-  
-  
-  
-  
-  
-  #TODO edit this list of named vs extended
-  extended_list <- c("DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", 
-                     "ORDINAL", "CARDINAL")
-  if (type == "extended") {
-    entities <- entities[entity_type %in% extended_list]
-  }
-  else if (type == "named") {
-    entities <- entities[!entity_type %in% extended_list]
-  }
-  as.data.frame(entities[, list(doc_id, sentence_id, entity, 
-                                entity_type)])
+  return(paste0("Nodelist and edgelist for doc id ",file_ext," written to local drive"))
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #TODO value adds:
 #TODO don't import subjects unless there's a cc; otherwise, import the object??
 #TODO import the object that "which" refers to
 #TODO other non-entities we care about? eg "stakeholders"?
+
+
+#type = "all"
+#type <- match.arg(type)
+#TODO edit this list of named vs extended
+#extended_list <- c("DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", 
+#                   "ORDINAL", "CARDINAL")
+#if (type == "extended") {
+#  entities <- entities[entity_type %in% extended_list]
+#}
+#else if (type == "named") {
+#  entities <- entities[!entity_type %in% extended_list]
+#}
+#as.data.frame(entities[, list(doc_id, sentence_id, entity, 
+#                              entity_type)])
