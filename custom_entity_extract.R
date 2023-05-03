@@ -107,7 +107,7 @@ custom_entity_extract <- function (x, concatenator = "_",file_ext) {
         break_while_counter <- break_while_counter + 1
       }#end of while
       
-      if(is.na(source_or_target[[doc_sent_num]][tok_num]) && source_or_target[[doc_sent_num]][tok_num]=="target"){
+      if(!is.na(source_or_target[[doc_sent_num]][tok_num]) && source_or_target[[doc_sent_num]][tok_num]=="target"){
         #if source_or_target == target, set head_verb_id as first verb it hits
         head_verb_id[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token_id]
         head_verb_name[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,token]
@@ -115,7 +115,7 @@ custom_entity_extract <- function (x, concatenator = "_",file_ext) {
         head_verb_tense[[doc_sent_num]][tok_num] <- spacy_result[doc_sent==doc_sent_list[doc_sent_num],][current_token_id,tag]
         parent_verb_id[[doc_sent_num]][tok_num] <- head_tok_id
 
-      }else if(is.na(source_or_target[[doc_sent_num]][tok_num]) && source_or_target[[doc_sent_num]][tok_num]=="source"){
+      }else if(!is.na(source_or_target[[doc_sent_num]][tok_num]) && source_or_target[[doc_sent_num]][tok_num]=="source"){
         #TODO what to call "sources" that point to roots that aren't verbs?
         current_token_is_verb <- F
         source_while_counter <- 0
