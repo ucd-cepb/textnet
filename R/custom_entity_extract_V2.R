@@ -174,7 +174,7 @@ nodelist <- x[nchar(x$entity_type)>0,]
   #include most common of the three entity types listed for each entity
   new_type <- nodelist[!duplicated(nodelist$entity_cat),]
   new_type[,num_mentions:=NULL]
-  n
+  
   nodelist <- nodelist[,sum(num_mentions),by=.(entity_cat)]
   nodelist <- merge(new_type,nodelist,all = T)
   nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
