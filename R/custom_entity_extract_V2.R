@@ -103,7 +103,7 @@ nodelist <- x[nchar(x$entity_type)>0,]
   #start with verb properties: head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, neg, and parent_verb_id
   verb_dt <- x[,list(doc_sent_verb, head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, parent_verb_id, doc_sent_parent, neg)]
   
-  verb_dt <- distinct(verb_dt)
+  verb_dt <- verb_dt[!duplicated(verb_dt),]
   
   #remove verbs with neg
   verb_dt <- verb_dt[neg==F]
@@ -152,7 +152,7 @@ nodelist <- x[nchar(x$entity_type)>0,]
   
   for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
   
-  source_target_list <- tibble(source_target_list)
+  
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   #create all combos of source and target by doc_sent_verb
   st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_cat)
