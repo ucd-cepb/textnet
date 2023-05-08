@@ -174,11 +174,11 @@ nodelist <- x[nchar(x$entity_type)>0,]
   nodelist <- merge(new_type,nodelist,all = T)
   nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
   if(!is.null(file)){
-  return(paste0("Nodelist and edgelist for doc id ",file," written to local drive"))}
-  if(!is.null(file)){
     saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist),file)
+    return(paste0("Nodelist and edgelist for doc id ",file," written to local drive"))
+    
   }
-  if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist))}
+    if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist))}
 }
 
 #TODO value adds:
