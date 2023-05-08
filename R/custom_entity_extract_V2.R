@@ -16,7 +16,7 @@
 #' @importFrom stringr str_remove_all
 #' @importFrom dplyr inner_join filter group_by arrange summarize select full_join
 #' @importFrom tidyr pivot_wider expand
-#' @importFrom pbapply pblapply
+#' @importFrom pbapply pblapply pbsapply
 #' @export
 #'
 
@@ -60,6 +60,7 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
 #doc_sent_count <- x[,.N,by=.(doc_sent)]
 
 sentence_splits <- split(x,x$doc_sent)
+print(paste0('crawling ',length(sentence_splits),' sentences'))
 parse_list <- pblapply(sentence_splits,function(y) as.data.frame(crawl_sentence(y)),cl = cl)
 x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
 
@@ -120,27 +121,21 @@ nodelist <- x[nchar(x$entity_type)>0,]
   
   #does the verb have any sources?
   x[, `:=`(has_sources, any(source_or_target=="source")), by = doc_sent_verb]
-  
+  ### wanted to flag this -- why are there duplicated here? ###
   source_target_list <- x[,.(entity_cat, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent, has_sources)]
   source_target_list <- source_target_list[!duplicated(source_target_list),]
-  #If the verb doesn't have any sources, 
-  #this traces to the verb ID that this verb points to and selects the sources for that verb.
-  #TODO create while loop that searches all parent verbs in the sentence for sources, not just the immediate one 
-  verbs_without_sources <- sapply(which(x$has_sources==F),function(y) source_target_list[y]$doc_sent_verb)
-  parents <- sapply(which(x$has_sources==F),function(y) source_target_list[y]$doc_sent_parent)
-  sources_have_been_adopted <- vector(length = length(verbs_without_sources))
- 
+  ## dt of verbs with without source
+  unsourced_verbs <- source_target_list[has_sources==F,]
+  ## dt of verbs with source that are also a source
+  sourced_verbs <- source_target_list[has_sources==T & source_or_target=='source',]
+  ## match parent verbs of unsourced verbs to verb in sourced verb dt, index sourced verbs with matches
+  adopted_dt <- sourced_verbs[match(unsourced_verbs$doc_sent_parent,sourced_verbs$doc_sent_verb),]
+  ## overwrite the parent verb with the child verb
+  adopted_dt$doc_sent_verb <- unsourced_verbs$doc_sent_verb
 
-  for(p in 1:length(parents)){
-    if(!sources_have_been_adopted[p]){
-      adopted_dt <- source_target_list[doc_sent_verb==parents[p] & source_or_target == "source"]
-      adopted_dt[, `:=`(doc_sent_verb, verbs_without_sources[p])]
-      source_target_list <- rbindlist(list(source_target_list, adopted_dt))
-    }
-    sources_have_been_adopted[which(verbs_without_sources == verbs_without_sources[p])] <- T
-  }
+  source_target_list <- rbind(source_target_list,adopted_dt,use.names = T)
   
-  
+
   #only keep actual entities
   source_target_list <- source_target_list[entity_id>0]
   
@@ -151,9 +146,9 @@ nodelist <- x[nchar(x$entity_type)>0,]
   ind <- match(c("entity_id"),colnames(source_target_list))
   
   for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
-  
-  
+
   source_target_list <- source_target_list[!duplicated(source_target_list),]
+  
   #create all combos of source and target by doc_sent_verb
   st_pivot <- pivot_wider(source_target_list, names_from = source_or_target, values_from = entity_cat)
   
