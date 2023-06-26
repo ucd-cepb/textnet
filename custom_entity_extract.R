@@ -183,7 +183,7 @@ custom_entity_extract <- function (x, concatenator = "_",file_ext) {
                                                                        collapse = concatenator)), by = entity_id, .SDcols = c("token")]$token[entity_reorder])]
   
   entities_collapsed$entity_name <- entities_collapsed$entity_name %>% str_remove_all("[^[:alnum:]]") %>% 
-    str_remove_all("^the") %>% str_remove_all("^The") %>% tolower()
+    str_remove_all("^the_") %>% str_remove_all("^The_") %>% str_remove_all("^California_") %>% str_remove_all("^US_") %>% tolower()
   
   entities_collapsed <- setDT(lapply(entities_collapsed, function(y) lapply(y, function(x) if(length(unique(x))==1) as.vector(unique(x)) else as.vector(x))))
   

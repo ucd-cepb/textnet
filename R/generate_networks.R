@@ -20,6 +20,8 @@ source('R/generate_proper_names.R')
 source('custom_entity_extract.R')
 #imported file from open source package govscienceuseR
 govsci_agencies <- readRDS("data/govscienceuseR_agencies.RDS")
+custom_abbr <- readRDS("data/custom_abbr.RDS")
+govsci_agencies <- add_custom_abbr(govsci_agencies, custom_abbr)
 #editing DWR cell as a test
 #govsci_agencies$Abbr[grep("California Department of Water Resources",govsci_agencies$Agency)] <- "\bDWR\b"
 
@@ -167,7 +169,8 @@ for (m in 1:length(gspids)){
           str_remove_all("[^[:alnum:]]") %>% 
           str_remove_all("^the") %>% str_remove_all("^The") %>% tolower()
         
-        
+        #TODO fix multiple versions of USGS / US Geological Survey / United States Geological Survey
+        #maybe before to_lower
         abbr <- function(strng){
           
           if (!identical(grep(paste0("\b",strng,"\b"),govsci_agencies$Abbr,useBytes = F), integer(0))){
