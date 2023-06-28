@@ -20,7 +20,7 @@
 #' @import data.table
 #' @export
 
-generate_network <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, parse_from_file=F){
+generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, parse_from_file=F){
   source('R/generate_proper_names.R')
   source('custom_entity_extract.R')
   
@@ -32,9 +32,10 @@ generate_network <- function(ret_path, generate_phrases, pages, file_ids, parsed
   #spacy_install()
   #spacy_download_langmodel(model = 'en_core_web_lg')
   spacy_initialize(model = "en_core_web_lg")
-  pr_names_grouped <- generate_proper_names(underscore = T,to_lower=F)
   
   if(generate_phrases){
+    pr_names_grouped <- generate_proper_names(underscore = T,to_lower=F)
+    
     pr_names_sep <- generate_proper_names(underscore = F,to_lower=F)
     
     pages <- pblapply(1:length(pages), function(i){
@@ -64,7 +65,7 @@ generate_network <- function(ret_path, generate_phrases, pages, file_ids, parsed
         #parse_from_file==T
         parsedtxt <- readRDS(parsed_filenames[m])
       }
-      custom_entity_extract(parsedtxt,concatenator="_",file_ext = unique_files[m])
+      custom_entity_extract2(parsedtxt,concatenator="_",file_ext = unique_files[m])
   }
   spacy_finalize()
   
