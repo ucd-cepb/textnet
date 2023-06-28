@@ -27,19 +27,16 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
   x <- data.table::as.data.table(x)
- # x$doc_sent <- paste0(x$doc_id, "_", x$sentence_id)
   #removes invalid sentences with no verb
   #only keeps sentences that have a subject and object
   #does not keep sentences with compound subject and no object
   #list of subj and obj tags from https://github.com/clir/clearnlp-guidelines/blob/master/md/specifications/dependency_labels.md
   dep_rels_subj_keep <- c('nsubj','nsubjpass','csubj','csubjpass','agent','expl')        
   dep_rels_obj_keep <- c('pobj','iobj','dative','attr','dobj','oprd','ccomp','xcomp','acomp','pcom') 
-  x <- data.table::as.data.table(x)
   x <- x[,keep:=any(dep_rel %in% dep_rels_subj_keep) & any(dep_rel %in% dep_rels_obj_keep) & any(pos=='VERB'),by=.(doc_id,sentence_id)]
   x <- x[keep==T,]
   x$doc_sent <- paste0(x$doc_id, "_", x$sentence_id)
-  #spacy_data %>% group_by(sentence_id, doc_id) %>% summarize(tally(pos==nsubj>0),tally(pos==nobj>0))
-  
+
   #entity_type <- entity <- iob <- entity_id <- .SD <- `:=` <- sentence_id <- doc_id <- NULL
   if (!"entity" %in% names(x)) {
     stop("no entities in parsed object: rerun spacy_parse() with entity = TRUE")
@@ -48,9 +45,6 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
   #x <- x[nchar(x$entity) > 
   #                               0]
   #x[, `:=`(doc_sent, paste0(doc_id, "_", sentence_id))]
-  #x[, `:=`(entity_type, sub("_.+", "", entity))]
-  #x[, `:=`(iob, sub(".+_", "", entity))]
-  #x[, `:=`(entity_id, ifelse(nchar(x$entity) > 0,cumsum(iob == "B"),NA))]
   #x <- x[token!='',]
   #source_or_target_by_word <- 
     
@@ -121,20 +115,35 @@ nodelist <- x[nchar(x$entity_type)>0,]
   
   #does the verb have any sources?
   x[, `:=`(has_sources, any(source_or_target=="source")), by = doc_sent_verb]
-  ### wanted to flag this -- why are there duplicated here? ###
+  ### there are duplicates here because there can be multiple tokens (each of which has its own row) associated with one verb ###
   source_target_list <- x[,.(entity_cat, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent, has_sources)]
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   ## dt of verbs with without source
   unsourced_verbs <- source_target_list[has_sources==F,]
   ## dt of verbs with source that are also a source
-  sourced_verbs <- source_target_list[has_sources==T & source_or_target=='source',]
-  ## match parent verbs of unsourced verbs to verb in sourced verb dt, index sourced verbs with matches
-  adopted_dt <- sourced_verbs[match(unsourced_verbs$doc_sent_parent,sourced_verbs$doc_sent_verb),]
-  ## overwrite the parent verb with the child verb
-  adopted_dt$doc_sent_verb <- unsourced_verbs$doc_sent_verb
-
-  source_target_list <- rbind(source_target_list,adopted_dt,use.names = T)
+  sources <- source_target_list[has_sources==T & source_or_target=='source',]
   
+  ## find sources associated with the unsourced verbs' parent verbs
+  adopted_source_ids <- sapply(seq_along(unsourced_verbs$doc_sent_parent), function(i)
+         grep(unsourced_verbs$doc_sent_parent[i],sources$doc_sent_verb, value=F))
+
+  #create a copy of the adopted sources, where the child doc_sent_verb 
+  #overwrites the original source's doc_sent_verb
+  adopted_sources <- sapply(seq_along(adopted_source_ids), function(i){
+    if(length(adopted_source_ids[[i]])>0){
+        tempsources <- sources[adopted_source_ids[[i]],]
+        tempsources$doc_sent_verb <- unsourced_verbs$doc_sent_verb[i]
+    }else{
+      tempsources <- NULL
+    }
+    tempsources
+  })
+  
+  adopted_sources_df <- rbindlist(adopted_sources, use.names=T,fill=T)
+  
+  #append it to the dataframe
+
+  source_target_list <- rbind(source_target_list,adopted_sources_df,use.names = T)
 
   #only keep actual entities
   source_target_list <- source_target_list[entity_id>0]
@@ -146,7 +155,8 @@ nodelist <- x[nchar(x$entity_type)>0,]
   ind <- match(c("entity_id"),colnames(source_target_list))
   
   for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
-
+  
+  #there are duplicates here because multiple unsourced tokens may point to the same source
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   
   #create all combos of source and target by doc_sent_verb
@@ -156,8 +166,12 @@ nodelist <- x[nchar(x$entity_type)>0,]
 
   edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
   
+  #TODO if we want to preserve verbs with only sources or targets this would happen here
   edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
+  #remove duplicates that arose from concatenating entity names
+  nodelist <- nodelist[,.(entity_id, entity_cat, entity_type, doc_sent_verb)]
+  nodelist <- nodelist[!duplicated(nodelist),]
   nodelist <- nodelist[,.(entity_type, entity_cat)]
   #create catalog of unique entity names and entity types, arranged by num mentions
   nodelist <- nodelist[,.N,by=.(entity_type,entity_cat)][order(-N),]
@@ -171,7 +185,7 @@ nodelist <- x[nchar(x$entity_type)>0,]
   new_type[,num_mentions:=NULL]
   
   nodelist <- nodelist[,sum(num_mentions),by=.(entity_cat)]
-  nodelist <- merge(new_type,nodelist,all = T)
+  nodelist <- merge.data.table(new_type,nodelist,all = T)
   nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
   if(!is.null(file)){
     saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist),file)
