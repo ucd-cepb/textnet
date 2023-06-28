@@ -20,7 +20,8 @@
 #' @import data.table
 #' @export
 
-generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, parse_from_file=F){
+generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, 
+                              nodeedge_filenames, parse_from_file=F){
   source('R/generate_proper_names.R')
   source('custom_entity_extract.R')
   
@@ -65,7 +66,8 @@ generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parse
         #parse_from_file==T
         parsedtxt <- readRDS(parsed_filenames[m])
       }
-      custom_entity_extract2(parsedtxt,concatenator="_",file_ext = unique_files[m])
+      custom_entity_extract2(parsedtxt,concatenator="_",file = nodeedge_filenames[m], 
+                             return_to_memory=F)
   }
   spacy_finalize()
   
