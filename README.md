@@ -41,3 +41,4 @@ To reinstall the package: `devtools::install()`
 Tyler Scott tscott1 at ucdavis dot edu
 
 Elise Zufall ezufall at ucdavis dot edu
+
