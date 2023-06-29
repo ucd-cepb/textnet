@@ -20,9 +20,9 @@
 #' @import data.table
 #' @export
 
-generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, 
+generate_networks <- function(ret_path, generate_phrases, phrases_to_concatenate, 
+                              concatenator="_", pages, file_ids, parsed_filenames, 
                               nodeedge_filenames, parse_from_file=F){
-  source('R/generate_proper_names.R')
   source('R/custom_entity_extract2.R')
   
   #prerequisites: step 1, install python
@@ -35,13 +35,10 @@ generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parse
   spacy_initialize(model = "en_core_web_lg")
   
   if(generate_phrases){
-    pr_names_grouped <- generate_proper_names(underscore = T,to_lower=F)
-    
-    pr_names_sep <- generate_proper_names(underscore = F,to_lower=F)
-    
+    phrases_grouped <- gsub("\\s+", concatenator, x = phrases_to_concatenate)
     pages <- pblapply(1:length(pages), function(i){
-      stri_replace_all_regex(pages[i], pattern = pr_names_sep,
-                             replacement = pr_names_grouped,
+      stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
+                             replacement = phrases_grouped,
                              vectorize= F)
     })
   }
@@ -66,7 +63,7 @@ generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parse
         #parse_from_file==T
         parsedtxt <- readRDS(parsed_filenames[m])
       }
-      custom_entity_extract2(parsedtxt,concatenator="_",file = nodeedge_filenames[m], 
+      custom_entity_extract2(parsedtxt,concatenator,file = nodeedge_filenames[m], 
                              return_to_memory=F)
   }
   spacy_finalize()

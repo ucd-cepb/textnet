@@ -23,7 +23,7 @@
 custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
                                     return_to_memory = T) {
-  x <- entity_consolidate_replicate(x,remove = c("^The","^the","[^[:alnum:]]"))
+  x <- entity_consolidate_replicate(x,concatenator, remove = c("^The","^the","[^[:alnum:]]"))
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
   x <- data.table::as.data.table(x)
