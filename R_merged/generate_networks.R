@@ -23,7 +23,7 @@
 generate_networks <- function(ret_path, generate_phrases, pages, file_ids, parsed_filenames, 
                               nodeedge_filenames, parse_from_file=F){
   source('R/generate_proper_names.R')
-  source('custom_entity_extract.R')
+  source('R/custom_entity_extract2.R')
   
   #prerequisites: step 1, install python
   #step 2, install miniconda from https://conda.io/miniconda.html
