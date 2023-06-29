@@ -1,0 +1,35 @@
+Package: textNet
+Title: Generate semantic networks from unstructured policy documents
+Version: 0.0.1
+Authors@R: 
+    c( 
+    person(given = "Elise",
+           family = "Zufall",
+           role = c("aut"),
+           email = "ezufall@ucdavis.edu"),
+    person(given = "Tyler",
+           family = "Scott",
+           role = c("aut", "cre"),
+          email = "tascott@ucdavis.edu",
+           comment = c(ORCID = "0000-0002-4214-5895"))
+	   )
+Description: 
+    textNet is an R package that provides an interface for using spacyr to generate extract relational data from large policy documents (e.g., plans, rule proposals, impact assessments) and represent these data as a semantic network.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    magrittr,
+    dplyr,
+    stringr,
+    tidyr,
+    pbapply,
+    data.table (>= 1.14.8),
+Suggests: 
+    rmarkdown (>= 2.21),
+    knitr (>= 1.42)
+VignetteBuilder: knitr
+Depends: 
+    R (>= 2.10)
