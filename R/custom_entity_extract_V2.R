@@ -66,19 +66,13 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
   #adopt the other verb's object
   #to distinguish "eat, drink, and be merry" from "bring and read books"
-  
-  #add temporary entity_ids so the other rows don't get collapsed
-  #temp_entity_ids <- seq(-sum(is.na(x[,entity_id])),-1,length.out = sum(is.na(x[,entity_id])))
-  #x$entity_id[is.na(x$entity_id)]<-temp_entity_ids
-  
-
-nodelist <- x[nchar(x$entity_type)>0,]
-#nodelist <- x$token_cat[nchar(x$entity_type)>0]
 
   #make unique head_verb_id and head_token_id identifier for each doc_sent
   x[, `:=`(doc_sent_verb, paste0(doc_sent, "_", head_verb_id))]
   x[, `:=`(doc_sent_parent, paste0(doc_sent, "_", parent_verb_id))]
   x[, `:=`(doc_sent_head_tok, paste0(doc_sent, "_", head_token_id))]
+  
+  nodelist <- x[nchar(x$entity_type)>0,]
   
   #tag each head_tok that has a negation child
         x[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_verb]
@@ -132,12 +126,12 @@ nodelist <- x[nchar(x$entity_type)>0,]
   sources <- source_target_list[has_sources==T & source_or_target=='source',]
   
   ## find sources associated with the unsourced verbs' parent verbs
-  adopted_source_ids <- sapply(seq_along(unsourced_verbs$doc_sent_parent), function(i)
+  adopted_source_ids <- lapply(seq_along(unsourced_verbs$doc_sent_parent), function(i)
          grep(unsourced_verbs$doc_sent_parent[i],sources$doc_sent_verb, value=F))
 
   #create a copy of the adopted sources, where the child doc_sent_verb 
   #overwrites the original source's doc_sent_verb
-  adopted_sources <- sapply(seq_along(adopted_source_ids), function(i){
+  adopted_sources <- lapply(seq_along(adopted_source_ids), function(i){
     if(length(adopted_source_ids[[i]])>0){
         tempsources <- sources[adopted_source_ids[[i]],]
         tempsources$doc_sent_verb <- unsourced_verbs$doc_sent_verb[i]
@@ -207,6 +201,7 @@ nodelist <- x[nchar(x$entity_type)>0,]
   }
     if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist))}
 }
+
 
 #TODO value adds:
 #TODO don't import subjects unless there's a cc; otherwise, import the object??

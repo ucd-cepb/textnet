@@ -23,7 +23,7 @@
 generate_networks <- function(ret_path, generate_phrases, phrases_to_concatenate, 
                               concatenator="_", pages, file_ids, parsed_filenames, 
                               nodeedge_filenames, parse_from_file=F){
-  source('R/custom_entity_extract2.R')
+  #source('R/custom_entity_extract2.R')
   
   #prerequisites: step 1, install python
   #step 2, install miniconda from https://conda.io/miniconda.html
@@ -58,8 +58,7 @@ generate_networks <- function(ret_path, generate_phrases, phrases_to_concatenate
                                  nounphrase = T)
         saveRDS(parsedtxt, parsed_filenames[m])
         print(paste0("parsing complete: ",unique_files[m]))
-      }
-      else{
+      }else{
         #parse_from_file==T
         parsedtxt <- readRDS(parsed_filenames[m])
       }
