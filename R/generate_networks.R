@@ -16,11 +16,12 @@
 #' @import quanteda
 #' @import pbapply
 #' @import stringr
+#' @import stringi
 #' @import network
 #' @import data.table
 #' @export
 
-generate_networks <- function(ret_path, generate_phrases, phrases_to_concatenate, 
+generate_networks <- function(ret_path, generate_phrases=F, keep_hyph_together=F, phrases_to_concatenate, 
                               concatenator="_", pages, file_ids, parsed_filenames, 
                               nodeedge_filenames, parse_from_file=F){
   #source('R/custom_entity_extract2.R')
@@ -34,12 +35,21 @@ generate_networks <- function(ret_path, generate_phrases, phrases_to_concatenate
   #spacy_download_langmodel(model = 'en_core_web_lg')
   spacy_initialize(model = "en_core_web_lg")
   
+  #generate phrases defaults to false, since it appears spaCy has a more difficult time 
+  #identifying proper name phrases linked by underscore as entities
   if(generate_phrases){
     phrases_grouped <- gsub("\\s+", concatenator, x = phrases_to_concatenate)
     pages <- pblapply(1:length(pages), function(i){
-      stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
+      stringi::stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
                              replacement = phrases_grouped,
                              vectorize= F)
+    })
+  }
+  #keep_hyph_together defaults to false, since it appears spaCy has a more difficult time 
+  #identifying proper name phrases linked by underscore as entities
+  if(keep_hyph_together){
+    pages <- pblapply(1:length(pages), function(i){
+      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-–](?=\\w)", replacement ="_", vectorize=F)
     })
   }
   

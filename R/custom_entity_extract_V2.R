@@ -174,6 +174,8 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
   edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
   #remove duplicates that arose from concatenating entity names
+  #TODO deal with partial appositives by removing any token in the entity name that is not a source or target
+  #TODO do this appositive removal before concatenating entity name??
   nodelist <- nodelist[,.(entity_id, entity_cat, entity_type, doc_sent_verb)]
   nodelist <- nodelist[!duplicated(nodelist),]
 
