@@ -14,7 +14,7 @@
 #' @import data.table
 #' @importFrom magrittr %>%
 #' @importFrom stringr str_remove_all
-#' @importFrom dplyr inner_join filter group_by arrange summarize select full_join
+#' @importFrom dplyr inner_join filter group_by arrange summarize select full_join left_join
 #' @importFrom tidyr pivot_wider expand
 #' @importFrom pbapply pblapply pbsapply
 #' @export
@@ -194,9 +194,16 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
   nodelist <- merge.data.table(new_type,nodelist,all = T)
 
   nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
+  
+  unique_lemmas <- data.table("head_verb_lemma" = unique(edgelist$head_verb_lemma))
+  
+  #appending verb classification
+  #this currently only captures single-word verbs
+  verblist <- merge.data.table(unique_lemmas,verb_pivot,by.x="head_verb_lemma",by.y="verb", all.x=T, all.y=F)
+  
   if(!is.null(file)){
-    saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist),file)
-    return(paste0("Nodelist and edgelist for doc id ",file," written to local drive"))
+    saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist, 'verblist' = verblist),file)
+    return(paste0("Nodelist, edgelist, and verblist for doc id ",file," written to local drive"))
     
   }
     if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist))}
