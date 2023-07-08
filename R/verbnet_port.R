@@ -146,16 +146,38 @@ class_dt <- data.table("class" = classes, "type_id" = type_ids, "type_name" = ty
                  "verbs" = members_and_submembers)
 
 
-verbs <- unique(unlist(class_dt$members_submembers))
+verbs <- unique(unlist(class_dt$verbs))
 verb_classes <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
-                            function (m) if(j %in% class_dt$members_submembers[[m]]) class_dt$class[m]))))
+                            function (m) if(j %in% class_dt$verbs[[m]]) class_dt$class[m]))))
 
 verb_types <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
-                                                         function (m) if(j %in% class_dt$members_submembers[[m]]) class_dt$type_name[m]))))
+                                                         function (m) if(j %in% class_dt$verbs[[m]]) class_dt$type_name[m]))))
 verb_type_ids <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
-                                                              function (m) if(j %in% class_dt$members_submembers[[m]]) class_dt$type_id[m]))))
+                                                              function (m) if(j %in% class_dt$verbs[[m]]) class_dt$type_id[m]))))
 
 verb_pivot <- data.table("verb" = verbs, "classes" = verb_classes, "type_name" = verb_types, "type_id" = verb_type_ids)
+
+helping_verbs <- data.table("verb" = c("be",
+                                       "have","do","shall",
+                                       "will","wo",
+                                       "should","would","may","might","must",
+                                       "can","could","ought",
+                                       "dare","need"),
+                            "classes" = "helping_verbs",
+                            "type_name" = "helping_verbs",
+                            "type_id" = 0)
+
+helping_verbs$classes <- unname(sapply(helping_verbs$verb, function (i)
+  ifelse(i %in% verb_pivot$verb, 
+         list(c(verb_pivot[verb_pivot$verb==i,"classes"][[1]][[1]],"helping_verbs")), "helping_verbs")))
+helping_verbs$type_name <- unname(sapply(helping_verbs$verb, function (i)
+  ifelse(i %in% verb_pivot$verb, 
+         list(c(verb_pivot[verb_pivot$verb==i,"type_name"][[1]][[1]],"helping_verbs")), "helping_verbs")))
+helping_verbs$type_id <- unname(sapply(helping_verbs$verb, function (i)
+  ifelse(i %in% verb_pivot$verb, 
+         list(c(verb_pivot[verb_pivot$verb==i,"type_id"][[1]][[1]],"0")), "0")))
+
+verb_pivot <- rbind(verb_pivot[!(verb_pivot$verb %in% helping_verbs$verb)], helping_verbs)
 
 saveRDS(verb_pivot, "data/verb_classifications")
 

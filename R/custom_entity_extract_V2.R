@@ -24,6 +24,8 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
                                     return_to_memory = T) {
 
+  #TODO inspect the alnum behavior. option: remove anything that doesn't have alnum and also remove anything that's only a number
+  #TODO remove preceding underscores?
   x <- entity_consolidate_replicate(x,concatenator, remove = c("^The","^the","[^[:alnum:]]"))
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
@@ -102,6 +104,8 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
   #remove verbs with neg
   verb_dt <- verb_dt[neg==F]
   
+  #TODO if row's dep_rel is "aux" and row's head_token_id points to a row whose dep_rel is "ROOT", remove the row
+  
   #ind <- match(c("head_verb_id"),colnames(verb_dt))
   #set(verb_dt, j = ind ,value = as.numeric(verb_dt[[ind]]))
   
@@ -169,7 +173,7 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
 
   edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
   
-
+  #TODO figure out why so many entity_cat start with underscore
   #TODO if we want to preserve verbs with only sources or targets this would happen here
   edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
