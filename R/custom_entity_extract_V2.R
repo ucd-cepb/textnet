@@ -66,7 +66,7 @@ parse_list <- pblapply(sentence_splits,function(y) as.data.table(crawl_sentence(
 x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
 
 #remove aux helpers functioning as aux and comp verbs
-x <- x[!(helpers %in% c("aux","comp")),]
+x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
 
 
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
