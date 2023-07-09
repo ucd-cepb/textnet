@@ -62,8 +62,12 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
 
 sentence_splits <- split(x,x$doc_sent)
 print(paste0('crawling ',length(sentence_splits),' sentences'))
-parse_list <- pblapply(sentence_splits,function(y) as.data.frame(crawl_sentence(y)),cl = cl)
+parse_list <- pblapply(sentence_splits,function(y) as.data.table(crawl_sentence(y)),cl = cl)
 x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
+
+#remove aux helpers functioning as aux and comp verbs
+x <- x[!(helpers %in% c("aux","comp")),]
+
 
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
   #adopt the other verb's object
