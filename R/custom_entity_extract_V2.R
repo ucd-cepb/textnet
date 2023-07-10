@@ -24,9 +24,6 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
                                     return_to_memory = T) {
 
-  #TODO inspect the alnum behavior. option: remove anything that doesn't have alnum and also remove anything that's only a number
-  #TODO remove preceding underscores?
-  x <- entity_consolidate_replicate(x,concatenator, remove = c("^The","^the","[^[:alnum:]]"))
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
   x <- data.table::as.data.table(x)
@@ -47,18 +44,6 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
   if (!"entity" %in% names(x)) {
     stop("no entities in parsed object: rerun spacy_parse() with entity = TRUE")
   }
-  #commenting this out to preserve non-entities
-  #x <- x[nchar(x$entity) > 
-  #                               0]
-  #x[, `:=`(doc_sent, paste0(doc_id, "_", sentence_id))]
-
-  #x <- x[token!='',]
-  #source_or_target_by_word <- 
-    
-#doc_sent_list <- unique(x[,doc_sent]) 
-
-### how many spaces do we want to create for each sentence? ###
-#doc_sent_count <- x[,.N,by=.(doc_sent)]
 
 sentence_splits <- split(x,x$doc_sent)
 print(paste0('crawling ',length(sentence_splits),' sentences'))
@@ -67,6 +52,18 @@ x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_lis
 
 #remove aux helpers functioning as aux and comp verbs
 x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
+
+#remove is null because we don't want to remove anything token-wise, but only concatenated-entity-wise
+x <- entity_consolidate_replicate(x,concatenator, remove=NULL)
+
+remove <- c("^_", "_$", "^The_","^the_","^THE","\\s")
+index <- which(grepl(paste(remove,collapse = '|'),x$entity_cat,perl = T))
+x$entity_cat[index] <- str_remove_all(x$entity_cat[index],paste(remove,collapse = '|'))
+#remove consecutive underscores that may have arisen due to previous cleaning step
+x$entity_cat[index] <- gsub('(_)\\1+', '\\1', x$entity_cat[index])
+
+#TODO inspect the alnum behavior. option: remove anything that doesn't have alnum and also remove anything that's only a number
+
 
 
   #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
@@ -107,8 +104,6 @@ x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
   
   #remove verbs with neg
   verb_dt <- verb_dt[neg==F]
-  
-  #TODO if row's dep_rel is "aux" and row's head_token_id points to a row whose dep_rel is "ROOT", remove the row
   
   #ind <- match(c("head_verb_id"),colnames(verb_dt))
   #set(verb_dt, j = ind ,value = as.numeric(verb_dt[[ind]]))
@@ -177,13 +172,10 @@ x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
 
   edgelist <- inner_join(st_pivot, verb_dt, by = c("doc_sent_verb"))
   
-  #TODO figure out why so many entity_cat start with underscore
   #TODO if we want to preserve verbs with only sources or targets this would happen here
   edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   
   #remove duplicates that arose from concatenating entity names
-  #TODO deal with partial appositives by removing any token in the entity name that is not a source or target
-  #TODO do this appositive removal before concatenating entity name??
   nodelist <- nodelist[,.(entity_id, entity_cat, entity_type, doc_sent_verb)]
   nodelist <- nodelist[!duplicated(nodelist),]
 
@@ -225,17 +217,3 @@ x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
 #TODO import the object that "which" refers to
 #TODO other non-entities we care about? eg "stakeholders"?
 
-
-#type = "all"
-#type <- match.arg(type)
-#TODO edit this list of named vs extended
-#extended_list <- c("DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", 
-#                   "ORDINAL", "CARDINAL")
-#if (type == "extended") {
-#  entities <- entities[entity_type %in% extended_list]
-#}
-#else if (type == "named") {
-#  entities <- entities[!entity_type %in% extended_list]
-#}
-#as.data.frame(entities[, list(doc_id, sentence_id, entity, 
-#                              entity_type)])

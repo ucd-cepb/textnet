@@ -85,7 +85,6 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
       empty_list$parent_verb_id[tok_num] <- head_tok_id
       
     }else if(!is.na(empty_list$source_or_target[tok_num]) && empty_list$source_or_target[tok_num]=="source"){
-      #TODO what to call "sources" that point to roots that aren't verbs?
       current_token_is_verb <- F
       source_while_counter <- 0
       while(!current_token_is_verb & source_while_counter < 10){
