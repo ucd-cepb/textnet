@@ -50,25 +50,20 @@ print(paste0('crawling ',length(sentence_splits),' sentences'))
 parse_list <- pblapply(sentence_splits,function(y) as.data.table(crawl_sentence(y)),cl = cl)
 x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
 
-#remove aux helpers functioning as aux and comp verbs
-x <- x[!(helper_lemma == "aux" | xcomp_verb == "xcomp"),]
+#remove aux helpers functioning as aux; xcomp verbs; and appositives
+#TODO if appos are to be used to generate dictionary, that would have to happen before this step, and they would have to be cleaned
+x <- x[!((pos=="AUX" & dep_rel %in% c("aux","auxpass")) |(source_or_target=="appos") | (pos=="VERB" & dep_rel =="xcomp")),]
 
-#remove is null because we don't want to remove anything token-wise, but only concatenated-entity-wise
+#"remove" is null because we don't want to remove anything token-wise, but only concatenated-entity-wise
 x <- entity_consolidate_replicate(x,concatenator, remove=NULL)
 
-remove <- c("^_", "_$", "^The_","^the_","^THE","\\s")
+remove <- c("^_", "_$", "^The_","^the_","^THE_","\\s")
 index <- which(grepl(paste(remove,collapse = '|'),x$entity_cat,perl = T))
 x$entity_cat[index] <- str_remove_all(x$entity_cat[index],paste(remove,collapse = '|'))
 #remove consecutive underscores that may have arisen due to previous cleaning step
 x$entity_cat[index] <- gsub('(_)\\1+', '\\1', x$entity_cat[index])
 
 #TODO inspect the alnum behavior. option: remove anything that doesn't have alnum and also remove anything that's only a number
-
-
-
-  #TODO someday: if verb has no object, check if (it's a verb that requires an object & there's another verb attached with an object) then
-  #adopt the other verb's object
-  #to distinguish "eat, drink, and be merry" from "bring and read books"
 
   #make unique head_verb_id and head_token_id identifier for each doc_sent
   x[, `:=`(doc_sent_verb, paste0(doc_sent, "_", head_verb_id))]
@@ -80,42 +75,16 @@ x$entity_cat[index] <- gsub('(_)\\1+', '\\1', x$entity_cat[index])
   #tag each head_tok that has a negation child
         x[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_verb]
         #entities_collapsed[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_head_tok]
-  #TODO fix the negation algorithm
-  #is the head_tok a verb?
-  #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
-  #as.numeric(str_extract(entities_collapsed$doc_sent_head_tok, "(\\d+)$"))
-  #entities_collapsed[unlist(entities_collapsed$doc_sent)
-  #entities_collapsed$pos[)]
-  
-  #str_extract(entities_collapsed$doc_sent_head_tok, "(\\d+)$")
-  
-  #entities are the only ones with multiple values per element, and they are not going to be neg, so it's ok to use only the first value
-  #View(lapply(entities_collapsed[,head_token_id], function(x) entities_collapsed[x]))
-  #sapply(entities_collapsed[,head_token_id],"[[",1)
-  #unlist(entities_collapsed[,doc_sent])
-  
-  #entities_collapsed[sapply(entities_collapsed[,head_token_id],"[[",1), pos] %in% c("VERB", "AUX")
-  #transform x into edgelist, with columns source, target, verb, lemma, verb tense, and neg Y/N
-  
-  #start with verb properties: head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, neg, and parent_verb_id
-  verb_dt <- x[,list(doc_sent_verb, head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, parent_verb_id, doc_sent_parent, neg)]
+
+  #data table of verb properties
+  verb_dt <- x[,list(doc_sent_verb, head_verb_id, head_verb_name, head_verb_lemma, head_verb_tense, parent_verb_id, helper_lemma, helper_token, xcomp_verb, xcomp_helper_lemma, xcomp_helper_token, doc_sent_parent, neg)]
   
   verb_dt <- verb_dt[!duplicated(verb_dt),]
   
   #remove verbs with neg
   verb_dt <- verb_dt[neg==F]
   
-  #ind <- match(c("head_verb_id"),colnames(verb_dt))
-  #set(verb_dt, j = ind ,value = as.numeric(verb_dt[[ind]]))
-  
-  
-  #setDT(entities_collapsed)[,if(any(dep_rel=="neg")) .SD, by = doc_sent_verb]
-  
-  #verbs_that_have_neg <- entities_collapsed[,if(any(dep_rel=="neg")) .SD, by=doc_sent_verb]
- 
-  
-  
-  #does the verb have any sources?
+  #does the verb have any sources? do this before removing non-entities
   x[, `:=`(has_sources, any(source_or_target=="source")), by = doc_sent_verb]
 
   ### there are duplicates here because there can be multiple tokens (each of which has its own row) associated with one verb ###
@@ -213,7 +182,6 @@ x$entity_cat[index] <- gsub('(_)\\1+', '\\1', x$entity_cat[index])
 
 
 #TODO value adds:
-#TODO don't import subjects unless there's a cc; otherwise, import the object??
 #TODO import the object that "which" refers to
 #TODO other non-entities we care about? eg "stakeholders"?
 
