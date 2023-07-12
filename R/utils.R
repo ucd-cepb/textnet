@@ -15,6 +15,8 @@ create_empty_sentence_parse_list <- function(N){
                      head_verb_name = raw_empty,
                      head_verb_lemma = raw_empty,
                      head_verb_tense = raw_empty,
+                     head_verb_dep_rel = raw_empty,
+                     x_parent_verb_id = raw_empty,
                      parent_verb_id = raw_empty,
                     helper_lemma = vector(mode = "list", N),
                     helper_token = vector(mode = "list", N),

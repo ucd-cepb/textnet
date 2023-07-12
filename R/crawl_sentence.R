@@ -4,7 +4,7 @@
 #' Take a sentence and follow the dependencies
 #'
 #' @param s a data.frame containing the results of one (1) parsed spacy sentence
-#' @return data frame with original parsed sentence + added dependency parsing
+#' @return list with original parsed sentence + added dependency parsing
 #' 
 #' @importFrom magrittr %>%
 #' @importFrom dplyr case_when
@@ -28,16 +28,25 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
         append(empty_list$helper_token[[sentence$head_token_id[tok_num]]], sentence$token[tok_num])
     }
     #this isn't the main verb, so it should be appended to the main verb as an xcomp_verb column
+    #only follow the trail for 4 verbs, else break
     if(empty_list$xcomp_verb[tok_num]=="xcomp"){
-      empty_list$xcomp_verb[sentence$head_token_id[tok_num]] <- 
-        append(empty_list$xcomp_verb[[sentence$head_token_id[tok_num]]], sentence$lemma[tok_num])
-      
-      
+      xcounter <- 1
+      parent_tkn <- tok_num
+      #while we're still on an xcomp in the chain
+      while(!is.null(empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]]) && 
+            empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]]=="xcomp"&xcounter<4){
+        xcounter <- xcounter + 1
+        parent_tkn <- sentence$head_token_id[parent_tkn]
+      }
+      #append this token's lemma to the parent verb's list of xcomp verbs
+      empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]] <- 
+        append(empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]], sentence$lemma[tok_num])
+      #set x_parent_verb_id to parent_tkn
+      empty_list$x_parent_verb_id[tok_num] <- sentence$head_token_id[parent_tkn]
     }
     #print(tok_num)
     initial_token_id <- tok_num
     current_token_id <- initial_token_id
-    sentence$head_token_id
     head_tok_id <- sentence[tok_num,head_token_id]
     empty_list$source_or_target[tok_num] <- NA
     break_while_counter <- 0
@@ -82,6 +91,7 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
       empty_list$head_verb_name[tok_num] <- sentence[current_token_id,token]
       empty_list$head_verb_lemma[tok_num] <- sentence[current_token_id,lemma]
       empty_list$head_verb_tense[tok_num] <- sentence[current_token_id,tag]
+      empty_list$head_verb_dep_rel[tok_num] <-sentence[current_token_id, dep_rel]
       empty_list$parent_verb_id[tok_num] <- head_tok_id
       
     }else if(!is.na(empty_list$source_or_target[tok_num]) && empty_list$source_or_target[tok_num]=="source"){
@@ -101,28 +111,31 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
         empty_list$head_verb_name[tok_num] <-  sentence[current_token_id,token]
         empty_list$head_verb_lemma[tok_num] <-  sentence[current_token_id,lemma]
         empty_list$head_verb_tense[tok_num] <-  sentence[current_token_id,tag]
+        empty_list$head_verb_dep_rel[tok_num] <-sentence[current_token_id, dep_rel]
         empty_list$parent_verb_id[tok_num] <- head_tok_id
       }else{
         empty_list$head_verb_id[tok_num] <- NA
         empty_list$head_verb_name[tok_num] <- NA
         empty_list$head_verb_lemma[tok_num] <- NA
         empty_list$head_verb_tense[tok_num] <- NA
+        empty_list$head_verb_dep_rel[tok_num] <- NA
         empty_list$parent_verb_id[tok_num] <- NA
+        
       }
     }
-    #removed for speed
-    #else if(!is.na(source_or_target[[doc_sent_num]][tok_num])){
-    #   print(paste0("Anomaly ",source_or_target[[doc_sent_num]][tok_num],
-    #                " found at doc_sent ", doc_sent_list[doc_sent_num], ", tok_num ", tok_num))
-    #}
     #end of for tok_num
   }
 
+#tag each head_ver_id group where at least one has an x_parent_verb_id
+xparent_rows <- which(nchar(empty_list$x_parent_verb_id)>0)
+xhead_verb <- empty_list$head_verb_id[xparent_rows]
+empty_list$x_parent_verb_id <- sapply(seq_along(empty_list$head_verb_id),
+      function (w) ifelse(empty_list$head_verb_id[w] %in% xhead_verb, empty_list$x_parent_verb_id[xparent_rows[which(xhead_verb == empty_list$head_verb_id[w])]], empty_list$head_verb_id[w]))
 
-#for each of the xcomp tokens, move their helper_lemmas and helper_tokens into their head verb's xcomp_helper_lemma and comp_helper_token rows
+#for each of the xcomp tokens, move their helper_lemmas and helper_tokens into their x_parent_verb's xcomp_helper_lemma and xcomp_helper_token rows
 
 comp_rows <- which(empty_list$xcomp_verb=="xcomp")
-headverb_rows <- sentence$head_token_id[comp_rows]
+headverb_rows <- as.numeric(empty_list$x_parent_verb_id[comp_rows])
 
 empty_list$xcomp_helper_lemma[headverb_rows] <- lapply(seq_along(headverb_rows), function (j){
   append(empty_list$xcomp_helper_lemma[[headverb_rows[j]]][
@@ -139,5 +152,19 @@ empty_list$xcomp_helper_token[headverb_rows] <- lapply(seq_along(headverb_rows),
     ])
 })
 
+#TODO verb info for xcomp targets is updated to parent verb attributes because xcomp rows will be deleted
+#No need to duplicate the rows because xcomp rows will be deleted
+xcomp_indices <- which(empty_list$head_verb_dep_rel=="xcomp")
+xcomp_parents <- as.numeric(empty_list$x_parent_verb_id[xcomp_indices])
+
+empty_list$head_verb_id[xcomp_indices] <- empty_list$head_verb_id[xcomp_parents]
+empty_list$head_verb_name[xcomp_indices] <- empty_list$head_verb_name[xcomp_parents]
+empty_list$head_verb_lemma[xcomp_indices] <- empty_list$head_verb_lemma[xcomp_parents]
+empty_list$head_verb_tense[xcomp_indices] <- empty_list$head_verb_tense[xcomp_parents]
+empty_list$parent_verb_id[xcomp_indices] <- empty_list$parent_verb_id[xcomp_parents]
+empty_list$helper_lemma[xcomp_indices] <- empty_list$helper_lemma[xcomp_parents]
+empty_list$helper_token[xcomp_indices] <- empty_list$helper_token[xcomp_parents]
+empty_list$xcomp_helper_lemma[xcomp_indices] <- empty_list$xcomp_helper_lemma[xcomp_parents]
+empty_list$xcomp_helper_token[xcomp_indices] <- empty_list$xcomp_helper_token[xcomp_parents]
 
 return(empty_list)}
