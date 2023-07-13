@@ -49,7 +49,7 @@ entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
   spacy_result[, entity_cat := paste(token, collapse = concatenator),by = c("doc_id", "sentence_id", "entity_id", "source_or_target")]
   spacy_result$entity_cat[spacy_result$entity==''] <- ''
   spacy_result$entity_id[spacy_result$entity==''] <- -1
-  ret <- as.data.frame(spacy_result)
+  ret <- as.data.table(spacy_result)
   class(ret) <- c("spacyr_parsed", class(ret))
   ret
 }
