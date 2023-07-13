@@ -34,7 +34,7 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
       parent_tkn <- tok_num
       #while we're still on an xcomp in the chain
       while(!is.null(empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]]) && 
-            empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]]=="xcomp"&xcounter<4){
+            empty_list$xcomp_verb[[sentence$head_token_id[parent_tkn]]][1]=="xcomp"&xcounter<5){
         xcounter <- xcounter + 1
         parent_tkn <- sentence$head_token_id[parent_tkn]
       }
