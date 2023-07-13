@@ -21,7 +21,7 @@
 #' @import data.table
 #' @export
 
-generate_networks <- function(ret_path, generate_phrases=F, keep_hyph_together=F, phrases_to_concatenate, 
+generate_networks <- function(ret_path, generate_phrases=F, keep_hyph_together=F, phrases_to_concatenate=NA, 
                               concatenator="_", pages, file_ids, parsed_filenames, 
                               nodeedge_filenames, parse_from_file=F){
   #source('R/custom_entity_extract2.R')
@@ -73,7 +73,7 @@ generate_networks <- function(ret_path, generate_phrases=F, keep_hyph_together=F
         parsedtxt <- readRDS(parsed_filenames[m])
       }
       custom_entity_extract2(parsedtxt,concatenator,file = nodeedge_filenames[m], 
-                             return_to_memory=F)
+                             return_to_memory=F, keep_incomplete_edges=T)
   }
   spacy_finalize()
   
