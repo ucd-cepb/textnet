@@ -164,10 +164,34 @@ custom_entity_extract2 <- function (x, concatenator = "_",file = NULL,cl = 1,
     edgelist$edgeiscomplete <- !is.na(edgelist$source) & !is.na(edgelist$target)
     edgelist[, `:=`(hascompleteedge, any(edgeiscomplete==T)), by = c("doc_sent_verb")]
     edgelist <- edgelist %>% filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
-    
+    edgelist$hascompleteedge <- NULL
   }else{
     edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
   }
+  
+  hedging_helpers <- c("may","might","can","could")
+  hedging_verbs <- c("seem","appear","suggest","tend","assume","indicate","estimate","doubt","believe")
+  has_hedging_verb <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_verbs, 
+                                        edgelist$head_verb_lemma[[z]]), na.rm=T)>0 | 
+           sum(match(hedging_verbs, edgelist$xcomp_verb[[z]]), na.rm=T)>0))
+ 
+  has_hedging_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_helpers, 
+                                        edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
+           sum(match(hedging_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0)) #although xcomp_helpers shouldn't have any hedges
+  
+  future_helpers <- c("shall","will","wo","'ll")
+  has_future_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(future_helpers, 
+                          edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
+                   sum(match(future_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0))#although xcomps shouldn't have any future helpers
+
+  be_tokens <- c("am","is","are","'m","'s","'re")
+  has_future_going <- sapply(1:nrow(edgelist), function(z){(
+    !is.null(edgelist$xcomp_verb[[z]]) && edgelist$head_verb_name[[z]]=="going" &&
+    (sum(match(be_tokens, edgelist$helper_lemma[[z]]), na.rm=T)>0))
+  })
+  
+  edgelist$has_hedge <- has_hedging_verb | has_hedging_helper
+  edgelist$is_future <- has_future_helper | has_future_going
   
   #remove duplicates that arose from concatenating entity names
   nodelist <- nodelist[,.(entity_id, entity_cat, entity_type, doc_sent_verb)]
