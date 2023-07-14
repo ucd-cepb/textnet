@@ -25,10 +25,9 @@ clean_entities <- function(v, remove_nums=T){
                            vectorize= F)
   })
   
-  #remove strings with specific placement: leading "the" and trailing "'s"
-  remove <- c("^_*The_","^_*the_","^_*THE_","^_*The$","^_*the$","^_*THE$","'s$")
-  index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
-  v[index] <- str_remove_all(v[index],paste(remove,collapse = '|'))
+  #remove strings with specific placement: trailing "'s"
+  index <- which(grepl("'s$",v,perl = T))
+  v[index] <- str_remove_all(v[index],"'s$")
   
   #next, remove all non-word characters
   remove <- c("\\W")
