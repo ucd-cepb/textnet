@@ -1,5 +1,5 @@
 # Exported functions 
-# custom_entity_extract2 
+# custom_entity_extract 
 
 #' Takes a parsed spacy document and performs dependency parsing
 #'

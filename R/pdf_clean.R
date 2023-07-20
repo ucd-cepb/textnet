@@ -52,7 +52,7 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
       stop("keep_pages must be either T (to keep all pages) or a list of logical vectors.")
     }
     
-    if(ocr){
+    if(ocr==T){
       #test took 20 minutes to parse 24 pages at 600 dpi. There are 95 total in the 688 page "0007" GSP
       #if not enough chars, it might be a photocopy that needs to be scanned
       for(i in 1:length(texts)){
@@ -81,14 +81,22 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
         #and delete it and all the rows above it
         linebreakhead <- linebreaks[1:6]
         emptylines <- which(str_detect(linebreakhead,"^\\s*$"))
-        headercut <- emptylines[length(emptylines)]
-        linebreaks <- linebreaks[(headercut+1):length(linebreaks)]
+        if(length(emptylines)>=1){
+          headercut <- emptylines[length(emptylines)]
+          linebreaks <- linebreaks[(headercut+1):length(linebreaks)]
+        }
+        #if there are no empty lines, don't remove anything
       }else{
-        emptylines <- which(str_detect(linebreak,"^\\s*$"))
+        emptylines <- which(str_detect(linebreaks,"^\\s*$"))
         if(length(emptylines)>=1){
           #just remove everything before the first set of two \\n,
           headercut <- emptylines[1]
-          linebreaks <- linebreaks[(headercut+1):length(linebreaks)]
+          if(length(linebreaks)>headercut){
+            linebreaks <- linebreaks[(headercut+1):length(linebreaks)]
+          }else{
+            #if there are no lines of text after the cut, make the text NA
+            linebreaks <- NA
+          }
         }else{
           # or if one doesn't exist, 
           #remove everything since it's probably just a figure caption 
@@ -137,13 +145,14 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
       #else don't remove anything, since
       #there are no empty lines.
       
-      texts <- ifelse(is.na(linebreaks), NA, paste(linebreaks, collapse = " "))
+      texts[pagenum] <- ifelse(is.na(linebreaks[1]), NA, paste(linebreaks, collapse = " "))
+      texts[pagenum] <- str_remove(texts[pagenum],"\\s{3,}([0-9|x|v|i]{1,6}|([a-z]+\\p{Pd}[0-9]+))\\s*$")
+      
     }       
     
     #remove page numbers: 5+ spaces followed by (a combo of 1-6
     #roman and arabic numerals) or (a letter, hyphen, and
     #set of numbers such as c-28) at the end of a page
-    texts <- str_remove(texts,"\\s{3,}([0-9|x|v|i]{1,6}|([a-z]+\\p{Pd}[0-9]+))\\s*$")
     
     if(!is.null(export_paths)){
       saveRDS(texts, export_paths[k])
