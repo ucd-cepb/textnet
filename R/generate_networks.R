@@ -72,7 +72,7 @@ generate_networks <- function(ret_path, generate_phrases=F, keep_hyph_together=F
         #parse_from_file==T
         parsedtxt <- readRDS(parsed_filenames[m])
       }
-      custom_entity_extract2(parsedtxt,concatenator,file = nodeedge_filenames[m], 
+      custom_entity_extract(parsedtxt,concatenator,file = nodeedge_filenames[m], 
                              return_to_memory=F, keep_incomplete_edges=T)
   }
   spacy_finalize()

@@ -177,8 +177,8 @@ helping_verbs$type_id <- unname(sapply(helping_verbs$verb, function (i)
   ifelse(i %in% verb_pivot$verb, 
          list(c(verb_pivot[verb_pivot$verb==i,"type_id"][[1]][[1]],"0")), "0")))
 
-verb_pivot <- rbind(verb_pivot[!(verb_pivot$verb %in% helping_verbs$verb)], helping_verbs)
+verb_classifications <- rbind(verb_pivot[!(verb_pivot$verb %in% helping_verbs$verb)], helping_verbs)
 
-saveRDS(verb_pivot, "data/verb_classifications")
+save(verb_classifications, "data/verb_classifications.rda")
 
 
