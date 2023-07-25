@@ -10,7 +10,7 @@ crawl_sentence(s)
 \item{s}{a data.frame containing the results of one (1) parsed spacy sentence}
 }
 \value{
-data frame with original parsed sentence + added dependency parsing
+list with original parsed sentence + added dependency parsing
 }
 \description{
 Take a sentence and follow the dependencies
