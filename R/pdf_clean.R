@@ -158,7 +158,9 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
       saveRDS(texts, export_paths[k])
     }
     if(return_to_memory==T){
+      
       all_pdfs[[k]] <- texts
+      names(all_pdfs[k]) <- pdfs[k]
     }
   }
   if(return_to_memory==T){

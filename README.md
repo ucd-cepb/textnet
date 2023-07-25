@@ -25,8 +25,8 @@ The package has once core function, custom_entity_extract2(). There are a series
 To demo the package, try:
 ```{r}
 library(textNet)
-data("sample_10p")
-extract_result <- custom_entity_extract2(x = sample_10p,cl = 5,return_to_memory = T)
+data("sample_20p")
+extract_result <- custom_entity_extract(x = sample_20p,cl = 5,return_to_memory = T)
 head(extract_result)
 ```
 

@@ -3,7 +3,7 @@
 
 #' Creates an edgelist and nodelist for each document
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
-#' @param keep_hyph_together
+#' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
 #' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces.
 #' @param concatenator This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.
 #' @param pages This is a character vector, in which each element is a string that represents one page of text
@@ -31,8 +31,9 @@
 
 generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
                               concatenator="_", pages, file_ids, parsed_filenames, 
-                              nodeedge_filenames, parse_from_file=F){
-  #source('R/custom_entity_extract2.R')
+                              nodeedge_filenames, parse_from_file=F, cl=1,  
+                              keep_entities = c('ORG','GPE','PERSON'),
+                              overwrite=T){
   
   #prerequisites: step 1, install python
   #step 2, install miniconda from https://conda.io/miniconda.html
@@ -63,25 +64,27 @@ generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concate
   
   unique_files <- unique(file_ids)
   for (m in 1:length(unique_files)){
-    
-      if(parse_from_file==F){
-        single_plan_text <- unlist(pages[file_ids==unique_files[m]])
-        
-        parsedtxt <- spacy_parse(single_plan_text,
-                                 pos = T,
-                                 tag = T,
-                                 lemma = T,
-                                 entity = T,
-                                 dependency = T,
-                                 nounphrase = T)
-        saveRDS(parsedtxt, parsed_filenames[m])
-        print(paste0("parsing complete: ",unique_files[m]))
-      }else{
-        #parse_from_file==T
-        parsedtxt <- readRDS(parsed_filenames[m])
+      if(overwrite==T | (overwrite==F & !(file.exists(nodeedge_filenames[m])))){
+        if(parse_from_file==F){
+          single_plan_text <- unlist(pages[file_ids==unique_files[m]])
+          
+          parsedtxt <- spacy_parse(single_plan_text,
+                                   pos = T,
+                                   tag = T,
+                                   lemma = T,
+                                   entity = T,
+                                   dependency = T,
+                                   nounphrase = T)
+          saveRDS(parsedtxt, parsed_filenames[m])
+          print(paste0("parsing complete: ",unique_files[m]))
+        }else{
+          #parse_from_file==T
+          parsedtxt <- readRDS(parsed_filenames[m])
+        }
+        custom_entity_extract(parsedtxt,concatenator,file = nodeedge_filenames[m],cl,keep_entities, 
+                              return_to_memory=F, keep_incomplete_edges=T)
       }
-      custom_entity_extract(parsedtxt,concatenator,file = nodeedge_filenames[m], 
-                             return_to_memory=F, keep_incomplete_edges=T)
+      
   }
   spacy_finalize()
   
