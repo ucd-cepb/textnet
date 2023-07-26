@@ -1,5 +1,5 @@
 library(stringi)
-
+library(data.table)
 
 str <- c("Hello CDC (Centers for Disease Control), the FBI(Federal Investigation), and ccrma (Center for Computation Recording Music and Acoustics)",
  "world HELLOW (Hi All) This iis a broken (one(to test)) this is An example Of the National Aeronautics and Space Administration (NASA or EIS)0",
@@ -36,10 +36,24 @@ find_acronyms <- function(str){
   paren_splits$acr2 <- unlist(paren_splits$acr2)
   paren_splits$name1 <- unlist(paren_splits$name1)
   
-  acronym_matches <- setDT(list("acronym" = paren_splits$acr1, "name" = paren_splits$name2))
-  acronym_matches2 <- setDT(list("acronym" = paren_splits$acr2, "name" = paren_splits$name1))
+  acronym_matches <- setDT(list("name" = paren_splits$name2,"acronym" = paren_splits$acr1))
+  acronym_matches2 <- setDT(list("name" = paren_splits$name1, "acronym" = paren_splits$acr2))
   
   acronym_matches <- rbind(acronym_matches, acronym_matches2)
-  acronym_matches <- acronym_matches[!is.na(acronym) & !is.na(name),]
+  acronym_matches <- acronym_matches[!is.na(acronym) & !is.na(name) &nchar(acronym)>1,]
+  
+  acronym_matches$name <- str_replace_all(acronym_matches$name,"-|\\s+","_")
+    #change hyphens and spaces to underscores, since in spacyparse they are treated as separate tokens
+
+  
+  #sort from shortest to longest acronym so the replacement happens in the right order
+  acronym_matches <- acronym_matches[order(nchar(acronym_matches$acronym)),]
+  acronym_matches <- unique(acronym_matches)
+  #don't include non-unique acronyms
+  acronym_matches <- acronym_matches[,c(.SD,.N),by=acronym]
+  acronym_matches <- acronym_matches[N==1,]
+  acronym_matches <- acronym_matches[,N:=NULL]
+  #reorder cols
+  setcolorder(x=acronym_matches,neworder=c("name", "acronym"))
   return(acronym_matches)
 }
