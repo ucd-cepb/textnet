@@ -1,15 +1,18 @@
 #behavior: if there is a vector of entities in a "to" cell, it duplicates the relevant
 #rows such that there is an edge for each of the entities in the "to" cell
 
-disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, prefixes){
+disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, try_drop){
   library(igraph)
   library(ggraph)
   library(sna)
   library(stringr)
   library(dplyr)
   
-  remove_prefixes <- function(prefixes){
-    remove <- prefixes[[m]]
+  #TODO should drop "^the" from both the nodelist/edgelist and the custom list automatically
+  
+  #TODO if doesn't match, remove try_drop from the edgelist and nodelist and see if it matches
+  remove_try_drop <- function(try_drop){
+    remove <- try_drop
     index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
     v[index] <- str_remove_all(v[index],paste(remove,collapse = '|'))
     return(v)
@@ -52,6 +55,8 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   rows$entity_cattemp <- rows$length_entitycat <- NULL
   nodelist <- rows
   
+  
+  #TODO consolidate duplicates that have arisen in the process
   
   
   
