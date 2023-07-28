@@ -275,5 +275,13 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   clean_entities(from)
   clean_entities(to)
   #TODO remove empty entities from edgelist and nodelist. consolidate duplicates in nodelist.
+  #colnames(nodelist)[3] <- "num_appearances"
+  #nodelist <- nodelist %>% arrange(desc(num_appearances))
+  
+  #get rid of duplicates
+  #nodelist <- nodelist %>%
+   # group_by(entity_cat) %>%
+    #arrange(desc(num_appearances)) %>%
+    #filter(row_number()==1)
   
 }

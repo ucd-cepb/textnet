@@ -222,6 +222,9 @@ custom_entity_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   data(verb_classifications)
   verblist <- merge.data.table(unique_lemmas,verb_classifications,by.x="head_verb_lemma",by.y="verb", all.x=T, all.y=F)
   
+  #putting source and target first
+  edgelist <- edgelist[,c(2:ncol(edgelist),1)]
+  
   if(!is.null(file)){
     saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist, 'verblist' = verblist, 'appositivelist' = apposlist),file)
     return(paste0("Nodelist, edgelist, verblist, and appositive list for doc id ",file," written to local drive"))
