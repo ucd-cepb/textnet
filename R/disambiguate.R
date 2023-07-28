@@ -66,7 +66,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     ndx <- which(sapply(from, function(s) carryovers[b] %in% s))
     start <- from[[ndx]]
     if(!(start %in% viewedelements)){
-      viewedelements <- append(viewedelements, ndx)
+      viewedelements <- append(viewedelements, start)
       
       #remove any multi-entries that are in an inf loop
       if(length(to[[ndx]])>1){
@@ -76,27 +76,28 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       }else{
         #remove the end of the chain  
         y=1
-        nextto <- to[[ndx]]
-        currentndx <- which(from==nextto)
-        nextfrom <- from[[which(from == nextto)]]
-        viewedelements <- append(viewedelements, nextfrom)
-        while(y <= length(carryovers) & nextfrom!=start){
-          nextto <-to[[which(sapply(from, function(s) nextfrom %in% s))]]
-          currentndx <- which(from==nextto)
-          nextfrom <- from[[which(from == nextto)]]
-          viewedelements <- append(viewedelements, nextfrom)
+        nxtto <- to[[ndx]]
+        currentndx <- which(from==nxtto)
+        nxtfrom <- from[[which(from == nxtto)]]
+        viewedelements <- append(viewedelements, nxtfrom)
+        while(y <= length(carryovers) & nxtfrom!=start){
+          nxtto <- to[[which(sapply(from, function(s) nxtfrom %in% s))]]
+          currentndx <- which(from==nxtto)
+          nxtfrom <- from[[which(from == nxtto)]]
+          viewedelements <- append(viewedelements, nxtfrom)
           y<-y+1
         }
-        if(nextfrom==start){
-          from <- from[-which(from==nextto)]
-          removedelements <- append(removedelements, nextfrom)
+        if(nxtfrom==start){
+          from <- from[-currentndx]
+          to <- to[-currentndx]
+          removedelements <- append(removedelements, nxtfrom)
         }
       }
     }
     b <- b+1
   }
   if(is_inf_loop==T){
-    warning(paste0("to/from terms ", paste0(carryovers, collapse = ", "), " were in an infinite loop.",
+    warning(paste0("to/from terms ", paste0(carryovers, collapse = ", "), " were in an infinite loop. ",
                    "Resolved by removing 'from' elements ",paste0(removedelements, collapse=", ")))
   
   }
