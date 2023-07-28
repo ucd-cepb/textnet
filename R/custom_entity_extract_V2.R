@@ -214,6 +214,7 @@ custom_entity_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   nodelist <- merge.data.table(new_type,nodelist,all = T)
 
   nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
+  colnames(nodelist)[3] <- "num_appearances"
   
   unique_lemmas <- data.table("head_verb_lemma" = unique(edgelist$head_verb_lemma))
   
