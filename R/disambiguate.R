@@ -317,16 +317,24 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       return(terms)
     }
     
-    textnet_extract$edgelist$source <- str_replace_all(textnet_extract$edgelist$source,
+    index <- which(str_detect(textnet_extract$edgelist$source,paste(fromregex,collapse='|')))
+    notindex <- 1:length(textnet_extract$edgelist$source) %in% index
+    textnet_extract$edgelist$source[index] <- str_replace_all(textnet_extract$edgelist$source[index],
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$source <- sub_try_drop(try_drop, textnet_extract$edgelist$source, notindex)
     }
-    textnet_extract$edgelist$target <- str_replace_all(textnet_extract$edgelist$target,
+    
+    index <- which(str_detect(textnet_extract$edgelist$target,paste(fromregex,collapse='|')))
+    notindex <- 1:length(textnet_extract$edgelist$target) %in% index
+    textnet_extract$edgelist$target[index] <- str_replace_all(textnet_extract$edgelist$target[index],
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$target <- sub_try_drop(try_drop, textnet_extract$edgelist$target, notindex)
     }
+    
+    index <- which(str_detect(textnet_extract$nodelist$entity_cat,paste(fromregex,collapse='|')))
+    notindex <- 1:length(textnet_extract$nodelist$entity_cat) %in% index
     textnet_extract$nodelist$entity_cat <- str_replace_all(textnet_extract$nodelist$entity_cat,
                                                                   namedvect)
     if(!is.null(try_drop)){
@@ -343,13 +351,10 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   textnet_extract$nodelist$entity_cat <- tolower(textnet_extract$nodelist$entity_cat)
   textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_cat]
   textnet_extract$nodelist <-arrange(textnet_extract$nodelist, desc(num_appearances))
-  textnet_extract$nodelist <- textnet_extract$nodelist[,!duplicated(entity_cat)]
+  textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_cat),]
   textnet_extract$nodelist$num_appearances <- NULL
   colnames(textnet_extract$nodelist)[3] <- "num_appearances"
   #TODO remove empty entities from edgelist and nodelist. 
-  
-  textnet_extract$edgelist$sourcetemp <- NULL
-  textnet_extract$edgelist$targettemp <- NULL
   
   #remove empty strings and send edgelist to_lower
   textnet_extract$edgelist$source <- ifelse(is.na(textnet_extract$edgelist$source),
