@@ -1,30 +1,51 @@
-#behavior: if there is a vector of entities in a "to" cell, it duplicates the relevant
-#rows such that there is an edge for each of the entities in the "to" cell
-#vector entities are disambiguated first.
-#afterward, it substitutes strings in order of appearance in from and to. 
+# Exported functions 
+# disambiguate 
 
-#drops leading "the" to help facilitate more matches
-#if match_partial_entity is T for that element, can match on just a word boundary
-#from could be "acronyms" from find_acronyms output
-#to could be "names" from find_acronyms output
-
-#textnet_extract should be the result of custom_entity_extract
-
-#if try_drop is supplied, it tries to find a match in "from" among the edgelists and nodelists first.
-#if it can't find a match, it drops try_drop from the nonmatching edgelist and nodelist elements and tries again
+#' Renames entities in a textnet_extract that are supplied in 'from' with those supplied in 'to'.
+#'
+#' @param from A list of character vectors representing terms to look for, the same length as 'to'. 
+#' If a term in this list is found, this function replaces it with its corresponding match in 'to'. 
+#' The "acronyms" column from the find_acronyms output could be used here. 
+#' @param to A list of character vectors representing replacement terms, the same length as 'from'. 
+#' If a term in the 'from' list is found, it is replaced with the corresponding term in this list. 
+#' The "names" column in the find_acronyms output could be used here. If an element consists of multiple entities in a vector, 
+#' the relevant edges are duplicated in the edgelist, with one edge for each entity in the vector. 
+#' These vector entities are disambiguated first, followed by the rest of the strings in order of appearance in 'from' and 'to'.
+#rows such that there is an edge for each of the entities in the "to" cell. 
+#' @param match_partial_entity A logical vector of the same length as 'from'. 
+#' If match_partial_entity is T for an element, it can match on the 'from' term separated by concatenator. 
+#' Otherwise, the 'from' term must match the whole entity name to be accepted. Defaults to "F" for all elements.
+#' @param textnet_extract An output of the function textnet_extract
+#' @param try_drop A regex expression representing one or more terms to try dropping. 
+#' The usual case for this is country or state names, such as "^US_". 
+#' If try_drop is supplied, the function first tries to determine whether each element in the textnet_extract matches a term in 'from.'
+#' If not, it determines whether removing try_drop from the remaining elements enables them to match a term in 'from'. 
+#' If so, the matching textnet_extract elements are replaced with the corresponding element in 'to.' 
+#' The non-matches remains unchanged.
+#' @param recursive A logical value, defaulting to T. If recursive is T, the function runs multiple times. 
+#' The number of times the function is run is determined by the longest "chain" in which a value in 'to' is found in 'from', 
+#' which may in turn correspond to a 'to' value that is found in 'from', and so on. 
+#' @param concatenator The word boundary to look for when match_partial_entity is true. Defaults to "_". 
+#' @return a cleaned textnet extract
+#' 
+#' @import data.table
+#' @import igraph
+#' @import ggraph
+#' @import sna
+#' @import stringr
+#' @import dplyr
+#' @export
+#'
 
 #if recursive is true, runs it multiple times to reach the end of the chain.
 
-#returns cleaned textnet_extract
-
-
-disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, try_drop=NULL, recursive){
+disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, try_drop=NULL, recursive=T, concatenator="_"){
   library(igraph)
   library(ggraph)
   library(sna)
   library(stringr)
   library(dplyr)
-  
+  #Data formatting checks####
   to_from_same <- sapply(1:length(to), function (j) sum(from[[j]]!=to[[j]])==0)
   if(sum(to_from_same)>0){
     warning("Removing ",sum(to_from_same)," rows in which to and from are identical.")
@@ -33,7 +54,6 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     match_partial_entity <- match_partial_entity[!(to_from_same)]
     to_from_same <- sapply(1:length(to), function (j) sum(from[[j]]!=to[[j]])==0)
   }
-  
   if(length(from)!=length(to)){
     stop("From and To must be the same length.")
   }
@@ -137,20 +157,6 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   for(z in 1:times_to_repeat){
     #Subsection 1: The lists ####
     
-    multi_to <- sapply(1:length(to), function(w) length(to[[w]]) > 1)
-    multi_from <- sapply(1:length(from), function(w) length(from[[w]]) > 1)
-    
-    if(sum(multi_from)>0){
-      stop("Elements in 'from' may not be lists. Please change elements ", 
-           paste0(which(multi_to), collapse = ", ") ," to a single character vector.")
-    }
-    if(sum(multi_to==T & match_partial_entity==T)>0){
-      stop("Elements for which 'to' is a list may not be matched on a partial string. Please set match_partial_entity to F for these elements.")
-    }
-    
-    #if the extract matches something that's supposed to turn into a list, send it to a temp column
-    
-    
     sub_try_drop_forlists <- function(remove, terms, didntmatch){
       tempv <- terms
       rem <- grepl(paste(remove,collapse = '|'),terms,perl = T)
@@ -159,121 +165,38 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       #step two, now that try_drop is removed, does it match the from? if so, substitute the from.
       #then return only the terms that actually changed
       
-      infrom <- which(grepl(paste(fromregex,collapse='|'),tempv,perl=T))
+      infrom <- which(str_detect(tempv,paste(fromregex,collapse='|')))
       terms[infrom] <- tempv[infrom]
       
-      
       return(terms)
     }
     
-    froms_of_multi_to <- from[multi_to]
-    tos_of_multi_to <- to[multi_to]
+    multi_to <- sapply(1:length(to), function(w) length(to[[w]]) > 1)
+    multi_from <- sapply(1:length(from), function(w) length(from[[w]]) > 1)
     
-    textnet_extract$edgelist$sourcetemp <- textnet_extract$edgelist$source
-    textnet_extract$edgelist$targettemp <- textnet_extract$edgelist$target
-    textnet_extract$nodelist$entity_cattemp <- textnet_extract$nodelist$entity_cat
-    
-    index <- rep(F, length=length(textnet_extract$edgelist$sourcetemp))
-    for(q in 1:length(froms_of_multi_to)){
-      index <- ifelse(is.na(textnet_extract$edgelist$sourcetemp),
-                  F, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
-                            T, index))
-      
-      textnet_extract$edgelist$sourcetemp <- ifelse(is.na(textnet_extract$edgelist$sourcetemp),
-                 NA, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
-                            tos_of_multi_to[q], textnet_extract$edgelist$sourcetemp))
-        
+    if(sum(multi_from)>0){
+      stop("Elements in 'from' should not be lists. Please change elements ", 
+           paste0(which(multi_to), collapse = ", ") ," to a single character vector.")
     }
-    notindex <- !index
-    if(!is.null(try_drop)){
-      textnet_extract$edgelist$sourcetemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$sourcetemp, notindex)
+    if(sum(multi_to==T & match_partial_entity==T)>0){
+      stop("Elements for which 'to' is a list may not be matched on a partial string. Please set match_partial_entity to F for these elements.")
     }
     
-    index <- rep(F, length=length(textnet_extract$edgelist$targettemp))
-    for(q in 1:length(froms_of_multi_to)){
-      index <- ifelse(is.na(textnet_extract$edgelist$targettemp),
-                      F, ifelse(textnet_extract$edgelist$targettemp == froms_of_multi_to[[q]], 
-                                T, index))
-      
-      textnet_extract$edgelist$targettemp <- ifelse(is.na(textnet_extract$edgelist$targettemp),
-                                                    NA, ifelse(textnet_extract$edgelist$targettemp == froms_of_multi_to[[q]], 
-                                                               tos_of_multi_to[q], textnet_extract$edgelist$targettemp))
-      
-    }
-    notindex <- !index
-    if(!is.null(try_drop)){
-      textnet_extract$edgelist$targettemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$targettemp, notindex)
-    }
-
-    index <- rep(F, length=length(textnet_extract$nodelist$entity_cattemp))
-    for(q in 1:length(froms_of_multi_to)){
-      index <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
-                      F, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
-                                T, index))
-      
-      textnet_extract$nodelist$entity_cattemp <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
-                                                    NA, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
-                                                               tos_of_multi_to[q], textnet_extract$nodelist$entity_cattemp))
-      
-    }
-    notindex <- !index
-    if(!is.null(try_drop)){
-      textnet_extract$nodelist$entity_cattemp <- sub_try_drop_forlists(try_drop, textnet_extract$nodelist$entity_cattemp, notindex)
-    }
-    
-    edgelist$length_source <- sapply(edgelist$sourcetemp, length)
-    edgelist$length_target <- sapply(edgelist$targettemp, length)
-    rows <- edgelist[rep(seq(1, nrow(edgelist)), edgelist$length_source)]
-    rows$source <- unlist(edgelist$sourcetemp)
-    rowstarget <- rows[rep(seq(1, nrow(rows)), rows$length_target)]
-    rowstarget$target <- unlist(rows$targettemp)
-    
-    rowstarget$sourcetemp <- rowstarget$targettemp <- rowstarget$length_source <- rowstarget$length_target<- NULL
-    edgelist <- rowstarget
-    
-    nodelist$entity_cattemp <- lapply(nodelist$entity_cat, function(strng) agency_disambig(strng,m))
-    nodelist$length_entitycat <- sapply(nodelist$entity_cattemp, length)
-    rows <- nodelist[rep(seq(1, nrow(nodelist)), nodelist$length_entitycat)]
-    rows$entity_cat <- unlist(nodelist$entity_cattemp)
-    rows$entity_cattemp <- rows$length_entitycat <- NULL
-    nodelist <- rows
-    
-    #Subsection 2: Match Partial and Full Words (Non-List), and TryDrop####
-    #if doesn't match, remove try_drop from the edgelist and nodelist and see if it matches
-    sub_try_drop <- function(remove, terms, didntmatch){
-      tempv <- terms
-      rem <- grepl(paste(remove,collapse = '|'),terms,perl = T)
-      tempv[rem ==T & didntmatch==T] <- str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
-      
-      #step two, now that try_drop is removed, does it match the from? if so, substitute the to.
-      #then return only the terms that actually changed
-      
-      infrom <- which(grepl(paste(fromregex,collapse='|'),tempv,perl=T))
-      terms[infrom] <- str_replace_all(tempv[infrom],
-                                       namedvect)
-      
-      #if removing the try_drop causes the entity to match the entire entry of a "to" column
-      #make it that entity
-      towhole <- paste0("^",to[!multi_to],"$")
-      into <- which(grepl(paste(towhole, collapse='|'),tempv,perl=T))
-      terms[into] <- tempv[into]
-      
-      return(terms)
-    }
+    #setting up regex of froms
     
     #only if there is only one entity in the cell.
-    frompartial <- from[match_partial_entity]
-    topartial <- to[match_partial_entity]
-    fromfull <- from[!match_partial_entity & !multi_to]
-    tofull <- to[!match_partial_entity & !multi_to]
+    frompartial <- unlist(from[match_partial_entity])
+    topartial <- unlist(to[match_partial_entity])
+    fromfull <- unlist(from[!match_partial_entity & !multi_to])
+    tofull <- unlist(to[!match_partial_entity & !multi_to])
     
     if(length(frompartial)>0){
       #beginning of word
-      begf <- paste0("^",frompartial,"_")
-      begt <- paste0(topartial,"_")
+      begf <- paste0("^",frompartial,concatenator)
+      begt <- paste0(topartial,concatenator)
       #middle or end of word
-      midf <- paste0("_",frompartial)
-      midt <- paste0("_",topartial)
+      midf <- paste0(concatenator,frompartial)
+      midt <- paste0(concatenator,topartial)
       #entire word
       wholef <- paste0("^",frompartial,"$")
       wholet <- topartial
@@ -291,23 +214,120 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     namedvect <- toregex
     names(namedvect) <- fromregex
     
-    index <- which(grepl(paste(fromregex,collapse='|'),textnet_extract$edgelist$source,perl=T))
-    notindex <- which(!grepl(paste(fromregex,collapse='|'),textnet_extract$edgelist$source,perl=T))
-    textnet_extract$edgelist$source[index] <- str_replace_all(textnet_extract$edgelist$source[index],
+    #if the extract matches something that's supposed to turn into a list, send it to a temp column
+    if(sum(multi_to==T)>0){
+      froms_of_multi_to <- from[multi_to]
+      tos_of_multi_to <- to[multi_to]
+      
+      textnet_extract$edgelist$sourcetemp <- textnet_extract$edgelist$source
+      textnet_extract$edgelist$targettemp <- textnet_extract$edgelist$target
+      textnet_extract$nodelist$entity_cattemp <- textnet_extract$nodelist$entity_cat
+      
+      #Sub-subsection 1: Sourcetemp####
+      index <- rep(F, length=length(textnet_extract$edgelist$sourcetemp))
+      for(q in 1:length(froms_of_multi_to)){
+        index <- ifelse(is.na(textnet_extract$edgelist$sourcetemp),
+                        F, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
+                                  T, index))
+        
+        textnet_extract$edgelist$sourcetemp <- ifelse(is.na(textnet_extract$edgelist$sourcetemp),
+                                                      NA, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
+                                                                 tos_of_multi_to[q], textnet_extract$edgelist$sourcetemp))
+        
+      }
+      notindex <- !index
+      if(!is.null(try_drop)){
+        textnet_extract$edgelist$sourcetemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$sourcetemp, notindex)
+      }
+      
+      #Sub-subsection 2: Targettemp####
+      index <- rep(F, length=length(textnet_extract$edgelist$targettemp))
+      for(q in 1:length(froms_of_multi_to)){
+        index <- ifelse(is.na(textnet_extract$edgelist$targettemp),
+                        F, ifelse(textnet_extract$edgelist$targettemp == froms_of_multi_to[[q]], 
+                                  T, index))
+        
+        textnet_extract$edgelist$targettemp <- ifelse(is.na(textnet_extract$edgelist$targettemp),
+                                                      NA, ifelse(textnet_extract$edgelist$targettemp == froms_of_multi_to[[q]], 
+                                                                 tos_of_multi_to[q], textnet_extract$edgelist$targettemp))
+        
+      }
+      notindex <- !index
+      if(!is.null(try_drop)){
+        textnet_extract$edgelist$targettemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$targettemp, notindex)
+      }
+      
+      #Sub-subsection 3: Entity_cattemp####
+      index <- rep(F, length=length(textnet_extract$nodelist$entity_cattemp))
+      for(q in 1:length(froms_of_multi_to)){
+        index <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
+                        F, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
+                                  T, index))
+        
+        textnet_extract$nodelist$entity_cattemp <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
+                                                          NA, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
+                                                                     tos_of_multi_to[q], textnet_extract$nodelist$entity_cattemp))
+        
+      }
+      notindex <- !index
+      if(!is.null(try_drop)){
+        textnet_extract$nodelist$entity_cattemp <- sub_try_drop_forlists(try_drop, textnet_extract$nodelist$entity_cattemp, notindex)
+      }
+      
+      #Sub-subsection 4: Generating edges for each element in the multi-entries####
+      
+      textnet_extract$edgelist$length_source <- sapply(textnet_extract$edgelist$sourcetemp, length)
+      textnet_extract$edgelist$length_target <- sapply(textnet_extract$edgelist$targettemp, length)
+      rows <- textnet_extract$edgelist[rep(seq(1, nrow(textnet_extract$edgelist)), textnet_extract$edgelist$length_source)]
+      rows$source <- unlist(textnet_extract$edgelist$sourcetemp)
+      rowstarget <- rows[rep(seq(1, nrow(rows)), rows$length_target)]
+      rowstarget$target <- unlist(rows$targettemp)
+      
+      rowstarget$sourcetemp <- rowstarget$targettemp <- rowstarget$length_source <- rowstarget$length_target<- NULL
+      textnet_extract$edgelist <- rowstarget
+      
+      textnet_extract$nodelist$length_entitycat <- sapply(textnet_extract$nodelist$entity_cattemp, length)
+      rows <- textnet_extract$nodelist[rep(seq(1, nrow(textnet_extract$nodelist)), textnet_extract$nodelist$length_entitycat)]
+      rows$entity_cat <- unlist(textnet_extract$nodelist$entity_cattemp)
+      rows$entity_cattemp <- rows$length_entitycat <- NULL
+      textnet_extract$nodelist <- rows
+      
+    }
+    
+    #Subsection 2: Match Partial and Full Words (Non-List), and TryDrop####
+    #if doesn't match, remove try_drop from the edgelist and nodelist and see if it matches
+    sub_try_drop <- function(remove, terms, didntmatch){
+      tempv <- terms
+      rem <- grepl(paste(remove,collapse = '|'),terms,perl = T)
+      tempv[rem ==T & didntmatch==T] <- str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
+      
+      #step two, now that try_drop is removed, does it match the from? if so, substitute the to.
+      #then return only the terms that actually changed
+      
+      infrom <- which(str_detect(tempv,paste(fromregex,collapse='|')))
+      terms[infrom] <- str_replace_all(tempv[infrom],
+                                       namedvect)
+      
+      #if removing the try_drop causes the entity to match the entire entry of a "to" column
+      #make it that entity
+      towhole <- paste0("^",to[!multi_to],"$")
+      into <- which(str_detect(tempv,paste(towhole, collapse='|')))
+      terms[into] <- tempv[into]
+      
+      return(terms)
+    }
+    
+    textnet_extract$edgelist$source <- str_replace_all(textnet_extract$edgelist$source,
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$source <- sub_try_drop(try_drop, textnet_extract$edgelist$source, notindex)
     }
-    index <- which(grepl(paste(fromregex,collapse='|'),textnet_extract$edgelist$target,perl=T))
-    notindex <- which(!grepl(paste(fromregex,collapse='|'),textnet_extract$edgelist$target,perl=T))
-    textnet_extract$edgelist$target[index] <- str_replace_all(textnet_extract$edgelist$target[index],
+    textnet_extract$edgelist$target <- str_replace_all(textnet_extract$edgelist$target,
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$target <- sub_try_drop(try_drop, textnet_extract$edgelist$target, notindex)
     }
-    index <- which(grepl(paste(fromregex,collapse='|'),textnet_extract$nodelist$entity_cat,perl=T))
-    notindex <- which(!grepl(paste(fromregex,collapse='|'),textnet_extract$nodelist$entity_cat,perl=T))
-    textnet_extract$nodelist$entity_cat[index] <- str_replace_all(textnet_extract$nodelist$entity_cat[index],
+    textnet_extract$nodelist$entity_cat <- str_replace_all(textnet_extract$nodelist$entity_cat,
                                                                   namedvect)
     if(!is.null(try_drop)){
       textnet_extract$nodelist$entity_cat <- sub_try_drop(try_drop, textnet_extract$nodelist$entity_cat, notindex)
@@ -315,7 +335,6 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     
     
   }
-
   #Section 3: Clean-Up####
   #redoes count of num_appearances
   #consolidates upper and lower case spellings (this is done after the above cleaning because acronyms and 
@@ -349,7 +368,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   textnet_extract$edgelist[, `:=`(hascompleteedge, any(edgeiscomplete==T)), by = c("doc_sent_verb")]
   textnet_extract$edgelist <- textnet_extract$edgelist %>% filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
   textnet_extract$edgelist$hascompleteedge <- NULL
-  
+  #Section 4: Return####
   return(textnet_extract)
 }
 
