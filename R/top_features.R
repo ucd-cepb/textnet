@@ -1,6 +1,8 @@
 # Exported functions
 # top_features
 
+#' Finds the most common entities and lemmas in the corpus
+#' 
 #' @param files vector of filepaths to igraph objects or list of igraph objects
 #' @param from_file boolean whether files represent filepaths (T) or igraph objects (F)
 #' 

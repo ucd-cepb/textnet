@@ -1,4 +1,4 @@
-# Exported functions 
+# Exported function
 # pdf_clean
 
 #' Take a vector and clean the strings using regex. 

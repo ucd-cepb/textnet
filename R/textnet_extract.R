@@ -1,7 +1,7 @@
-# Exported functions 
-# custom_entity_extract 
+# Exported function
+# textnet_extract 
 
-#' Takes a parsed spacy document and performs dependency parsing
+#' Takes a parsed spacy document and uses dependency parsing to generate an edgelist, nodelist, verblist, and apposititve list
 #'
 #' @param x parsed spacy document
 #' @param concatenator how entity parts are concatenated (defaults to "_")
@@ -20,7 +20,7 @@
 #' @export
 #'
 
-custom_entity_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
+textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
                                     return_to_memory = T,keep_incomplete_edges=F) {
 
@@ -231,11 +231,12 @@ custom_entity_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
     return(paste0("Nodelist, edgelist, verblist, and appositive list for doc id ",file," written to local drive"))
     
   }
-    if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist))}
+    if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist,'verblist'=verblist,'appositivelist'=apposlist))}
+  
+  #TODO value adds:
+  #TODO import the object that "which" refers to
+  #TODO other non-entities we care about? eg "stakeholders"?
 }
 
 
-#TODO value adds:
-#TODO import the object that "which" refers to
-#TODO other non-entities we care about? eg "stakeholders"?
 

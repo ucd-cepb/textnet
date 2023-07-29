@@ -81,7 +81,7 @@ generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concate
           #parse_from_file==T
           parsedtxt <- readRDS(parsed_filenames[m])
         }
-        custom_entity_extract(parsedtxt,concatenator,file = nodeedge_filenames[m],cl,keep_entities, 
+        textnet_extract(parsedtxt,concatenator,file = nodeedge_filenames[m],cl,keep_entities, 
                               return_to_memory=F, keep_incomplete_edges=T)
       }
       
