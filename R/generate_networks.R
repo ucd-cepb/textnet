@@ -76,6 +76,12 @@ generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concate
                                    dependency = T,
                                    nounphrase = T)
           saveRDS(parsedtxt, parsed_filenames[m])
+          lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
+          pctlettersineng <- sum(lettertokens %in% eng_words)/length(lettertokens) 
+          
+          if(pctlettersineng<0.5){
+            warning("Fewer than 50% of letter-containing tokens in this PDF are English words. This may be due to a PDF formatting issue. It is not recommended to use textnet_extract on this pdf.")
+          }
           print(paste0("parsing complete: ",unique_files[m]))
         }else{
           #parse_from_file==T
