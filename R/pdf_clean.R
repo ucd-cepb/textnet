@@ -36,7 +36,7 @@
 #' @export
 #' 
 
-pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T){
+pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F){
   if(return_to_memory==F & is.null(export_paths)){
     stop("Either return_to_memory must be true or export_paths must be non-null.")
   }
@@ -44,7 +44,11 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
     all_pdfs <- vector(mode = "list", length = length(pdfs))
   }
   for(k in 1:length(pdfs)){
-    texts <- suppressMessages(pdf_text(pdfs[[k]]))
+    if(suppressWarn==T){
+      texts <- suppressMessages(pdf_text(pdfs[[k]]))
+    }else{
+      texts <- pdf_text(pdfs[[k]])
+    }
     
     if(class(keep_pages)=="list"){
       texts <- texts[keep_pages[[k]]]
