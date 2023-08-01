@@ -62,6 +62,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     "Each term in the 'from' list must match to a unique term in the 'to' list. ",
     "Please resolve the duplicated 'from' terms: ", paste0(from[duplicated(from)],collapse=", ")))
   }
+  
   #Section0: Determine num of recursive ####
   vectto <- unlist(to)
   vectfrom <- unlist(from)
@@ -145,7 +146,8 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   #Section 1: Drop "The"####
   #drop "^the" from the custom list automatically
   #the textnet extraction process already drops "^the"
-  remove <- c("^_*The_","^_*the_","^_*THE","^_*The$","_*the$","^_*THE$")
+  remove <- c("^_*The_","^_*the_","^_*THE_",
+              "^_*The$","^_*the$","^_*THE$")
  
   index <- which(grepl(paste(remove,collapse='|'),from,perl=T))
   from[index] <- str_remove_all(from[index],paste(remove,collapse= '|'))
@@ -205,8 +207,11 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       topartial <- c(begt,midt,wholet)
     }
     #entire word
-    fromfull <- paste0("^",fromfull,"$")
-    tofull <- tofull
+    if(length(fromfull)>0){
+      fromfull <- paste0("^",fromfull,"$")
+      tofull <- tofull
+    }
+
     
     fromregex <- c(frompartial, fromfull)
     toregex <- c(topartial, tofull)
@@ -344,31 +349,52 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     
   }
   #Section 3: Clean-Up####
-  #redoes count of num_appearances
-  #consolidates upper and lower case spellings (this is done after the above cleaning because acronyms and 
-  #abbreviations can be case-sensitive)
+
   colnames(textnet_extract$nodelist)[3] <- "num_appearances"
+  #consolidates upper and lower case spellings 
+  #(this is done after the above cleaning because acronyms and 
+  #abbreviations can be case-sensitive)
   textnet_extract$nodelist$entity_cat <- tolower(textnet_extract$nodelist$entity_cat)
+  
+  #removes the again
+  remove <- c("^_*the_","^_*the$")
+  index <- which(grepl(paste(remove,collapse='|'),textnet_extract$nodelist$entity_cat,perl=T))
+  textnet_extract$nodelist$entity_cat[index] <- str_remove_all(
+    textnet_extract$nodelist$entity_cat[index],paste(remove,collapse= '|'))
+  
+  #redoes count of num_appearances
   textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_cat]
   textnet_extract$nodelist <-arrange(textnet_extract$nodelist, desc(num_appearances))
   textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_cat),]
   textnet_extract$nodelist$num_appearances <- NULL
   colnames(textnet_extract$nodelist)[3] <- "num_appearances"
-  #TODO remove empty entities from edgelist and nodelist. 
   
-  #remove empty strings and send edgelist to_lower
+  #send edgelist tolower
+  textnet_extract$edgelist$source <- tolower(textnet_extract$edgelist$source)
+  textnet_extract$edgelist$target <- tolower(textnet_extract$edgelist$target)
+  
+  #removes "the" again
+  index <- which(grepl(paste(remove,collapse='|'),textnet_extract$edgelist$source,perl=T))
+  textnet_extract$edgelist$source[index] <- str_remove_all(
+    textnet_extract$edgelist$source[index],paste(remove,collapse= '|'))
+  
+  index <- which(grepl(paste(remove,collapse='|'),textnet_extract$edgelist$target,perl=T))
+  textnet_extract$edgelist$target[index] <- str_remove_all(
+    textnet_extract$edgelist$target[index],paste(remove,collapse= '|'))
+  
+  #remove empty strings 
   textnet_extract$edgelist$source <- ifelse(is.na(textnet_extract$edgelist$source),
-                                        textnet_extract$edgelist$source,
-                                        ifelse(nchar(textnet_extract$edgelist$source)==0,NA,
-                                               tolower(textnet_extract$edgelist$source)))
+                                            textnet_extract$edgelist$source,
+                                            ifelse(nchar(textnet_extract$edgelist$source)==0,NA,
+                                                   textnet_extract$edgelist$source))
   textnet_extract$edgelist$target <- ifelse(is.na(textnet_extract$edgelist$target),
-                                        textnet_extract$edgelist$target,
-                                        ifelse(nchar(textnet_extract$edgelist$target)==0,NA,
-                                               tolower(textnet_extract$edgelist$target)))
+                                            textnet_extract$edgelist$target,
+                                            ifelse(nchar(textnet_extract$edgelist$target)==0,NA,
+                                                   textnet_extract$edgelist$target))
   textnet_extract$nodelist <- textnet_extract$nodelist[nchar(textnet_extract$nodelist$entity_cat)>0]
   
   #remove any incomplete edges that may have resulted from the disambiguation process
-  #this function should not be any additions to the existing incomplete edges in a usual case
+  #this function should not cause any additions to the existing incomplete edges in a usual case
   textnet_extract$edgelist$edgeiscomplete <- !is.na(textnet_extract$edgelist$source) & !is.na(textnet_extract$edgelist$target)
   textnet_extract$edgelist[, `:=`(hascompleteedge, any(edgeiscomplete==T)), by = c("doc_sent_verb")]
   textnet_extract$edgelist <- textnet_extract$edgelist %>% filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)

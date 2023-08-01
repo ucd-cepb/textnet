@@ -11,7 +11,10 @@
 #'
 #' @param v a vector of entity names
 #' @return a cleaned vector of entity names
-#' 
+#' @import pbapply
+#' @import stringi
+#' @import stringr
+
 #' @export
 #' 
 
@@ -48,9 +51,12 @@ clean_entities <- function(v, remove_nums=T){
   index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
   v[index] <- str_remove_all(v[index],paste(remove,collapse = '|'))
   
-  #remove entities that have no letters
+  #remove entities that have no letters (or numbers, if remove_nums == F)
   if(remove_nums){
-    index <- which(!grepl("[[:alpha:]]", v))
+    index <- which(!grepl("[a-zA-Z]", v))
+    v[index] <- ""
+  }else{
+    index <- which(!grepl("[a-zA-Z0-9]", v))
     v[index] <- ""
   }
   
