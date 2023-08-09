@@ -11,6 +11,7 @@
 #' @import ohenery
 #' @import tidyverse
 #' @import intergraph
+#' @import network
 #' 
 #' @export
 
@@ -25,8 +26,14 @@ top_features <- function(files, from_file=F){
     }else{
       igr <- files[[i]]
     }
-
-    net <- asNetwork(igr)
+    igr_df <- get.data.frame(igr, what = "both")
+    
+    net <- network(x=igr_df$edges[,1:2], directed = T,
+                          hyper = F, loops = T, multiple = T, 
+                          bipartiate = F, vertices = igr_df$vertices,
+                          matrix.type = "edgelist")
+    
+    
     all_entities[[i]] <- sort(igraph::degree(igr),decreasing = T)
     all_lemmas[[i]] <- sort(table(igraph::get.edge.attribute(
       igr, "head_verb_lemma")), decreasing = T)

@@ -166,8 +166,8 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       
       #step two, now that try_drop is removed, does it match the from? if so, substitute the from.
       #then return only the terms that actually changed
-      
-      infrom <- which(str_detect(tempv,paste(fromregex,collapse='|')))
+      #coerces tempv list into atomic vector of same length, which gives a warning unless suppressed.
+      infrom <- which(suppressWarnings(str_detect(tempv,paste(fromregex,collapse='|'))))
       terms[infrom] <- tempv[infrom]
       
       return(terms)
@@ -236,8 +236,8 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
                                   T, index))
         
         textnet_extract$edgelist$sourcetemp <- ifelse(is.na(textnet_extract$edgelist$sourcetemp),
-                                                      NA, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
-                                                                 tos_of_multi_to[q], textnet_extract$edgelist$sourcetemp))
+                           NA, ifelse(textnet_extract$edgelist$sourcetemp == froms_of_multi_to[[q]], 
+                           tos_of_multi_to[q], textnet_extract$edgelist$sourcetemp))
         
       }
       notindex <- !index
@@ -248,6 +248,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       #Sub-subsection 2: Targettemp####
       index <- rep(F, length=length(textnet_extract$edgelist$targettemp))
       for(q in 1:length(froms_of_multi_to)){
+        #progressively adds all of the multi-length entities to index as cycles through vals of q
         index <- ifelse(is.na(textnet_extract$edgelist$targettemp),
                         F, ifelse(textnet_extract$edgelist$targettemp == froms_of_multi_to[[q]], 
                                   T, index))
@@ -257,6 +258,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
                                                                  tos_of_multi_to[q], textnet_extract$edgelist$targettemp))
         
       }
+      #everything in notindex is a single-length entry
       notindex <- !index
       if(!is.null(try_drop)){
         textnet_extract$edgelist$targettemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$targettemp, notindex)
@@ -362,7 +364,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   textnet_extract$nodelist$entity_cat[index] <- str_remove_all(
     textnet_extract$nodelist$entity_cat[index],paste(remove,collapse= '|'))
   
-  #redoes count of num_appearances
+  #redoes count of num_appearances, prioritizes most common entity_type by using desc()
   textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_cat]
   textnet_extract$nodelist <-arrange(textnet_extract$nodelist, desc(num_appearances))
   textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_cat),]
