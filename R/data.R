@@ -1,15 +1,15 @@
-#' Sample of 10 pages from a groundwater plan
+#' Sample of 20 pages from a collection of groundwater plans
 #' Parsed by spacy (spacy_en_web_lg) and stored as data.frame
 #'
 #' @docType data
 #'
-#' @usage data(sample_10p)
+#' @usage data(sample_20p)
 #'
 #' @format An object of class `"spacyr_parsed"`.
 #'
 #' @keywords datasets
 #' 
 #' @examples
-#' data(sample_10p)
-#' tokens <- sample_10p$token
-"sample_10p"
+#' data(sample_20p)
+#' tokens <- sample_20p$token
+"sample_20p"

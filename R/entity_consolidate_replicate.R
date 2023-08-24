@@ -17,8 +17,8 @@
 #'
 
 entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
-  #common use of remove is remove = c("^The","^the","[^[:alnum:]]")
-  # which remove all preceding "the"s and any non-alphanumeric characters
+  #Remove tokens that have no alphabet characters
+  
   spacy_result <- data.table::as.data.table(x)
   if(!is.null(remove)){
     index <- which(grepl(paste(remove,collapse = '|'),spacy_result$token,perl = T)&spacy_result$entity!="")
@@ -45,10 +45,11 @@ entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
   # }
   spacy_result[, entity_count := ifelse(iob == "B" | iob == "", 1, 0)]
   spacy_result[, entity_id := cumsum(entity_count), by = c("doc_id", "sentence_id")]
-  spacy_result[, entity_cat := paste(token, collapse = concatenator),by = c("doc_id", "sentence_id", "entity_id")]
+  #added source_or_target to by = c(...) so that appositives do not get concatenated together with the main entity
+  spacy_result[, entity_cat := paste(token, collapse = concatenator),by = c("doc_id", "sentence_id", "entity_id", "source_or_target")]
   spacy_result$entity_cat[spacy_result$entity==''] <- ''
   spacy_result$entity_id[spacy_result$entity==''] <- -1
-  ret <- as.data.frame(spacy_result)
+  ret <- as.data.table(spacy_result)
   class(ret) <- c("spacyr_parsed", class(ret))
   ret
 }
