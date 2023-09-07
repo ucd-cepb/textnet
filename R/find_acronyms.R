@@ -1,9 +1,21 @@
 library(stringi)
 library(data.table)
+# Exported function
+# pdf_clean
 
-str <- c("Hello CDC (Centers for Disease Control), the FBI(Federal Investigation), and ccrma (Center for Computation Recording Music and Acoustics)",
- "world HELLOW (Hi All) This iis a broken (one(to test)) this is An example Of the National Aeronautics and Space Administration (NASA or EIS)0",
-"and this Is An Example of the (IAE) for you")
+#' Take a character vector and detect all parenthetical statements in which an acronym is defined within the character vector. 
+#'
+#' @param str A character vector
+#' 
+#' @import data.table
+#' @import stringi
+
+#' @return a data table with a "name" column and an "acronym" column representing its associated acronym.
+#' Each row corresponds to a unique match in the document.
+#' 
+#' @export
+#' 
+
 find_acronyms <- function(str){
   paren_splits <- str_split(str, pattern = "\\)")
   paren_splits2 <- lapply(paren_splits, function (k) k[nchar(k)>0])

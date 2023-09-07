@@ -9,8 +9,7 @@
 #' @return list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan
 #' @import igraph
 #' @import ohenery
-#' @import tidyverse
-#' @import intergraph
+#' @import dplyr
 #' @import network
 #' 
 #' @export

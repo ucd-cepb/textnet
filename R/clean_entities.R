@@ -10,6 +10,7 @@
 #' Entities that have no letters are removed, if remove_nums is set to T.
 #'
 #' @param v a vector of entity names
+#' @param remove_nums A boolean. If T, sets entities that contain no letters to an empty string. If F, sets entities that contain no letters or numbers to an empty string.
 #' @return a cleaned vector of entity names
 #' @import pbapply
 #' @import stringi

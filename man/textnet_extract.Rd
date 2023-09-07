@@ -26,6 +26,8 @@ textnet_extract(
 \item{keep_entities}{character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)}
 
 \item{return_to_memory}{boolean for whether function should return final result as workspace object}
+
+\item{keep_incomplete_edges}{Boolean. If T, keeps edges with only a source or target but not both}
 }
 \value{
 data frame with original parsed sentence + added dependency parsing

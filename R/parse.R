@@ -1,5 +1,5 @@
 # Exported function
-#generate_networks
+#parse
 
 #' Creates an edgelist and nodelist for each document
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
@@ -16,6 +16,8 @@
 #' @param parse_from_file This is a logical vector. T denotes that the parsed_filenames should be used to locate existing 
 #' files of parsed text. F indicates that the parsing should be carried out and that the resulting files should be 
 #' saved to the filepaths given in parsed_filenames.
+#' @param cl The number of cores to employ
+#' @param overwrite A boolean. Whether to overwrite existing files
 #' @import reticulate
 #' @import spacyr
 #' @import magrittr
@@ -29,10 +31,9 @@
 #' @import data.table
 #' @export
 
-generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
+parse <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
                               concatenator="_", pages, file_ids, parsed_filenames, 
-                              nodeedge_filenames, parse_from_file=F, cl=1,  
-                              keep_entities = c('ORG','GPE','PERSON'),
+                              parse_from_file=F, cl=1,
                               overwrite=T){
   
   #prerequisites: step 1, install python
@@ -63,8 +64,9 @@ generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concate
   }
   
   unique_files <- unique(file_ids)
+  all_parsed <- vector(mode="list",length=length(unique_files))
   for (m in 1:length(unique_files)){
-      if(overwrite==T | (overwrite==F & !(file.exists(nodeedge_filenames[m])))){
+      if(overwrite==T | (overwrite==F & !(file.exists(parsed_filenames[m])))){
         if(parse_from_file==F){
           single_plan_text <- unlist(pages[file_ids==unique_files[m]])
           
@@ -87,13 +89,12 @@ generate_networks <- function(ret_path, keep_hyph_together=F, phrases_to_concate
           #parse_from_file==T
           parsedtxt <- readRDS(parsed_filenames[m])
         }
-        textnet_extract(parsedtxt,concatenator,file = nodeedge_filenames[m],cl,keep_entities, 
-                              return_to_memory=F, keep_incomplete_edges=T)
+        
       }
-      
+      all_parsed[[m]] <- parsedtxt
   }
   spacy_finalize()
-  
+  return(all_parsed)
 }
 
 

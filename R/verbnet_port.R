@@ -1,4 +1,4 @@
-# Exported functions 
+# Internal function 
 # verbnet_port
 
 #' Links to VerbNet 3.3 and uses the classification structure to create a data.table

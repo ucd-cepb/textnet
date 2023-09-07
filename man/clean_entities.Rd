@@ -14,6 +14,8 @@ clean_entities(v, remove_nums = T)
 }
 \arguments{
 \item{v}{a vector of entity names}
+
+\item{remove_nums}{A boolean. If T, sets entities that contain no letters to an empty string. If F, sets entities that contain no letters or numbers to an empty string.}
 }
 \value{
 a cleaned vector of entity names

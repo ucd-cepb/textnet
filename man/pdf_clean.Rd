@@ -16,7 +16,8 @@ pdf_clean(
   ocr = F,
   maxchar = 10000,
   export_paths = NULL,
-  return_to_memory = T
+  return_to_memory = T,
+  suppressWarn = F
 )
 }
 \arguments{

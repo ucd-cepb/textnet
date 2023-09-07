@@ -7,6 +7,7 @@
 #' This feature is inefficient in the the concatenated entity is then replicated multiple times, but this does seem to be the easiest way to preserve the other data.
 #'
 #' @param x parsed spacy document
+#' @param concatenator A character that separates string segments when they are collapsed into a single entity. Defaults to "_"
 #' @param remove regex formatted strings to remove as entity components (like "the" in "the Seattle Supersonics")
 #' @return original data frame with added columnn for concatenated entity
 #' 

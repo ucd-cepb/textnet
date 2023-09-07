@@ -12,6 +12,8 @@ entity_consolidate_replicate(x, concatenator = "_", remove = NULL)
 \arguments{
 \item{x}{parsed spacy document}
 
+\item{concatenator}{A character that separates string segments when they are collapsed into a single entity. Defaults to "_"}
+
 \item{remove}{regex formatted strings to remove as entity components (like "the" in "the Seattle Supersonics")}
 }
 \value{

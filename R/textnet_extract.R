@@ -9,6 +9,7 @@
 #' @param cl number of cores to crawl sentences in parallel (defaults to 1)
 #' @param keep_entities character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)
 #' @param return_to_memory boolean for whether function should return final result as workspace object
+#' @param keep_incomplete_edges Boolean. If T, keeps edges with only a source or target but not both
 #' @return data frame with original parsed sentence + added dependency parsing
 #' 
 #' @import data.table
