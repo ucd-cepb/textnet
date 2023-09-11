@@ -226,7 +226,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       
       textnet_extract$edgelist$sourcetemp <- textnet_extract$edgelist$source
       textnet_extract$edgelist$targettemp <- textnet_extract$edgelist$target
-      textnet_extract$nodelist$entity_cattemp <- textnet_extract$nodelist$entity_cat
+      textnet_extract$nodelist$entity_nametemp <- textnet_extract$nodelist$entity_name
       
       #Sub-subsection 1: Sourcetemp####
       index <- rep(F, length=length(textnet_extract$edgelist$sourcetemp))
@@ -264,21 +264,21 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
         textnet_extract$edgelist$targettemp <- sub_try_drop_forlists(try_drop, textnet_extract$edgelist$targettemp, notindex)
       }
       
-      #Sub-subsection 3: Entity_cattemp####
-      index <- rep(F, length=length(textnet_extract$nodelist$entity_cattemp))
+      #Sub-subsection 3: entity_nametemp####
+      index <- rep(F, length=length(textnet_extract$nodelist$entity_nametemp))
       for(q in 1:length(froms_of_multi_to)){
-        index <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
-                        F, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
+        index <- ifelse(is.na(textnet_extract$nodelist$entity_nametemp),
+                        F, ifelse(textnet_extract$nodelist$entity_nametemp == froms_of_multi_to[[q]], 
                                   T, index))
         
-        textnet_extract$nodelist$entity_cattemp <- ifelse(is.na(textnet_extract$nodelist$entity_cattemp),
-                                                          NA, ifelse(textnet_extract$nodelist$entity_cattemp == froms_of_multi_to[[q]], 
-                                                                     tos_of_multi_to[q], textnet_extract$nodelist$entity_cattemp))
+        textnet_extract$nodelist$entity_nametemp <- ifelse(is.na(textnet_extract$nodelist$entity_nametemp),
+                                                          NA, ifelse(textnet_extract$nodelist$entity_nametemp == froms_of_multi_to[[q]], 
+                                                                     tos_of_multi_to[q], textnet_extract$nodelist$entity_nametemp))
         
       }
       notindex <- !index
       if(!is.null(try_drop)){
-        textnet_extract$nodelist$entity_cattemp <- sub_try_drop_forlists(try_drop, textnet_extract$nodelist$entity_cattemp, notindex)
+        textnet_extract$nodelist$entity_nametemp <- sub_try_drop_forlists(try_drop, textnet_extract$nodelist$entity_nametemp, notindex)
       }
       
       #Sub-subsection 4: Generating edges for each element in the multi-entries####
@@ -293,10 +293,10 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       rowstarget$sourcetemp <- rowstarget$targettemp <- rowstarget$length_source <- rowstarget$length_target<- NULL
       textnet_extract$edgelist <- rowstarget
       
-      textnet_extract$nodelist$length_entitycat <- sapply(textnet_extract$nodelist$entity_cattemp, length)
+      textnet_extract$nodelist$length_entitycat <- sapply(textnet_extract$nodelist$entity_nametemp, length)
       rows <- textnet_extract$nodelist[rep(seq(1, nrow(textnet_extract$nodelist)), textnet_extract$nodelist$length_entitycat)]
-      rows$entity_cat <- unlist(textnet_extract$nodelist$entity_cattemp)
-      rows$entity_cattemp <- rows$length_entitycat <- NULL
+      rows$entity_name <- unlist(textnet_extract$nodelist$entity_nametemp)
+      rows$entity_nametemp <- rows$length_entitycat <- NULL
       textnet_extract$nodelist <- rows
       
     }
@@ -340,12 +340,12 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       textnet_extract$edgelist$target <- sub_try_drop(try_drop, textnet_extract$edgelist$target, notindex)
     }
     
-    index <- which(str_detect(textnet_extract$nodelist$entity_cat,paste(fromregex,collapse='|')))
-    notindex <- 1:length(textnet_extract$nodelist$entity_cat) %in% index
-    textnet_extract$nodelist$entity_cat <- str_replace_all(textnet_extract$nodelist$entity_cat,
+    index <- which(str_detect(textnet_extract$nodelist$entity_name,paste(fromregex,collapse='|')))
+    notindex <- 1:length(textnet_extract$nodelist$entity_name) %in% index
+    textnet_extract$nodelist$entity_name <- str_replace_all(textnet_extract$nodelist$entity_name,
                                                                   namedvect)
     if(!is.null(try_drop)){
-      textnet_extract$nodelist$entity_cat <- sub_try_drop(try_drop, textnet_extract$nodelist$entity_cat, notindex)
+      textnet_extract$nodelist$entity_name <- sub_try_drop(try_drop, textnet_extract$nodelist$entity_name, notindex)
     }
     
     
@@ -356,18 +356,18 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   #consolidates upper and lower case spellings 
   #(this is done after the above cleaning because acronyms and 
   #abbreviations can be case-sensitive)
-  textnet_extract$nodelist$entity_cat <- tolower(textnet_extract$nodelist$entity_cat)
+  textnet_extract$nodelist$entity_name <- tolower(textnet_extract$nodelist$entity_name)
   
   #removes the again
   remove <- c("^_*the_","^_*the$")
-  index <- which(grepl(paste(remove,collapse='|'),textnet_extract$nodelist$entity_cat,perl=T))
-  textnet_extract$nodelist$entity_cat[index] <- str_remove_all(
-    textnet_extract$nodelist$entity_cat[index],paste(remove,collapse= '|'))
+  index <- which(grepl(paste(remove,collapse='|'),textnet_extract$nodelist$entity_name,perl=T))
+  textnet_extract$nodelist$entity_name[index] <- str_remove_all(
+    textnet_extract$nodelist$entity_name[index],paste(remove,collapse= '|'))
   
   #redoes count of num_appearances, prioritizes most common entity_type by using desc()
-  textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_cat]
+  textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_name]
   textnet_extract$nodelist <-arrange(textnet_extract$nodelist, desc(num_appearances))
-  textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_cat),]
+  textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_name),]
   textnet_extract$nodelist$num_appearances <- NULL
   colnames(textnet_extract$nodelist)[3] <- "num_appearances"
   
@@ -393,7 +393,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
                                             textnet_extract$edgelist$target,
                                             ifelse(nchar(textnet_extract$edgelist$target)==0,NA,
                                                    textnet_extract$edgelist$target))
-  textnet_extract$nodelist <- textnet_extract$nodelist[nchar(textnet_extract$nodelist$entity_cat)>0]
+  textnet_extract$nodelist <- textnet_extract$nodelist[nchar(textnet_extract$nodelist$entity_name)>0]
   
   #remove any incomplete edges that may have resulted from the disambiguation process
   #this function should not cause any additions to the existing incomplete edges in a usual case

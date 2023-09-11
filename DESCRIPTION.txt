@@ -21,12 +21,29 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
+    reticulate,
+    spacyr,
     magrittr,
     dplyr,
+    tidytext,
+    quanteda,
     stringr,
+    stringi,
+    network,
     tidyr,
     pbapply,
     data.table (>= 1.14.8),
+    igraph,
+    ggraph,
+    sna,
+    pdftools,
+    tesseract,
+    igraph,
+    ohenery,
+    R.utils,
+    XML,
+    intergraph,
+    xml2
 Suggests: 
     rmarkdown (>= 2.21),
     knitr (>= 1.42)

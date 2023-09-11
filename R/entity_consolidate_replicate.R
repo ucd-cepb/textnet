@@ -47,8 +47,8 @@ entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
   spacy_result[, entity_count := ifelse(iob == "B" | iob == "", 1, 0)]
   spacy_result[, entity_id := cumsum(entity_count), by = c("doc_id", "sentence_id")]
   #added source_or_target to by = c(...) so that appositives do not get concatenated together with the main entity
-  spacy_result[, entity_cat := paste(token, collapse = concatenator),by = c("doc_id", "sentence_id", "entity_id", "source_or_target")]
-  spacy_result$entity_cat[spacy_result$entity==''] <- ''
+  spacy_result[, entity_name := paste(token, collapse = concatenator),by = c("doc_id", "sentence_id", "entity_id", "source_or_target")]
+  spacy_result$entity_name[spacy_result$entity==''] <- ''
   spacy_result$entity_id[spacy_result$entity==''] <- -1
   ret <- as.data.table(spacy_result)
   class(ret) <- c("spacyr_parsed", class(ret))

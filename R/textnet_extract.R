@@ -5,7 +5,7 @@
 #'
 #' @param x parsed spacy document
 #' @param concatenator how entity parts are concatenated (defaults to "_")
-#' @param file location where an list object with an edgelist and nodelist should be saved as .RDS file
+#' @param file location where an list object with an edgelist, nodelist, verblist, and appositivelist should be saved as .RDS file
 #' @param cl number of cores to crawl sentences in parallel (defaults to 1)
 #' @param keep_entities character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)
 #' @param return_to_memory boolean for whether function should return final result as workspace object
@@ -57,21 +57,21 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   remove_nums <- ifelse("DATE" %in% keep_entities | "CARDINAL" %in% keep_entities |
                           "QUANTITY" %in% keep_entities | "TIME" %in% keep_entities |
                           "MONEY" %in% keep_entities | "PERCENT" %in% keep_entities, F, T)
-  x$entity_cat <- clean_entities(x$entity_cat,remove_nums)
+  x$entity_name <- clean_entities(x$entity_name,remove_nums)
   
   #by entity, check which of the head_token_ids in the group is NOT in the list of token_ids in the group.
   #then note the doc_sent of the group. Then within the doc_sent, find the row corresponding to the 
   #token that is first (made a choice here to match only the first; probably there is only one anyway) 
-  #in the non-matching tokens list and grab its entity_cat; which is the full name of the appos. the 
-  #abbrev is the entity_cat of the appos group
-  xappos <- x[x$source_or_target=="appos" & nchar(x$entity_cat)>0 & x$entity_type%in%keep_entities,]
+  #in the non-matching tokens list and grab its entity_name; which is the full name of the appos. the 
+  #abbrev is the entity_name of the appos group
+  xappos <- x[x$source_or_target=="appos" & nchar(x$entity_name)>0 & x$entity_type%in%keep_entities,]
   cat_splits <- split(xappos,list(xappos$doc_sent, xappos$entity_id),drop=T)
   apposlist <- pblapply(cat_splits, function(z) {
       anchor <- which(!(z$head_token_id %in% z$token_id))[1]
       if(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_type"]%in%keep_entities){
         print(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],])
-        as.data.table(cbind("abbrev" = z[1,"entity_cat"],
-                            "fullname" = x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_cat"]))
+        as.data.table(cbind("abbrev" = z[1,"entity_name"],
+                            "fullname" = x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_name"]))
         
       }
   }, cl=cl)
@@ -87,7 +87,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   x[, `:=`(doc_sent_parent, paste0(doc_sent, "_", parent_verb_id))]
   x[, `:=`(doc_sent_head_tok, paste0(doc_sent, "_", head_token_id))]
     
-  nodelist <- x[nchar(x$entity_cat)>0,]
+  nodelist <- x[nchar(x$entity_name)>0,]
     
   #tag each head_tok that has a negation child
   x[, `:=`(neg, any(dep_rel=="neg")), by = doc_sent_verb]
@@ -106,7 +106,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   ### there are duplicates here because there can be multiple tokens (each of which has its own row) associated with one verb ###
   
-  source_target_list <- x[,.(entity_cat, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent, has_sources)]
+  source_target_list <- x[,.(entity_name, entity_id, entity_type, source_or_target, doc_sent_verb, doc_sent_parent, has_sources)]
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   ## dt of verbs with without source
   unsourced_verbs <- source_target_list[has_sources==F,]
@@ -138,9 +138,9 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
 
   #only keep actual entities from our desired categories and
   #remove entities that are only empty strings due to the cleaning steps above
-  source_target_list <- source_target_list[nchar(source_target_list$entity_cat)>0 & source_target_list$entity_type%in%keep_entities,]
+  source_target_list <- source_target_list[nchar(source_target_list$entity_name)>0 & source_target_list$entity_type%in%keep_entities,]
   
-  ind <- match(c("entity_cat","entity_type","source_or_target","doc_sent_verb","doc_sent_parent"),colnames(source_target_list))
+  ind <- match(c("entity_name","entity_type","source_or_target","doc_sent_verb","doc_sent_parent"),colnames(source_target_list))
 
   for(j in ind) set(source_target_list, j =j ,value = as.character(source_target_list[[j]]))
   
@@ -153,7 +153,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   source_target_list[,row_id := 1:.N]
   #create all combos of source and target by doc_sent_verb
-  st_pivot <- dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_cat")
+  st_pivot <- dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_name")
   
   st_pivot <- as.data.table(st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target))
 
@@ -195,26 +195,26 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   edgelist$is_future <- has_future_helper | has_future_going
   
   #remove duplicates that arose from concatenating entity names
-  nodelist <- nodelist[,.(entity_id, entity_cat, entity_type, doc_sent_verb)]
+  nodelist <- nodelist[,.(entity_id, entity_name, entity_type, doc_sent_verb)]
   nodelist <- nodelist[!duplicated(nodelist),]
 
-  nodelist <- nodelist[,.(entity_type, entity_cat)]
+  nodelist <- nodelist[,.(entity_type, entity_name)]
   #create catalog of unique entity names and entity types, arranged by num mentions
-  nodelist <- nodelist[,.N,by=.(entity_type,entity_cat)][order(-N),]
+  nodelist <- nodelist[,.N,by=.(entity_type,entity_name)][order(-N),]
   setnames(nodelist,'N','num_mentions')
   #as_tibble(nodelist) %>% group_by(entity_type, entity_name) %>% 
   #summarize(num_mentions = n()) %>% arrange(desc(num_mentions))
   nodelist <- nodelist[nodelist$entity_type%in%keep_entities,]
-  nodelist <- nodelist[order(entity_cat,-num_mentions),]
+  nodelist <- nodelist[order(entity_name,-num_mentions),]
   #include most common of the three entity types listed for each entity
-  new_type <- nodelist[!duplicated(nodelist$entity_cat),]
+  new_type <- nodelist[!duplicated(nodelist$entity_name),]
   new_type[,num_mentions:=NULL]
   
-  nodelist <- nodelist[,sum(num_mentions),by=.(entity_cat)]
+  nodelist <- nodelist[,sum(num_mentions),by=.(entity_name)]
 
   nodelist <- merge.data.table(new_type,nodelist,all = T)
 
-  nodelist <- nodelist[nchar(nodelist$entity_cat)>0,]
+  nodelist <- nodelist[nchar(nodelist$entity_name)>0,]
   colnames(nodelist)[3] <- "num_appearances"
   
   unique_lemmas <- data.table("head_verb_lemma" = unique(edgelist$head_verb_lemma))
