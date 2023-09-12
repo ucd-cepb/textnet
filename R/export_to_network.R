@@ -35,7 +35,7 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
                                            vertices = textnet_extract$nodelist, 
                                            directed = T)
       if(self_loops==F){
-        igr <- igraph::simplify(igr, remove.loops = T)
+        igr <- igraph::delete.edges(igr, igraph::E(igr)[igraph::is.loop(igr)])
         
       }
     }else if(keep_isolates==T & collapse_edges == T){
@@ -69,7 +69,7 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
       igr <- igraph::graph_from_data_frame(d = textnet_extract$edgelist,  
                                            directed = T)
       if(self_loops==F){
-        igr <- igraph::simplify(igr, remove.loops = T)
+        igr <- igraph::delete.edges(igr, igraph::E(igr)[igraph::is.loop(igr)])
         
       }
     }else if(keep_isolates==F & collapse_edges == T){
