@@ -19,7 +19,7 @@ textnet_extract(
 
 \item{concatenator}{how entity parts are concatenated (defaults to "_")}
 
-\item{file}{location where an list object with an edgelist and nodelist should be saved as .RDS file}
+\item{file}{location where an list object with an edgelist, nodelist, verblist, and appositivelist should be saved as .RDS file}
 
 \item{cl}{number of cores to crawl sentences in parallel (defaults to 1)}
 

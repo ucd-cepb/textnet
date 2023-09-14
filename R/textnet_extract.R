@@ -14,10 +14,6 @@
 #' 
 #' @import data.table
 #' @importFrom magrittr %>%
-#' @importFrom stringr str_remove_all
-#' @importFrom dplyr inner_join filter group_by arrange summarize select full_join left_join
-#' @importFrom tidyr pivot_wider expand
-#' @importFrom pbapply pblapply pbsapply
 #' @export
 #'
 
@@ -48,8 +44,8 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   sentence_splits <- split(x,x$doc_sent)
   print(paste0('crawling ',length(sentence_splits),' sentences'))
-  parse_list <- pblapply(sentence_splits,function(y) as.data.table(crawl_sentence(y)),cl = cl)
-  x <- rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
+  parse_list <- pbapply::pblapply(sentence_splits,function(y) data.table::as.data.table(crawl_sentence(y)),cl = cl)
+  x <- data.table::rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
   
   #"remove" is null because we don't want to remove anything token-wise, but only concatenated-entity-wise
   x <- entity_consolidate_replicate(x,concatenator, remove=NULL)
@@ -66,7 +62,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   #abbrev is the entity_name of the appos group
   xappos <- x[x$source_or_target=="appos" & nchar(x$entity_name)>0 & x$entity_type%in%keep_entities,]
   cat_splits <- split(xappos,list(xappos$doc_sent, xappos$entity_id),drop=T)
-  apposlist <- pblapply(cat_splits, function(z) {
+  apposlist <- pbapply::pblapply(cat_splits, function(z) {
       anchor <- which(!(z$head_token_id %in% z$token_id))[1]
       if(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_type"]%in%keep_entities){
         print(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],])
@@ -75,8 +71,8 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
         
       }
   }, cl=cl)
-  apposlist <- rbindlist(apposlist)
-  apposlist <- unique(apposlist[nchar(apposlist$fullname)>0,])
+  apposlist <- data.table::rbindlist(apposlist)
+  apposlist <- base::unique(apposlist[nchar(apposlist$fullname)>0,])
     
   #remove aux helpers functioning as aux; xcomp verbs; and appositives
   x <- x[!((pos=="AUX" & dep_rel %in% c("aux","auxpass")) |
@@ -130,7 +126,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
       tempsources
   })
     
-  adopted_sources_df <- rbindlist(adopted_sources, use.names=T,fill=T)
+  adopted_sources_df <- data.table::rbindlist(adopted_sources, use.names=T,fill=T)
   
   #append it to the dataframe
 
@@ -146,28 +142,28 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   ind <- match(c("entity_id"),colnames(source_target_list))
   
-  for(j in ind) set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
+  for(j in ind) data.table::set(source_target_list, j =j ,value = as.numeric(source_target_list[[j]]))
  
   #there are duplicates here because multiple unsourced tokens may point to the same source
 
   source_target_list <- source_target_list[!duplicated(source_target_list),]
   source_target_list[,row_id := 1:.N]
   #create all combos of source and target by doc_sent_verb
-  st_pivot <- dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_name")
+  st_pivot <- data.table::dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_name")
   
-  st_pivot <- as.data.table(st_pivot %>% group_by(doc_sent_verb) %>% expand(source, target))
+  st_pivot <- data.table::as.data.table(st_pivot %>% dplyr::group_by(doc_sent_verb) %>% tidyr::expand(source, target))
 
-  edgelist <- merge.data.table(st_pivot, verb_dt, by = c("doc_sent_verb"),all.x=F, all.y=F)
+  edgelist <- data.table::merge.data.table(st_pivot, verb_dt, by = c("doc_sent_verb"),all.x=F, all.y=F)
   
   if(keep_incomplete_edges==T){
     #preserves verbs with only sources or targets
     #if there is
     edgelist$edgeiscomplete <- !is.na(edgelist$source) & !is.na(edgelist$target)
     edgelist[, `:=`(hascompleteedge, any(edgeiscomplete==T)), by = c("doc_sent_verb")]
-    edgelist <- edgelist %>% filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
+    edgelist <- edgelist %>% dplyr::filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
     edgelist$hascompleteedge <- NULL
   }else{
-    edgelist <- edgelist %>% filter(!is.na(source) & !is.na(target))
+    edgelist <- edgelist %>% dplyr::filter(!is.na(source) & !is.na(target))
   }
   
   hedging_helpers <- c("may","might","can","could")
@@ -202,11 +198,9 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   #create catalog of unique entity names and entity types, arranged by num mentions
   nodelist <- nodelist[,.N,by=.(entity_type,entity_name)][order(-N),]
   setnames(nodelist,'N','num_mentions')
-  #as_tibble(nodelist) %>% group_by(entity_type, entity_name) %>% 
-  #summarize(num_mentions = n()) %>% arrange(desc(num_mentions))
   nodelist <- nodelist[nodelist$entity_type%in%keep_entities,]
   nodelist <- nodelist[order(entity_name,-num_mentions),]
-  #include most common of the three entity types listed for each entity
+  #include most common of the the entity types listed for each entity
   new_type <- nodelist[!duplicated(nodelist$entity_name),]
   new_type[,num_mentions:=NULL]
   
@@ -217,15 +211,15 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   nodelist <- nodelist[nchar(nodelist$entity_name)>0,]
   colnames(nodelist)[3] <- "num_appearances"
   
-  unique_lemmas <- data.table("head_verb_lemma" = unique(edgelist$head_verb_lemma))
+  unique_lemmas <- data.table("head_verb_lemma" = base::unique(edgelist$head_verb_lemma))
   
   #appending verb classification
   #this currently only captures single-word verbs
-  data(verb_classifications)
-  verblist <- merge.data.table(unique_lemmas,verb_classifications,by.x="head_verb_lemma",by.y="verb", all.x=T, all.y=F)
+  utils::data(verb_classifications)
+  verblist <- data.table::merge.data.table(unique_lemmas,verb_classifications,by.x="head_verb_lemma",by.y="verb", all.x=T, all.y=F)
   
   #putting source and target first
-  setcolorder(edgelist, c(2:ncol(edgelist),1))
+  data.table::setcolorder(edgelist, c(2:ncol(edgelist),1))
   
   if(!is.null(file)){
     saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist, 'verblist' = verblist, 'appositivelist' = apposlist),file)

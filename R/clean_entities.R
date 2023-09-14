@@ -12,9 +12,6 @@
 #' @param v a vector of entity names
 #' @param remove_nums A boolean. If T, sets entities that contain no letters to an empty string. If F, sets entities that contain no letters or numbers to an empty string.
 #' @return a cleaned vector of entity names
-#' @import pbapply
-#' @import stringi
-#' @import stringr
 
 #' @export
 #' 
@@ -22,27 +19,34 @@
 clean_entities <- function(v, remove_nums=T){
   
   #format math font as regular font
-  maths <- c("𝑎","𝑏","𝑐","𝑑","𝑒","𝑓","𝑔","ℎ","𝑖","𝑗","𝑘","𝑙","𝑚",
-             "𝑛","𝑜","𝑝","𝑞","𝑟","𝑠","𝑡","𝑢","𝑣","𝑤","𝑥","𝑦","𝑧",
-             "𝐴","𝐵","𝐶","𝐷","𝐸","𝐹","𝐺","𝐻","𝐼","𝐽","𝐾","𝐿","𝑀",
-             "𝑁","𝑂","𝑃","𝑄","𝑅","𝑆",
-             "𝑇","𝑈","𝑉","𝑊","𝑋","𝑌","𝑍")
+  #unicode of math font alphabet
+  maths <- c("\\U0001d44e", "\\U0001d44f", "\\U0001d450", "\\U0001d451", "\\U0001d452",
+  "\\U0001d453", "\\U0001d454", "\\u210e",     "\\U0001d456", "\\U0001d457",
+   "\\U0001d458", "\\U0001d459", "\\U0001d45a", "\\U0001d45b", "\\U0001d45c",
+   "\\U0001d45d", "\\U0001d45e", "\\U0001d45f", "\\U0001d460", "\\U0001d461",
+   "\\U0001d462", "\\U0001d463", "\\U0001d464", "\\U0001d465", "\\U0001d466",
+   "\\U0001d467", "\\U0001d434", "\\U0001d435", "\\U0001d436", "\\U0001d437",
+   "\\U0001d438", "\\U0001d439", "\\U0001d43a", "\\U0001d43b", "\\U0001d43c",
+   "\\U0001d43d", "\\U0001d43e", "\\U0001d43f", "\\U0001d440", "\\U0001d441",
+   "\\U0001d442", "\\U0001d443", "\\U0001d444", "\\U0001d445", "\\U0001d446",
+   "\\U0001d447", "\\U0001d448", "\\U0001d449", "\\U0001d44a", "\\U0001d44b",
+   "\\U0001d44c", "\\U0001d44d")
   letts <- c(letters,LETTERS)
   
-  v <- pblapply(1:length(v), function(i){
-    stri_replace_all_regex(v[i], pattern = maths,
+  v <- pbapply::pblapply(1:length(v), function(i){
+    stringi::stri_replace_all_regex(v[i], pattern = maths,
                            replacement = letts,
                            vectorize= F)
   })
   
   #remove strings with specific placement: trailing "'s"
   index <- which(grepl("'s$",v,perl = T))
-  v[index] <- str_remove_all(v[index],"'s$")
+  v[index] <- stringr::str_remove_all(v[index],"'s$")
   
   #next, remove all non-word characters
   remove <- c("\\W")
   index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
-  v[index] <- str_remove_all(v[index],paste(remove,collapse = '|'))
+  v[index] <- stringr::str_remove_all(v[index],paste(remove,collapse = '|'))
   
   #remove consecutive underscores that may have arisen due to previous cleaning step
   v <- gsub('(_)\\1+', '\\1', v)
@@ -50,7 +54,7 @@ clean_entities <- function(v, remove_nums=T){
   #remove leading or trailing underscores that may have arisen due to previous cleaning steps
   remove <- c("^_", "_$")
   index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
-  v[index] <- str_remove_all(v[index],paste(remove,collapse = '|'))
+  v[index] <- stringr::str_remove_all(v[index],paste(remove,collapse = '|'))
   
   #remove entities that have no letters (or numbers, if remove_nums == F)
   if(remove_nums){

@@ -29,22 +29,13 @@
 #' @return a cleaned textnet extract
 #' 
 #' @import data.table
-#' @import igraph
-#' @import ggraph
-#' @import sna
-#' @import stringr
-#' @import dplyr
+#' @importFrom magrittr %>%
 #' @export
 #'
 
 #if recursive is true, runs it multiple times to reach the end of the chain.
 
 disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, try_drop=NULL, recursive=T, concatenator="_"){
-  library(igraph)
-  library(ggraph)
-  library(sna)
-  library(stringr)
-  library(dplyr)
   #Data formatting checks####
   to_from_same <- sapply(1:length(to), function (j) sum(from[[j]]!=to[[j]])==0)
   if(sum(to_from_same)>0){
@@ -150,10 +141,10 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
               "^_*The$","^_*the$","^_*THE$")
  
   index <- which(grepl(paste(remove,collapse='|'),from,perl=T))
-  from[index] <- str_remove_all(from[index],paste(remove,collapse= '|'))
+  from[index] <- stringr::str_remove_all(from[index],paste(remove,collapse= '|'))
   
   index <- which(grepl(paste(remove,collapse='|'),to,perl=T))
-  to[index] <- str_remove_all(to[index],paste(remove,collapse= '|'))
+  to[index] <- stringr::str_remove_all(to[index],paste(remove,collapse= '|'))
   
   #Section 2: Start Recursive Disambiguation ####
   for(z in 1:times_to_repeat){
@@ -162,12 +153,12 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     sub_try_drop_forlists <- function(remove, terms, didntmatch){
       tempv <- terms
       rem <- grepl(paste(remove,collapse = '|'),terms,perl = T)
-      tempv[rem ==T & didntmatch==T] <- str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
+      tempv[rem ==T & didntmatch==T] <- stringr::str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
       
       #step two, now that try_drop is removed, does it match the from? if so, substitute the from.
       #then return only the terms that actually changed
       #coerces tempv list into atomic vector of same length, which gives a warning unless suppressed.
-      infrom <- which(suppressWarnings(str_detect(tempv,paste(fromregex,collapse='|'))))
+      infrom <- which(suppressWarnings(stringr::str_detect(tempv,paste(fromregex,collapse='|'))))
       terms[infrom] <- tempv[infrom]
       
       return(terms)
@@ -306,43 +297,43 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     sub_try_drop <- function(remove, terms, didntmatch){
       tempv <- terms
       rem <- grepl(paste(remove,collapse = '|'),terms,perl = T)
-      tempv[rem ==T & didntmatch==T] <- str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
+      tempv[rem ==T & didntmatch==T] <- stringr::str_remove_all(tempv[rem==T& didntmatch==T],paste(remove,collapse = '|'))
       
       #step two, now that try_drop is removed, does it match the from? if so, substitute the to.
       #then return only the terms that actually changed
       
-      infrom <- which(str_detect(tempv,paste(fromregex,collapse='|')))
-      terms[infrom] <- str_replace_all(tempv[infrom],
+      infrom <- which(stringr::str_detect(tempv,paste(fromregex,collapse='|')))
+      terms[infrom] <- stringr::str_replace_all(tempv[infrom],
                                        namedvect)
       
       #if removing the try_drop causes the entity to match the entire entry of a "to" column
       #make it that entity
       towhole <- paste0("^",to[!multi_to],"$")
-      into <- which(str_detect(tempv,paste(towhole, collapse='|')))
+      into <- which(stringr::str_detect(tempv,paste(towhole, collapse='|')))
       terms[into] <- tempv[into]
       
       return(terms)
     }
     
-    index <- which(str_detect(textnet_extract$edgelist$source,paste(fromregex,collapse='|')))
+    index <- which(stringr::str_detect(textnet_extract$edgelist$source,paste(fromregex,collapse='|')))
     notindex <- 1:length(textnet_extract$edgelist$source) %in% index
-    textnet_extract$edgelist$source[index] <- str_replace_all(textnet_extract$edgelist$source[index],
+    textnet_extract$edgelist$source[index] <- stringr::str_replace_all(textnet_extract$edgelist$source[index],
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$source <- sub_try_drop(try_drop, textnet_extract$edgelist$source, notindex)
     }
     
-    index <- which(str_detect(textnet_extract$edgelist$target,paste(fromregex,collapse='|')))
+    index <- which(stringr::str_detect(textnet_extract$edgelist$target,paste(fromregex,collapse='|')))
     notindex <- 1:length(textnet_extract$edgelist$target) %in% index
-    textnet_extract$edgelist$target[index] <- str_replace_all(textnet_extract$edgelist$target[index],
+    textnet_extract$edgelist$target[index] <- stringr::str_replace_all(textnet_extract$edgelist$target[index],
                                                               namedvect)
     if(!is.null(try_drop)){
       textnet_extract$edgelist$target <- sub_try_drop(try_drop, textnet_extract$edgelist$target, notindex)
     }
     
-    index <- which(str_detect(textnet_extract$nodelist$entity_name,paste(fromregex,collapse='|')))
+    index <- which(stringr::str_detect(textnet_extract$nodelist$entity_name,paste(fromregex,collapse='|')))
     notindex <- 1:length(textnet_extract$nodelist$entity_name) %in% index
-    textnet_extract$nodelist$entity_name <- str_replace_all(textnet_extract$nodelist$entity_name,
+    textnet_extract$nodelist$entity_name <- stringr::str_replace_all(textnet_extract$nodelist$entity_name,
                                                                   namedvect)
     if(!is.null(try_drop)){
       textnet_extract$nodelist$entity_name <- sub_try_drop(try_drop, textnet_extract$nodelist$entity_name, notindex)
@@ -361,13 +352,13 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   #removes the again
   remove <- c("^_*the_","^_*the$")
   index <- which(grepl(paste(remove,collapse='|'),textnet_extract$nodelist$entity_name,perl=T))
-  textnet_extract$nodelist$entity_name[index] <- str_remove_all(
+  textnet_extract$nodelist$entity_name[index] <- stringr::str_remove_all(
     textnet_extract$nodelist$entity_name[index],paste(remove,collapse= '|'))
   
   #redoes count of num_appearances, prioritizes most common entity_type by using desc()
   textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_name]
-  textnet_extract$nodelist <-arrange(textnet_extract$nodelist, desc(num_appearances))
-  textnet_extract$nodelist <- textnet_extract$nodelist[!duplicated(entity_name),]
+  textnet_extract$nodelist <- dplyr::arrange(textnet_extract$nodelist, dplyr::desc(num_appearances))
+  textnet_extract$nodelist <- textnet_extract$nodelist[!base::duplicated(entity_name),]
   textnet_extract$nodelist$num_appearances <- NULL
   colnames(textnet_extract$nodelist)[3] <- "num_appearances"
   
@@ -377,11 +368,11 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   
   #removes "the" again
   index <- which(grepl(paste(remove,collapse='|'),textnet_extract$edgelist$source,perl=T))
-  textnet_extract$edgelist$source[index] <- str_remove_all(
+  textnet_extract$edgelist$source[index] <- stringr::str_remove_all(
     textnet_extract$edgelist$source[index],paste(remove,collapse= '|'))
   
   index <- which(grepl(paste(remove,collapse='|'),textnet_extract$edgelist$target,perl=T))
-  textnet_extract$edgelist$target[index] <- str_remove_all(
+  textnet_extract$edgelist$target[index] <- stringr::str_remove_all(
     textnet_extract$edgelist$target[index],paste(remove,collapse= '|'))
   
   #remove empty strings 
@@ -399,7 +390,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   #this function should not cause any additions to the existing incomplete edges in a usual case
   textnet_extract$edgelist$edgeiscomplete <- !is.na(textnet_extract$edgelist$source) & !is.na(textnet_extract$edgelist$target)
   textnet_extract$edgelist[, `:=`(hascompleteedge, any(edgeiscomplete==T)), by = c("doc_sent_verb")]
-  textnet_extract$edgelist <- textnet_extract$edgelist %>% filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
+  textnet_extract$edgelist <- textnet_extract$edgelist %>% dplyr::filter((hascompleteedge==T & edgeiscomplete==T) | hascompleteedge==F)
   textnet_extract$edgelist$hascompleteedge <- NULL
   #Section 4: Return####
   return(textnet_extract)

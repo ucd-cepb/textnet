@@ -2,10 +2,12 @@
 % Please edit documentation in R/download_dictionary.R
 \name{download_dictionary}
 \alias{download_dictionary}
-\title{Downloads the SCOWL dictionary, which has a larger vocabulary than Qdap}
+\title{Downloads the SCOWL 2020.12.07 dictionary created by Kevin Atkinson, which has a larger vocabulary than Qdap
+Code adapted from Mirek Długosz 2016 https://mirekdlugosz.com/blog/2016/how-to-use-r-to-recognize-if-given-string-is-a-word/}
 \usage{
 download_dictionary()
 }
 \description{
-Downloads the SCOWL dictionary, which has a larger vocabulary than Qdap
+Downloads the SCOWL 2020.12.07 dictionary created by Kevin Atkinson, which has a larger vocabulary than Qdap
+Code adapted from Mirek Długosz 2016 https://mirekdlugosz.com/blog/2016/how-to-use-r-to-recognize-if-given-string-is-a-word/
 }

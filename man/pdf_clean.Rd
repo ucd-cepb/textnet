@@ -17,7 +17,8 @@ pdf_clean(
   maxchar = 10000,
   export_paths = NULL,
   return_to_memory = T,
-  suppressWarn = F
+  suppressWarn = F,
+  auto_headfoot_remove = T
 )
 }
 \arguments{
@@ -39,6 +40,10 @@ Defaults to NULL, which does not save the output to a file.}
 
 \item{return_to_memory}{A logical value representing whether or not to return
 the output text to memory. Defaults to T.}
+
+\item{suppressWarn}{Boolean; F by default. Setting this to T suppresses pdf_text conversion warnings, which can be verbose.}
+
+\item{auto_headfoot_remove}{Boolean. Tries to remove headers and footers if T. May remove small amounts of paragraph text, especially if there is no header on a page. Defaults to T to avoid having entities that appear consistently in headers be artificially inflated in the textnet_extract network. Recommend keeping this parameter T unless using a separate header/footer removal tool.}
 }
 \value{
 If return_to_memory is T, returns a list with a length equal

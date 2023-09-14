@@ -8,12 +8,7 @@
 #' @param zipdestfile A filepath on which to store the zipfiles downloaded from VerbNet
 #' @param folder_dest A filepath for the folder in which to put the extracted VerbNet files
 #' 
-#' @import xml2
-#' @import XML
-#' @import dplyr
 #' @import data.table
-#' @import R.utils
-
 #' @return Returns the data.table of verbs and their classifications.
 #' 
 #' 
@@ -24,31 +19,31 @@
 
 verbnet_port <- function(zipdestfile, folder_dest){
   url <- "https://verbs.colorado.edu/verb-index/vn/verbnet-3.3.tar.gz"
-  download.file(url, paste0(zipdestfile,".tar.gz"), method="curl")
-  gunzip(paste0(zipdestfile,".tar.gz"))
-  untar(paste0(zipdestfile,".tar"),exdir=folder_dest)
+  utils::download.file(url, paste0(zipdestfile,".tar.gz"), method="curl")
+  R.utils::gunzip(paste0(zipdestfile,".tar.gz"))
+  utils::untar(paste0(zipdestfile,".tar"),exdir=folder_dest)
   
   
   
   files <- list.files(path=paste0(folder_dest,"/verbnet3.3"), pattern = ".xml")
-  classes <- unname(sapply(files, function(i) strsplit(i, split = "-")[[1]][1]))
+  classes <- unname(sapply(files, function(i) base::strsplit(i, split = "-")[[1]][1]))
   classes
   
   verbnet <- vector(mode='list', length=length(files))
   #subcategories: organizational structuring/
-  verbnet <- lapply(files, function (m) read_xml(paste0("data/verbnet3.3/",m)))
+  verbnet <- lapply(files, function (m) xml2::read_xml(paste0("data/verbnet3.3/",m)))
   
   #xml_find_all(verbnet2, "/pathway//entry")
   members <- vector(mode='list',length=length(files))
-  members <- lapply(verbnet, function(m) xml_attr(xml_find_all(m, xpath = "//VNCLASS/MEMBERS/MEMBER"),"name"))
+  members <- lapply(verbnet, function(m) xml2::xml_attr(xml2::xml_find_all(m, xpath = "//VNCLASS/MEMBERS/MEMBER"),"name"))
   submembers <- vector(mode='list',length=length(files))
-  submembers <- lapply(verbnet, function (m) xml_attr(xml_find_all(m, xpath = "//VNCLASS/SUBCLASSES/VNSUBCLASS/MEMBERS/MEMBER"),"name"))
+  submembers <- lapply(verbnet, function (m) xml2::xml_attr(xml2::xml_find_all(m, xpath = "//VNCLASS/SUBCLASSES/VNSUBCLASS/MEMBERS/MEMBER"),"name"))
   members
   submembers
   
   
-  type_ids <- unname(sapply(files, function(i) strsplit(i, split = "-|\\.")[[1]][2]))
-  type_names <- case_when(
+  type_ids <- unname(sapply(files, function(i) base::strsplit(i, split = "-|\\.")[[1]][2]))
+  type_names <- dplyr::case_when(
     type_ids == 9 ~ "verbs_of_putting",
     type_ids == 10 ~ "verbs_of_removing",
     type_ids == 11 ~ "verbs_of_sending_and_carrying",
@@ -158,23 +153,23 @@ verbnet_port <- function(zipdestfile, folder_dest){
     .default = NA_character_
   )
   
-  members_and_submembers <- sapply(seq_along(members), function (m) unique(c(members[[m]],submembers[[m]])))
-  class_dt <- data.table("class" = classes, "type_id" = type_ids, "type_name" = type_names,
+  members_and_submembers <- sapply(seq_along(members), function (m) base::unique(c(members[[m]],submembers[[m]])))
+  class_dt <- data.table::data.table("class" = classes, "type_id" = type_ids, "type_name" = type_names,
                          "verbs" = members_and_submembers)
   
   
-  verbs <- unique(unlist(class_dt$verbs))
-  verb_classes <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
+  verbs <- base::unique(unlist(class_dt$verbs))
+  verb_classes <- lapply(verbs, function (j) base::unique(unlist(lapply(1:nrow(class_dt), 
                                                                   function (m) if(j %in% class_dt$verbs[[m]]) class_dt$class[m]))))
   
-  verb_types <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
+  verb_types <- lapply(verbs, function (j) base::unique(unlist(lapply(1:nrow(class_dt), 
                                                                 function (m) if(j %in% class_dt$verbs[[m]]) class_dt$type_name[m]))))
-  verb_type_ids <- lapply(verbs, function (j) unique(unlist(lapply(1:nrow(class_dt), 
+  verb_type_ids <- lapply(verbs, function (j) base::unique(unlist(lapply(1:nrow(class_dt), 
                                                                    function (m) if(j %in% class_dt$verbs[[m]]) class_dt$type_id[m]))))
   
-  verb_pivot <- data.table("verb" = verbs, "classes" = verb_classes, "type_name" = verb_types, "type_id" = verb_type_ids)
+  verb_pivot <- data.table::data.table("verb" = verbs, "classes" = verb_classes, "type_name" = verb_types, "type_id" = verb_type_ids)
   
-  helping_verbs <- data.table("verb" = c("be",
+  helping_verbs <- data.table::data.table("verb" = c("be",
                                          "have","do","shall",
                                          "will","wo",
                                          "should","would","may","might","must",

@@ -34,7 +34,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   
   #generate phrases defaults to false, since it appears spaCy has a more difficult time 
   #identifying proper name phrases linked by underscore as entities
-  if(!is.na(phrases_to_concatenate)){
+  if(length(phrases_to_concatenate) > 1 || !is.na(phrases_to_concatenate)){
     phrases_grouped <- gsub("\\s+", concatenator, x = phrases_to_concatenate)
     pages <- pbapply::pblapply(1:length(pages), function(i){
       stringi::stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
@@ -46,7 +46,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   #identifying proper name phrases linked by underscore as entities
   if(keep_hyph_together){
     pages <- pbapply::pblapply(1:length(pages), function(i){
-      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-–](?=\\w)", replacement ="_", vectorize=F)
+      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize=F)
     })
   }
   
@@ -65,8 +65,9 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
                                    dependency = T,
                                    nounphrase = T)
           saveRDS(parsedtxt, parsed_filenames[m])
-          lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
-          pctlettersineng <- sum(lettertokens %in% eng_words)/length(lettertokens) 
+          lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
+          lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
+          pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped) 
           
           if(pctlettersineng<0.5){
             warning("Fewer than 50% of letter-containing tokens in this PDF are English words. This may be due to a PDF formatting issue. It is not recommended to use textnet_extract on this pdf.")
@@ -80,7 +81,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       }
       all_parsed[[m]] <- parsedtxt
   }
-  spacy_finalize()
+  spacyr::spacy_finalize()
   return(all_parsed)
 }
 

@@ -12,8 +12,6 @@
 #' @return original data frame with added columnn for concatenated entity
 #' 
 #' @import data.table
-#' @importFrom magrittr %>%
-#' @importFrom stringr str_remove_all
 #' @export
 #'
 
@@ -23,7 +21,7 @@ entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
   spacy_result <- data.table::as.data.table(x)
   if(!is.null(remove)){
     index <- which(grepl(paste(remove,collapse = '|'),spacy_result$token,perl = T)&spacy_result$entity!="")
-    spacy_result$token[index] <- str_remove_all(spacy_result$token[index],paste(remove,collapse = '|'))
+    spacy_result$token[index] <- stringr::str_remove_all(spacy_result$token[index],paste(remove,collapse = '|'))
     spacy_result$entity[index] <- ""
   }
   

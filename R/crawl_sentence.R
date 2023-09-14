@@ -6,8 +6,6 @@
 #' @param s a data.frame containing the results of one (1) parsed spacy sentence
 #' @return list with original parsed sentence + added dependency parsing
 #' 
-#' @importFrom magrittr %>%
-#' @importFrom dplyr case_when
 #' @export
 #' 
 
@@ -54,7 +52,7 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
     #this categorizes each word as either source or target and 
     #saves it as a new column. Identifies head_verb_id and saves it as a new column
     while(is.na(empty_list$source_or_target[tok_num]) & break_while_counter < 15){
-      empty_list$source_or_target[tok_num] <- case_when(
+      empty_list$source_or_target[tok_num] <- dplyr::case_when(
         #if head_token_id trail traces back to an appositive before hitting anything else --> NA
         #if you find an appositive, stop -- it's a duplicate and should not be counted
         sentence[current_token_id,dep_rel] %in% c("appos") ~ "appos",
