@@ -21,7 +21,7 @@ parse_text(
 
 \item{keep_hyph_together}{Set to true to replace hyphens within a single word with underscores. Defaults to false.}
 
-\item{phrases_to_concatenate}{character vector of phrases, in which each element is a string consisting of tokens separated by spaces.}
+\item{phrases_to_concatenate}{character vector of phrases, in which each element is a string consisting of tokens separated by spaces. These are replaced with their concatenated version in order, from left to right. It is suggested that the most specific phrases, with the most words, are arranged at the left.}
 
 \item{concatenator}{This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.}
 
