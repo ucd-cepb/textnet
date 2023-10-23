@@ -356,11 +356,30 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     textnet_extract$nodelist$entity_name[index],paste(remove,collapse= '|'))
   
   #redoes count of num_appearances, prioritizes most common entity_type by using desc()
-  textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,sum(num_appearances)),by=entity_name]
+  textnet_extract$nodelist <- textnet_extract$nodelist[,c(.SD,"new_appr" = sum(num_appearances)),by=entity_name]
   textnet_extract$nodelist <- dplyr::arrange(textnet_extract$nodelist, dplyr::desc(num_appearances))
+  
+  #if any other node attribute columns, prioritizes the most common entity_type that is not NA
+  for(attr in colnames(textnet_extract$nodelist)[
+    ! colnames(textnet_extract$nodelist) %in% c(
+      "entity_name","entity_type","num_appearances","new_appr")]){
+    #take a subset of the dataframe where attr is not na, then take the first row by entity_name group and
+    #set the attr to that for all instances of the entity_name
+    attrnotna <- textnet_extract$nodelist[as.vector(!is.na(textnet_extract$nodelist[,..attr])),]
+    attrnotna <- attrnotna[!base::duplicated(entity_name),]
+    for(rw in 1:nrow(textnet_extract$nodelist)){
+      set(textnet_extract$nodelist, rw, attr, unlist(ifelse(
+        textnet_extract$nodelist[rw,"entity_name"] %in% attrnotna$entity_name,
+        attrnotna[as.vector(attrnotna$entity_name)==as.vector(textnet_extract$nodelist[rw,"entity_name"]),..attr],
+        textnet_extract$nodelist[rw,..attr])))
+    }
+  }
+  
   textnet_extract$nodelist <- textnet_extract$nodelist[!base::duplicated(entity_name),]
   textnet_extract$nodelist$num_appearances <- NULL
-  colnames(textnet_extract$nodelist)[3] <- "num_appearances"
+  colnames(textnet_extract$nodelist)[colnames(textnet_extract$nodelist)=="new_appr"] <- "num_appearances"
+  
+  
   
   #send edgelist tolower
   textnet_extract$edgelist$source <- tolower(textnet_extract$edgelist$source)
