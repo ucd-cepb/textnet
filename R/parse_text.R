@@ -4,7 +4,7 @@
 #' Creates an edgelist and nodelist for each document
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
 #' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
-#' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces.
+#' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces. These are replaced with their concatenated version in order, from left to right. It is suggested that the most specific phrases, with the most words, are arranged at the left.
 #' @param concatenator This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.
 #' @param pages This is a character vector, in which each element is a string that represents one page of text
 #' @param file_ids This is a vector defining which pages are associated with which documents. The length is equal to the number of total pages. 
