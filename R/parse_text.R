@@ -67,6 +67,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
           saveRDS(parsedtxt, parsed_filenames[m])
           lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
           lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
+          utils::data(eng_words)
           pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped) 
           
           if(pctlettersineng<0.5){

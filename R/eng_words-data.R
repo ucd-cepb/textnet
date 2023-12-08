@@ -2,6 +2,8 @@
 #' Files with extension <= 60, with filenames that include "variant", "american", "british", canadian", or "australian"
 #'
 #' @docType data
+#' 
+#' @name eng_words
 #'
 #' @usage data(eng_words)
 #'

@@ -1,4 +1,4 @@
-# Exported functions 
+# Non-exported functions 
 # download_dictionary
 
 #' Downloads the SCOWL 2020.12.07 dictionary created by Kevin Atkinson, which has a larger vocabulary than Qdap

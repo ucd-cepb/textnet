@@ -36,6 +36,7 @@ Imports:
     pdftools,
     ohenery,
     R.utils,
+    methods,
     xml2
 Suggests: 
     rmarkdown (>= 2.21),
