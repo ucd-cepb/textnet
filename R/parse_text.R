@@ -8,19 +8,14 @@
 #' @param concatenator This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.
 #' @param pages This is a character vector, in which each element is a string that represents one page of text
 #' @param file_ids This is a vector defining which pages are associated with which documents. The length is equal to the number of total pages. 
-#' @param parsed_filenames This is a character vector in which each element represents a filepath associated with its respective document. If 
-#' parse_from_file is T, the files located at these file paths will be read in. If parse_from_file is F, the parsed data 
-#' will be exported to these files.
-#' @param parse_from_file This is a logical vector. T denotes that the parsed_filenames should be used to locate existing 
-#' files of parsed text. F indicates that the parsing should be carried out and that the resulting files should be 
-#' saved to the filepaths given in parsed_filenames.
+#' @param parsed_filenames This is a character vector in which each element represents a filepath associated with its respective document. 
+#' The parsed data will be exported to these files.
 #' @param overwrite A boolean. Whether to overwrite existing files
 #' @import data.table
 #' @export
 
 parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
-                              concatenator="_", pages, file_ids, parsed_filenames, 
-                              parse_from_file=F,
+                              concatenator="_", pages, file_ids, parsed_filenames,
                               overwrite=T){
   
   #prerequisites: step 1, install python
@@ -54,7 +49,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   all_parsed <- vector(mode="list",length=length(unique_files))
   for (m in 1:length(unique_files)){
       if(overwrite==T | (overwrite==F & !(file.exists(parsed_filenames[m])))){
-        if(parse_from_file==F){
+        
           single_plan_text <- unlist(pages[file_ids==unique_files[m]])
           
           parsedtxt <- spacyr::spacy_parse(single_plan_text,
@@ -74,12 +69,13 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
             warning("Fewer than 50% of letter-containing tokens in this PDF are English words. This may be due to a PDF formatting issue. It is not recommended to use textnet_extract on this pdf.")
           }
           print(paste0("parsing complete: ",unique_files[m]))
-        }else{
-          #parse_from_file==T
-          parsedtxt <- readRDS(parsed_filenames[m])
-        }
+        
         
       }
+    else{
+      print(paste0("parsed_filenames[",m,"] already exists. Using existing file as element ",m," of the list returned by this function."))
+      parsedtxt <- readRDS(parsed_filenames[m])
+    }
       all_parsed[[m]] <- parsedtxt
   }
   spacyr::spacy_finalize()
