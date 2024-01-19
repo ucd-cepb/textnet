@@ -12,7 +12,6 @@ parse_text(
   pages,
   file_ids,
   parsed_filenames,
-  parse_from_file = F,
   overwrite = T
 )
 }
@@ -29,13 +28,8 @@ parse_text(
 
 \item{file_ids}{This is a vector defining which pages are associated with which documents. The length is equal to the number of total pages.}
 
-\item{parsed_filenames}{This is a character vector in which each element represents a filepath associated with its respective document. If
-parse_from_file is T, the files located at these file paths will be read in. If parse_from_file is F, the parsed data
-will be exported to these files.}
-
-\item{parse_from_file}{This is a logical vector. T denotes that the parsed_filenames should be used to locate existing
-files of parsed text. F indicates that the parsing should be carried out and that the resulting files should be
-saved to the filepaths given in parsed_filenames.}
+\item{parsed_filenames}{This is a character vector in which each element represents a filepath associated with its respective document.
+The parsed data will be exported to these files.}
 
 \item{overwrite}{A boolean. Whether to overwrite existing files}
 }
