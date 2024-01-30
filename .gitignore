@@ -2,7 +2,6 @@
 notebooks/
 
 # DataLab Project Directory Structure
-data/
 outputs/
 *.pdf
 
