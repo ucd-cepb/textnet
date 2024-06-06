@@ -11,12 +11,14 @@
 #'
 #' @param v a vector of entity names
 #' @param remove_nums A boolean. If T, sets entities that contain no letters to an empty string. If F, sets entities that contain no letters or numbers to an empty string.
+#' @param remove_trailing_s A boolean. If T, removes trailing instances of concatenator+s, or apostrophe+s in each element of v.
+#' @param concatenator Defaults to an underscore. Use regex notation. The concatenator used in elements of v.
 #' @return a cleaned vector of entity names
 
 #' @export
 #' 
 
-clean_entities <- function(v, remove_nums=T){
+clean_entities <- function(v, remove_nums=T, remove_trailing_s=T, concatenator = "_"){
   
   #format math font as regular font
   #unicode of math font alphabet
@@ -39,9 +41,16 @@ clean_entities <- function(v, remove_nums=T){
                            vectorize= F)
   })
   
-  #remove strings with specific placement: trailing "'s"
-  index <- which(grepl("'s$",v,perl = T))
-  v[index] <- stringr::str_remove_all(v[index],"'s$")
+  if(remove_trailing_s==T){
+    #remove strings with specific placement: trailing "'s"
+    index <- which(grepl("'s$",v,perl = T))
+    v[index] <- stringr::str_remove_all(v[index],"'s$")
+    
+    #remove strings with specific placement: trailing concatenator + s, e.g. "_s"
+    index <- which(grepl(paste0(concatenator,"s$"),v,perl = T))
+    v[index] <- stringr::str_remove_all(v[index],paste0(concatenator,"s$"))
+    
+  }
   
   #next, remove all non-word characters
   remove <- c("\\W")
@@ -49,10 +58,10 @@ clean_entities <- function(v, remove_nums=T){
   v[index] <- stringr::str_remove_all(v[index],paste(remove,collapse = '|'))
   
   #remove consecutive underscores that may have arisen due to previous cleaning step
-  v <- gsub('(_)\\1+', '\\1', v)
+  v <- gsub(paste0('(',concatenator,')\\1+'), '\\1', v)
   
   #remove leading or trailing underscores that may have arisen due to previous cleaning steps
-  remove <- c("^_", "_$")
+  remove <- c(paste0("^",concatenator), paste0(concatenator, "$"))
   index <- which(grepl(paste(remove,collapse = '|'),v,perl = T))
   v[index] <- stringr::str_remove_all(v[index],paste(remove,collapse = '|'))
   
