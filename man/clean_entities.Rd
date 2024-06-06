@@ -10,12 +10,16 @@ Consecutive underscores are collapsed to a single underscore.
 Leading and trailing underscores are removed.
 Entities that have no letters are removed, if remove_nums is set to T.}
 \usage{
-clean_entities(v, remove_nums = T)
+clean_entities(v, remove_nums = T, remove_trailing_s = T, concatenator = "_")
 }
 \arguments{
 \item{v}{a vector of entity names}
 
 \item{remove_nums}{A boolean. If T, sets entities that contain no letters to an empty string. If F, sets entities that contain no letters or numbers to an empty string.}
+
+\item{remove_trailing_s}{A boolean. If T, removes trailing instances of concatenator+s, or apostrophe+s in each element of v.}
+
+\item{concatenator}{Defaults to an underscore. Use regex notation. The concatenator used in elements of v.}
 }
 \value{
 a cleaned vector of entity names
