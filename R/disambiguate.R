@@ -37,6 +37,26 @@
 
 disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), textnet_extract, try_drop=NULL, recursive=T, concatenator="_"){
   #Data formatting checks####
+  multi_to <- sapply(1:length(to), function(w) length(to[[w]]) > 1)
+  multi_from <- sapply(1:length(from), function(w) length(from[[w]]) > 1)
+  
+  if(sum(multi_from)>0){
+    stop("Elements in 'from' should not be lists of length greater than 1. Please change elements ", 
+         paste0(which(multi_to), collapse = ", ") ," to a single character vector.")
+  }
+  if(sum(multi_to==T & match_partial_entity==T)>0){
+    stop("Elements for which 'to' is a list of length greater than 1 may not be matched on a partial string. Please set match_partial_entity to F for these elements.")
+  }
+  
+  which_froms_are_subsets_of_tos <- which(sapply(seq_along(to), function (x) sum(
+    str_detect(string = to[[x]], pattern = from[[x]])))==1)
+  if(length(which_froms_are_subsets_of_tos)>0 & sum(match_partial_entity[which_froms_are_subsets_of_tos])>0){
+    match_partial_entity[which_froms_are_subsets_of_tos] <- F
+    warning("Some elements in 'from' are substrings of the corresponding elements in 'to.' The match_partial_entity value has been automatically changed to F for these elements to avoid unexpected behavior." )
+  }
+  
+  
+  
   to_from_same <- sapply(1:length(to), function (j) sum(from[[j]]!=to[[j]])==0)
   if(sum(to_from_same)>0){
     warning("Removing ",sum(to_from_same)," rows in which to and from are identical.")
@@ -60,6 +80,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   step0 <- which(vectto %in% vectfrom)
   to0 <- vectto[step0]
   carryovers <- to0[which(to0 %in% vectfrom)]
+  previous_carryover_length <- length(carryovers)
   times_to_repeat <- 1
   is_inf_loop <- F
   to_nmin1 <- to0
@@ -68,9 +89,11 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     to_n <- unlist(to[
       sapply(from, function(s) sum(s %in% from_n)>0)])
     carryovers <- to_n[which(to_n %in% vectfrom)]
-    is_inf_loop <- !(length(to_n) <length(to_nmin1)) & length(carryovers)>0
+    is_inf_loop <- !(length(to_n) <length(to_nmin1)) & length(carryovers)>0 &
+      length(carryovers) == previous_carryover_length
     to_nmin1 <- to_n
     times_to_repeat <- times_to_repeat + 1
+    previous_carryover_length <- length(carryovers)
   }
   b <- 1
   removedelements <- NULL
@@ -134,6 +157,48 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
     }
   }
   
+  #Section0.5: Resolve partial match infinite loops ####
+  #if from_n matches 
+  vectto <- unlist(to)
+  vectfrom <- unlist(from)
+  #does not include completely matched froms, since those are already resolved:
+  whichpartiallymatchedfroms <- which(sapply(seq_along(vectfrom), function (x) sum(
+    str_detect(string = vectto, pattern = vectfrom[[x]])))>0)
+  fromsthatallowpartialmatching <- vectfrom[whichpartiallymatchedfroms[match_partial_entity[
+    whichpartiallymatchedfroms]]]
+  
+  step0 <- which(sapply(lapply(seq_along(vectto),
+            function(x) str_detect(vectto[x], 
+                  fromsthatallowpartialmatching)), function(x) sum(x))>0)
+  to0 <- vectto[step0]
+  carryovers <- to0[which(sapply(lapply(seq_along(to0),
+                  function(x) str_detect(to0[x], 
+                         fromsthatallowpartialmatching)), function(x) sum(x))>0)]
+  is_inf_loop <- F
+  to_nmin1 <- to0
+  while(length(carryovers)>0 & !is_inf_loop){
+    from_n <- vectfrom[which(sapply(lapply(seq_along(vectfrom),
+               function(x) str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)]
+    to_n <- unlist(to[
+      sapply(from, function(s) sum(s %in% from_n)>0)])
+    carryovers <- to_n[which(sapply(lapply(seq_along(to_n),
+                        function(x) str_detect(to_n[x], 
+                              fromsthatallowpartialmatching)), function(x) sum(x))>0)]
+    is_inf_loop <- !(length(to_n) <length(to_nmin1)) & length(carryovers)>0
+    to_nmin1 <- to_n
+  }
+  problematicfroms <- which(sapply(lapply(seq_along(vectfrom),
+                      function(x) str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)
+  match_partial_entity[problematicfroms] <- F
+  
+  
+  if(is_inf_loop==T){
+    warning(paste0("to/from terms ", paste0(carryovers, collapse = ", "), " were in an infinite loop because of partial matching allowments. ",
+                   "Resolved by automatically setting match_partial_entity to F for elements ", paste0(problematicfroms, collapse = ", ")))
+    
+  }
+  
+  
   #Section 1: Drop "The"####
   #drop "^the" from the custom list automatically
   #the textnet extraction process already drops "^the"
@@ -163,17 +228,9 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
       
       return(terms)
     }
-    
+    #defines this again after initial cleaning of to and from columns
     multi_to <- sapply(1:length(to), function(w) length(to[[w]]) > 1)
     multi_from <- sapply(1:length(from), function(w) length(from[[w]]) > 1)
-    
-    if(sum(multi_from)>0){
-      stop("Elements in 'from' should not be lists. Please change elements ", 
-           paste0(which(multi_to), collapse = ", ") ," to a single character vector.")
-    }
-    if(sum(multi_to==T & match_partial_entity==T)>0){
-      stop("Elements for which 'to' is a list may not be matched on a partial string. Please set match_partial_entity to F for these elements.")
-    }
     
     #setting up regex of froms
     
