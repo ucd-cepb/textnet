@@ -400,7 +400,7 @@ disambiguate <- function(from, to, match_partial_entity=rep(F, length(from)), te
   }
   #Section 3: Clean-Up####
 
-  colnames(textnet_extract$nodelist)[3] <- "num_appearances"
+  
   #consolidates upper and lower case spellings 
   #(this is done after the above cleaning because acronyms and 
   #abbreviations can be case-sensitive)
