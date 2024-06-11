@@ -5,16 +5,18 @@
 \title{Renames entities in a textnet_extract that are supplied in 'from' with those supplied in 'to'.}
 \usage{
 disambiguate(
+  textnet_extract,
   from,
   to,
   match_partial_entity = rep(F, length(from)),
-  textnet_extract,
   try_drop = NULL,
   recursive = T,
   concatenator = "_"
 )
 }
 \arguments{
+\item{textnet_extract}{An output of the function textnet_extract}
+
 \item{from}{A list of character vectors representing terms to look for, the same length as 'to'.
 If a term in this list is found, this function replaces it with its corresponding match in 'to'.
 The "acronyms" column from the find_acronyms output could be used here.}
@@ -28,8 +30,6 @@ These vector entities are disambiguated first, followed by the rest of the strin
 \item{match_partial_entity}{A logical vector of the same length as 'from'.
 If match_partial_entity is T for an element, it can match on the 'from' term separated by concatenator.
 Otherwise, the 'from' term must match the whole entity name to be accepted. Defaults to "F" for all elements.}
-
-\item{textnet_extract}{An output of the function textnet_extract}
 
 \item{try_drop}{A regex expression representing one or more terms to try dropping.
 The usual case for this is country or state names, such as "^US_".
