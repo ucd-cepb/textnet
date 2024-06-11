@@ -427,7 +427,6 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
                                 textnet_extract$nodelist$entity_name)
     if(length(dropped_in_terms)>0){
       for(i in 1:length(dropped_in_terms)){
-        print(textnet_extract$edgelist$source[which(rem)[dropped_in_terms[i]]])
         #remove the dangling nodelist node which now has no edgelist referents
         textnet_extract$nodelist$entity_name[
           textnet_extract$nodelist$entity_name==textnet_extract$edgelist$source[
@@ -450,7 +449,6 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
                                 textnet_extract$nodelist$entity_name)
     if(length(dropped_in_terms)>0){
       for(i in 1:length(dropped_in_terms)){
-        print(textnet_extract$edgelist$target[which(rem)[dropped_in_terms[i]]])
         #remove the dangling nodelist node which now has no edgelist referents
         textnet_extract$nodelist$entity_name[
           textnet_extract$nodelist$entity_name==textnet_extract$edgelist$target[
@@ -473,7 +471,6 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
                                 textnet_extract$nodelist$entity_name)
     if(length(dropped_in_terms)>0){
       for(i in 1:length(dropped_in_terms)){
-        print(textnet_extract$nodelist$entity_name[which(rem)[dropped_in_terms[i]]])
         #remove its referent in the target list
         textnet_extract$nodelist$entity_name[which(rem)[dropped_in_terms[i]]] <- abbrevs[dropped_in_terms[i]]
         
