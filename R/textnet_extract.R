@@ -167,7 +167,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   }
   
   hedging_helpers <- c("may","might","can","could")
-  hedging_verbs <- c("seem","appear","suggest","tend","assume","indicate","estimate","doubt","believe")
+  hedging_verbs <- c("seem","appear","suggest","tend","assume","indicate","doubt","believe")
   has_hedging_verb <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_verbs, 
                                         edgelist$head_verb_lemma[[z]]), na.rm=T)>0 | 
            sum(match(hedging_verbs, edgelist$xcomp_verb[[z]]), na.rm=T)>0))
