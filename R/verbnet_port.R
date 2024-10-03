@@ -47,7 +47,7 @@ verbnet_port <- function(zipdestfile, folder_dest){
     type_ids == 9 ~ "verbs_of_putting",
     type_ids == 10 ~ "verbs_of_removing",
     type_ids == 11 ~ "verbs_of_sending_and_carrying",
-    type_ids == 12 ~ "verbs_of_exterting_force-push-pull_verbs",
+    type_ids == 12 ~ "verbs_of_exerting_force-push-pull_verbs",
     type_ids == 13 ~ "verbs_of_change_of_possession",
     type_ids == 14 ~ "learn_verbs",
     type_ids == 15 ~ "hold_and_keep_verbs",
@@ -189,7 +189,7 @@ verbnet_port <- function(zipdestfile, folder_dest){
     ifelse(i %in% verb_pivot$verb, 
            list(c(verb_pivot[verb_pivot$verb==i,"type_id"][[1]][[1]],"0")), "0")))
   
-  verb_classifications <- rbind(verb_pivot[!(verb_pivot$verb %in% helping_verbs$verb)], helping_verbs)
+  verb_classifications <- rbind(verb_pivot[!(verb_pivot$verb %in% helping_verbs$verb),], helping_verbs)
   
   #when generating the data file verb_classifications, the following line of code was run
   #save(verb_classifications, file = "data/verb_classifications.rda")
