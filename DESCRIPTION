@@ -1,6 +1,6 @@
 Package: textNet
 Title: Generate semantic networks from unstructured policy documents
-Version: 0.1.5
+Version: 0.1.6
 Authors@R: 
     c( 
     person(given = "Elise",
@@ -21,7 +21,6 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Imports: 
-    reticulate,
     magrittr,
     dplyr,
     stringr,
@@ -38,6 +37,7 @@ Imports:
     methods,
     xml2
 Suggests: 
+    reticulate,
     spacyr,
     rmarkdown (>= 2.21),
     knitr (>= 1.42)
