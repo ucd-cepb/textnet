@@ -4,7 +4,7 @@
 \name{old_new_parsed}
 \alias{old_new_parsed}
 \title{Sample of parsed data extracted from two versions of a publicly available groundwater plan,
-stored as a data frame}
+stored as a data frame. Equivalent data format to the output of parse_text}
 \format{
 An object of class \code{"spacyr_parsed"}.
 }
@@ -13,7 +13,7 @@ data(old_new_parsed)
 }
 \description{
 Sample of parsed data extracted from two versions of a publicly available groundwater plan,
-stored as a data frame
+stored as a data frame. Equivalent data format to the output of parse_text
 }
 \examples{
 data(old_new_parsed)

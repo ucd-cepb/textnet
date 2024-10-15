@@ -1,5 +1,5 @@
 #' Sample of parsed data extracted from two versions of a publicly available groundwater plan,
-#' stored as a data frame
+#' stored as a data frame. Equivalent data format to the output of parse_text
 #'
 #' @docType data
 #'
