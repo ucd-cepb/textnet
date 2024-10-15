@@ -9,10 +9,10 @@ parse_text(
   keep_hyph_together = F,
   phrases_to_concatenate = NA,
   concatenator = "_",
-  pages,
-  file_ids,
+  text_list,
   parsed_filenames,
-  overwrite = T
+  overwrite = T,
+  custom_entities = NULL
 )
 }
 \arguments{
@@ -24,14 +24,14 @@ parse_text(
 
 \item{concatenator}{This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.}
 
-\item{pages}{This is a character vector, in which each element is a string that represents one page of text}
-
-\item{file_ids}{This is a vector defining which pages are associated with which documents. The length is equal to the number of total pages.}
+\item{text_list}{This is a named list, an object of the type resulting from pdf_clean, in which each list element is a document, and each string within a list element represents the text on one page}
 
 \item{parsed_filenames}{This is a character vector in which each element represents a filepath associated with its respective document.
 The parsed data will be exported to these files.}
 
 \item{overwrite}{A boolean. Whether to overwrite existing files}
+
+\item{custom_entities}{A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.}
 }
 \description{
 Creates an edgelist and nodelist for each document

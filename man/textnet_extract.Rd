@@ -11,7 +11,8 @@ textnet_extract(
   cl = 1,
   keep_entities = c("ORG", "GPE", "PERSON"),
   return_to_memory = T,
-  keep_incomplete_edges = F
+  keep_incomplete_edges = F,
+  remove_neg = T
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ textnet_extract(
 \item{return_to_memory}{boolean for whether function should return final result as workspace object}
 
 \item{keep_incomplete_edges}{Boolean. If T, keeps edges with only a source or target but not both}
+
+\item{remove_neg}{Boolean. If T, removes edges whose head token has a negation child}
 }
 \value{
 data frame with original parsed sentence + added dependency parsing
