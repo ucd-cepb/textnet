@@ -45,6 +45,11 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
     stop("Elements in 'from' should not be lists of length greater than 1. Please change elements ", 
          paste0(which(multi_to), collapse = ", ") ," to a single character vector.")
   }
+  if(length(to) != length(match_partial_entity) | 
+     length(from) != length(match_partial_entity) |
+     length(to) != length(from)){
+    stop("The arguments to, from, and match_partial_entity must all be the same length.")
+  }
   if(sum(multi_to==T & match_partial_entity==T)>0){
     stop("Elements for which 'to' is a list of length greater than 1 may not be matched on a partial string. Please set match_partial_entity to F for these elements.")
   }
