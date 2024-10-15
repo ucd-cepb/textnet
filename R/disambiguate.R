@@ -50,7 +50,7 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
   }
   
   which_froms_are_subsets_of_tos <- which(sapply(seq_along(to), function (x) sum(
-    str_detect(string = to[[x]], pattern = from[[x]])))==1)
+    stringr::str_detect(string = to[[x]], pattern = from[[x]])))==1)
   if(length(which_froms_are_subsets_of_tos)>0 & sum(match_partial_entity[which_froms_are_subsets_of_tos])>0){
     match_partial_entity[which_froms_are_subsets_of_tos] <- F
     warning("Some elements in 'from' are substrings of the corresponding elements in 'to.' The match_partial_entity value has been automatically changed to F for these 'from' elements to avoid unexpected behavior: ",
@@ -166,22 +166,22 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
   vectfrom <- unlist(from)
   #does not include completely matched froms, since those are already resolved:
   whichpartiallymatchedfroms <- which(sapply(seq_along(vectfrom), function (x) sum(
-    str_detect(string = vectto, pattern = vectfrom[[x]])))>0)
+    stringr::str_detect(string = vectto, pattern = vectfrom[[x]])))>0)
   fromsthatallowpartialmatching <- vectfrom[whichpartiallymatchedfroms[match_partial_entity[
     whichpartiallymatchedfroms]]]
   
   step0 <- which(sapply(lapply(seq_along(vectto),
-            function(x) str_detect(vectto[x], 
+            function(x) stringr::str_detect(vectto[x], 
                   fromsthatallowpartialmatching)), function(x) sum(x))>0)
   to0 <- vectto[step0]
   carryovers <- to0[which(sapply(lapply(seq_along(to0),
-                  function(x) str_detect(to0[x], 
+                  function(x) stringr::str_detect(to0[x], 
                          fromsthatallowpartialmatching)), function(x) sum(x))>0)]
   is_inf_loop <- F
   to_nmin1 <- to0
   while(length(carryovers)>0 & !is_inf_loop){
     from_n <- vectfrom[which(sapply(lapply(seq_along(vectfrom),
-               function(x) str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)]
+               function(x) stringr::str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)]
     to_n <- unlist(to[
       sapply(from, function(s) sum(s %in% from_n)>0)])
     carryovers <- to_n[which(sapply(lapply(seq_along(to_n),
