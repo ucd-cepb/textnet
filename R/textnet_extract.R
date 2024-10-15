@@ -10,6 +10,7 @@
 #' @param keep_entities character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)
 #' @param return_to_memory boolean for whether function should return final result as workspace object
 #' @param keep_incomplete_edges Boolean. If T, keeps edges with only a source or target but not both
+#' @param remove_neg Boolean. If T, removes edges whose head token has a negation child
 #' @return data frame with original parsed sentence + added dependency parsing
 #' 
 #' @import data.table
@@ -19,7 +20,8 @@
 
 textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
-                                    return_to_memory = T,keep_incomplete_edges=F) {
+                                    return_to_memory = T, keep_incomplete_edges=F,
+                                    remove_neg = T) {
 
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
@@ -95,7 +97,10 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
 
     
   #remove verbs with neg
-  verb_dt <- verb_dt[neg==F]
+  if(remove_neg ==T){
+    verb_dt <- verb_dt[neg==F,]
+  }
+  
     
   #does the verb have any sources? do this before removing non-entities
   x[, `:=`(has_sources, any(source_or_target=="source")), by = doc_sent_verb]
