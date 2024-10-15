@@ -185,13 +185,13 @@ disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, 
     to_n <- unlist(to[
       sapply(from, function(s) sum(s %in% from_n)>0)])
     carryovers <- to_n[which(sapply(lapply(seq_along(to_n),
-                        function(x) str_detect(to_n[x], 
+                        function(x) stringr::str_detect(to_n[x], 
                               fromsthatallowpartialmatching)), function(x) sum(x))>0)]
     is_inf_loop <- !(length(to_n) <length(to_nmin1)) & length(carryovers)>0
     to_nmin1 <- to_n
   }
   problematicfroms <- which(sapply(lapply(seq_along(vectfrom),
-                      function(x) str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)
+                      function(x) stringr::str_detect(carryovers, vectfrom[x])), function(x) sum(x))>0)
   match_partial_entity[problematicfroms] <- F
   
   
