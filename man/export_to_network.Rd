@@ -24,7 +24,7 @@ export_to_network(
 \item{self_loops}{A boolean, where T allows self-loops, and F removes them}
 }
 \value{
-Returns the "igraph" or "network" object as the first element and the network statistics as the second element.
+Returns the "igraph" or "network" object as the first element and the network statistics as the second element. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract.
 num_nodes -- the number of nodes in the resulting "igraph" or "network" object
 num_edges -- the number of edges in the resulting "igraph" or "network" object
 connectedness -- calculates sna::connectedness

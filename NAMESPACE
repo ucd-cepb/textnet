@@ -2,10 +2,7 @@
 
 export(clean_entities)
 export(combine_networks)
-export(crawl_sentence)
-export(create_empty_sentence_parse_list)
 export(disambiguate)
-export(entity_consolidate_replicate)
 export(export_to_network)
 export(filter_sentences)
 export(find_acronyms)

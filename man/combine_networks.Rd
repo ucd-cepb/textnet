@@ -12,7 +12,7 @@ combine_networks(textnet_igraphs, mode)
 \item{mode}{Either "multiplex" or "weighted" depending on the desired exported network format. If "weighted", collapses multiplex edges into a single weighted edge}
 }
 \value{
-list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan
+Single igraph object that consolidates nodes and edges from input graphs. If there are multiple nodes with the same name and different attributes originating from different graphs, this function preserves the node attributes associated with the version that appears most commonly. Adds a node attribute num_graphs_in, which denotes the number of input graphs each node was found in. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract.
 }
 \description{
 Superimposes multiple textNet igraphs into a single igraph.
