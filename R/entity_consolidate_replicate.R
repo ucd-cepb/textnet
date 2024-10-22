@@ -4,15 +4,14 @@
 #' Modified version of spacyr::entity_consolidate.
 #' spacyr::entity_consolidate returns a data.frame that no longer has head_token_id and dep_rel data.
 #' Instead, this function basically breaks off a feature of the original function and adds a new column to the original spacyr data.frame that is the concatenated entity.
-#' This feature is inefficient in the the concatenated entity is then replicated multiple times, but this does seem to be the easiest way to preserve the other data.
+#' This feature is inefficient in that the concatenated entity is then replicated multiple times, but this does seem to be the easiest way to preserve the other data.
 #'
 #' @param x parsed spacy document
 #' @param concatenator A character that separates string segments when they are collapsed into a single entity. Defaults to "_"
 #' @param remove regex formatted strings to remove as entity components (like "the" in "the Seattle Supersonics")
-#' @return original data frame with added columnn for concatenated entity
+#' @return original data frame with added column for concatenated entity
 #' 
 #' @import data.table
-#' @export
 #'
 
 entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {

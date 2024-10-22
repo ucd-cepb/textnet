@@ -6,7 +6,6 @@
 #' @param s a data.frame containing the results of one (1) parsed spacy sentence
 #' @return list with original parsed sentence + added dependency parsing
 #' 
-#' @export
 #' 
 
 crawl_sentence <- function(s){ 

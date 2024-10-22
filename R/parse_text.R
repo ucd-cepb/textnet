@@ -11,6 +11,7 @@
 #' The parsed data will be exported to these files.
 #' @param overwrite A boolean. Whether to overwrite existing files
 #' @param custom_entities A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.
+#' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 #' @import data.table
 #' @export
 
