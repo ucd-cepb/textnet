@@ -1,6 +1,6 @@
 Package: textNet
 Title: Generate semantic networks from unstructured policy documents
-Version: 0.1.7
+Version: 0.1.8
 Authors@R: 
     c( 
     person(given = "Elise",

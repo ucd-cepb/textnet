@@ -8,28 +8,29 @@
 #' @param export_format A string, either "igraph" for an igraph object, or "network" for a network object
 #' @param collapse_edges A boolean, where T removes edge attributes and collapses edges into a single weighted edge, and where F preserves all edges and edge attributes
 #' @param self_loops A boolean, where T allows self-loops, and F removes them
-#' @return Returns the "igraph" or "network" object as the first element and the network statistics as the second element. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract.
-#' num_nodes -- the number of nodes in the resulting "igraph" or "network" object
-#' num_edges -- the number of edges in the resulting "igraph" or "network" object
-#' connectedness -- calculates sna::connectedness
-#' centralization -- degree centralization
-#' transitivity -- directed weak transitivity
-#' pct_entitytype_homophily -- percent of all edges whose terminal nodes share an entity type
-#' reciprocity -- reciprocity
-#' median_in_degree, median_out_degree, mean_in_degree, mean_out_degree -- the median, or mean in-degree or out-degree of all nodes in the network object, respectively
-#' 
-#' For weighted graphs, if collapse_edges == T:
-#' modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
-#' num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
-#' density -- density of the graph
-#' mean_edge_weight -- mean weight of all edges in the graph
-#' mean_in_strength, mean_out_strength, median_in_strength, median_out_strength -- the mean or median strength -- weighted in-degree or weighted out-degree, respectively -- of a node in the network
-#' 
-#' For multiplex graphs, if collapse_edges == F:
-#' modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
-#' num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
-#' percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
-#' 
+#' @return Returns the "igraph" or "network" object as the first element and the network statistics as the second element. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract. Network statistics are as described below.
+#' \itemize{
+#'    \item num_nodes -- the number of nodes in the resulting "igraph" or "network" object
+#'    \item num_edges -- the number of edges in the resulting "igraph" or "network" object
+#'    \item connectedness -- calculates sna::connectedness
+#'    \item centralization -- degree centralization
+#'    \item transitivity -- directed weak transitivity
+#'    \item pct_entitytype_homophily -- percent of all edges whose terminal nodes share an entity type
+#'    \item reciprocity -- reciprocity of the graph
+#'    \item median_in_degree, median_out_degree, mean_in_degree, mean_out_degree -- the median, or mean in-degree or out-degree of all nodes in the network object, respectively
+#'  
+#'For weighted graphs, if collapse_edges == T:
+#'    \item modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
+#'    \item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
+#'    \item density -- density of the graph
+#'    \item mean_edge_weight -- mean weight of all edges in the graph
+#'    \item mean_in_strength, mean_out_strength, median_in_strength, median_out_strength -- the mean or median strength -- weighted in-degree or weighted out-degree, respectively -- of a node in the network
+#'    
+#'For multiplex graphs, if collapse_edges == F:
+#'    \item modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
+#'    \item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
+#'    \item percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
+#' }
 #' @export
 #'
 
@@ -62,23 +63,9 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
       igr <- igraph::graph_from_data_frame(d = textnet_extract$edgelist, 
                                            vertices = textnet_extract$nodelist, 
                                            directed = T)
-      
-      igr <- igraph::delete_edge_attr(igr, "head_verb_id")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_tense")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_name")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_lemma")
-      igr <- igraph::delete_edge_attr(igr, "parent_verb_id")
-      igr <- igraph::delete_edge_attr(igr, "neg")
-      igr <- igraph::delete_edge_attr(igr, "doc_sent_verb")
-      igr <- igraph::delete_edge_attr(igr, "doc_sent_parent")
-      igr <- igraph::delete_edge_attr(igr, "helper_lemma")
-      igr <- igraph::delete_edge_attr(igr, "helper_token")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_verb")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_helper_lemma")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_helper_token")
-      igr <- igraph::delete_edge_attr(igr, "edgeiscomplete")
-      igr <- igraph::delete_edge_attr(igr, "has_hedge")
-      igr <- igraph::delete_edge_attr(igr, "is_future")
+      for(q in igraph::edge_attr_names(igr)){
+        igr <- igraph::delete_edge_attr(igr, q)
+      }
       
       igraph::E(igr)$weight <- 1
       igr <- igraph::simplify(igr, edge.attr.comb=list(weight="sum"), remove.loops = !self_loops)
@@ -99,23 +86,9 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
                                            vertices = textnet_extract$nodelist, 
                                            directed = T)
       
-      
-      igr <- igraph::delete_edge_attr(igr, "head_verb_id")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_tense")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_name")
-      igr <- igraph::delete_edge_attr(igr, "head_verb_lemma")
-      igr <- igraph::delete_edge_attr(igr, "parent_verb_id")
-      igr <- igraph::delete_edge_attr(igr, "neg")
-      igr <- igraph::delete_edge_attr(igr, "doc_sent_verb")
-      igr <- igraph::delete_edge_attr(igr, "doc_sent_parent")
-      igr <- igraph::delete_edge_attr(igr, "helper_lemma")
-      igr <- igraph::delete_edge_attr(igr, "helper_token")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_verb")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_helper_lemma")
-      igr <- igraph::delete_edge_attr(igr, "xcomp_helper_token")
-      igr <- igraph::delete_edge_attr(igr, "edgeiscomplete")
-      igr <- igraph::delete_edge_attr(igr, "has_hedge")
-      igr <- igraph::delete_edge_attr(igr, "is_future")
+      for(q in igraph::edge_attr_names(igr)){
+        igr <- igraph::delete_edge_attr(igr, q)
+      }
       
       igraph::E(igr)$weight <- 1
       igr <- igraph::simplify(igr, edge.attr.comb=list(weight="sum"), remove.loops = !self_loops)
@@ -185,27 +158,14 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
     attr_tbl$median_out_strength <- stats::median(igraph::strength(igr, mode="out", loops=self_loops))
   }else{
     
-    
-    undir <- igraph::delete_edge_attr(igr, "head_verb_id")
-    undir <- igraph::delete_edge_attr(undir, "head_verb_tense")
-    undir <- igraph::delete_edge_attr(undir, "head_verb_name")
-    undir <- igraph::delete_edge_attr(undir, "head_verb_lemma")
-    undir <- igraph::delete_edge_attr(undir, "parent_verb_id")
-    undir <- igraph::delete_edge_attr(undir, "neg")
-    undir <- igraph::delete_edge_attr(undir, "doc_sent_verb")
-    undir <- igraph::delete_edge_attr(undir, "doc_sent_parent")
-    undir <- igraph::delete_edge_attr(undir, "helper_lemma")
-    undir <- igraph::delete_edge_attr(undir, "helper_token")
-    undir <- igraph::delete_edge_attr(undir, "xcomp_verb")
-    undir <- igraph::delete_edge_attr(undir, "xcomp_helper_lemma")
-    undir <- igraph::delete_edge_attr(undir, "xcomp_helper_token")
-    undir <- igraph::delete_edge_attr(undir, "edgeiscomplete")
-    undir <- igraph::delete_edge_attr(undir, "has_hedge")
-    undir <- igraph::delete_edge_attr(undir, "is_future")
+    undir <- igr
+    for(q in igraph::edge_attr_names(undir)){
+      undir <- igraph::delete_edge_attr(undir, q)
+    }
     
     igraph::E(undir)$weight <- 1
     undir <- igraph::simplify(undir, edge.attr.comb=list(weight="sum"), remove.loops = !self_loops)
-    undir <- igraph::as.undirected(igr, mode = "collapse")
+    undir <- igraph::as.undirected(undir, mode = "collapse")
     lc <- igraph::cluster_louvain(undir, weights = igraph::edge_attr(undir,"weight"))#uses weights of undirected igraph
     attr_tbl$modularity <- igraph::modularity(undir,membership = lc$membership, weights = igraph::edge_attr(undir, "weight"))
     attr_tbl$num_communities <- length(base::unique(lc$membership))

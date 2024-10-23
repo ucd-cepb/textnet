@@ -11,7 +11,46 @@
 #' @param return_to_memory boolean for whether function should return final result as workspace object
 #' @param keep_incomplete_edges Boolean. If T, keeps edges with only a source or target but not both
 #' @param remove_neg Boolean. If T, removes edges whose head token has a negation child
-#' @return data frame with original parsed sentence + added dependency parsing
+#' @return A list with four objects:
+#' \itemize{
+#'    \item nodelist -- data.table of nodes and their attributes
+#'    \itemize{
+#'      \item entity_name -- name of the entity
+#'      \item entity_type -- same as entity_type attribute from the output of textNet::parse_text()
+#'      \item num_appearances -- the number of times the entity appears in the PDF text
+#'    }
+#'    \item edgelist -- data.table of edges and their attributes
+#'    \itemize{
+#'      \item source -- the name of the source node
+#'      \item target -- the name of the target node
+#'      \item head_verb_name -- the verb connecting the source and target
+#'      \item head_verb_lemma -- the base form of the verb listed under head_verb_name
+#'      \item head_verb_tense -- tense of the verb listed under head_verb_name. Abbreviations follow Penn Treebank Project conventions: VB = base form, VBD = past tense, VBG = gerund or present participle, VBN = past participle, VBP = non-3rd person singular present, and VBZ = 3rd person singular present.
+#'      \item helper_token -- list of any auxiliary verbs in the verb phrase
+#'      \item helper_lemma -- list of base forms of the auxiliary verbs in the verb phrase
+#'      \item xcomp_verb -- list of any open causal complements in the verb phrase
+#'      \item xcomp_helper_token -- list of any auxiliary verbs associated with the open causal complements
+#'      \item xcomp_helper_lemma -- list of base forms of any auxiliary verbs associated with the open causal complements
+#'      \item neg -- Boolean: T if there is a negation token present in the verb phrase; F otherwise
+#'      \item edgeiscomplete -- Boolean: T if the edge has both a source and target node; F otherwise
+#'      \item has_hedge -- Boolean: T if the edge contains a verb or auxiliary verb indicating uncertainty, namely "may","might","can","could", "seem","appear","suggest","tend","assume","indicate","doubt", or "believe"; the value is F otherwise
+#'      \item is_future -- Boolean: T if the edge is future tense, as indicated by auxiliary verbs of the form 'is going to' or 'will/shall'; F otherwise 
+#'      \item doc_sent_verb -- unique ID for the edge indicating the document, sentence, and edge verb token separated by underscores
+#'    }
+#'    \item verblist -- data.table of verbs and their attributes, imported from VerbNet 3.3
+#'    \itemize{
+#'      \item head_verb_lemma -- base form of a verb; can match with head_verb_lemma in the edgelist
+#'      \item classes -- the VerbNet 3.3 classes that verb belongs to. For more information visit https://verbs.colorado.edu/verb-index/vn3.3/
+#'      \item type_name -- the VerbNet 3.3 types that verb belongs to. For more information visit https://verbs.colorado.edu/verb-index/VerbNet_Guidelines.pdf
+#'      \item type_id -- numeric IDs corresponding to a unique type_name
+#'    }
+#'    \item appositivelist -- data.table of entities that may be synonyms
+#'    \itemize{
+#'      \item abbrev -- appositive
+#'      \item fullname -- entity that is a head token of the corresponding appositive
+#'    }
+#' }
+#' data frame with original parsed sentence + added dependency parsing
 #' 
 #' @import data.table
 #' @importFrom magrittr %>%
@@ -68,13 +107,14 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
       anchor <- which(!(z$head_token_id %in% z$token_id))[1]
       if(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_type"]%in%keep_entities){
         print(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],])
-        as.data.table(cbind("abbrev" = z[1,"entity_name"],
-                            "fullname" = x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_name"]))
+        as.data.table(cbind(unname(z[1,"entity_name"]),
+                            unname(x[x$doc_sent==z$doc_sent[1] & x$token_id==z$head_token_id[anchor],"entity_name"])))
         
       }
   }, cl=cl)
   apposlist <- data.table::rbindlist(apposlist)
   apposlist <- base::unique(apposlist[nchar(apposlist$fullname)>0,])
+  colnames(apposlist) <- c("abbrev", "fullname")
     
   #remove aux helpers functioning as aux; xcomp verbs; and appositives
   x <- x[!((pos=="AUX" & dep_rel %in% c("aux","auxpass")) |
@@ -194,6 +234,9 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   edgelist$has_hedge <- has_hedging_verb | has_hedging_helper
   edgelist$is_future <- has_future_helper | has_future_going
+  edgelist$doc_sent_parent <- NULL
+  edgelist$head_verb_id <- NULL
+  edgelist$parent_verb_id <- NULL
   
   #remove duplicates that arose from concatenating entity names
   nodelist <- nodelist[,.(entity_id, entity_name, entity_type, doc_sent_verb)]
@@ -228,14 +271,11 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   if(!is.null(file)){
     saveRDS(list('nodelist' = nodelist,'edgelist' = edgelist, 'verblist' = verblist, 'appositivelist' = apposlist),file)
-    return(paste0("Nodelist, edgelist, verblist, and appositive list for doc id ",file," written to local drive"))
+    print(paste0("Nodelist, edgelist, verblist, and appositive list for doc id ",file," written to local drive"))
     
   }
     if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist,'verblist'=verblist,'appositivelist'=apposlist))}
   
-  #TODO value adds:
-  #TODO import the object that "which" refers to
-  #TODO other non-entities we care about? eg "stakeholders"?
 }
 
 

@@ -47,22 +47,9 @@ combine_networks <- function(textnet_igraphs, mode){
   if(mode == "weighted"){
     weighted_graph <- supernetwork
     
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "head_verb_id")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "head_verb_tense")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "head_verb_name")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "head_verb_lemma")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "parent_verb_id")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "neg")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "doc_sent_verb")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "doc_sent_parent")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "helper_lemma")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "helper_token")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "xcomp_verb")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "xcomp_helper_lemma")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "xcomp_helper_token")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "edgeiscomplete")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "has_hedge")
-    weighted_graph <- igraph::delete_edge_attr(weighted_graph, "is_future")
+    for(q in igraph::edge_attr_names(weighted_graph)){
+      weighted_graph <- igraph::delete_edge_attr(weighted_graph, q)
+    }
     
     igraph::E(weighted_graph)$weight <- 1
     weighted_graph <- igraph::simplify(weighted_graph, edge.attr.comb=list(weight="sum"), remove.loops = F)

@@ -33,6 +33,45 @@ textnet_extract(
 \item{remove_neg}{Boolean. If T, removes edges whose head token has a negation child}
 }
 \value{
+A list with four objects:
+\itemize{
+\item nodelist -- data.table of nodes and their attributes
+\itemize{
+\item entity_name -- name of the entity
+\item entity_type -- same as entity_type attribute from the output of textNet::parse_text()
+\item num_appearances -- the number of times the entity appears in the PDF text
+}
+\item edgelist -- data.table of edges and their attributes
+\itemize{
+\item source -- the name of the source node
+\item target -- the name of the target node
+\item head_verb_name -- the verb connecting the source and target
+\item head_verb_lemma -- the base form of the verb listed under head_verb_name
+\item head_verb_tense -- tense of the verb listed under head_verb_name. Abbreviations follow Penn Treebank Project conventions: VB = base form, VBD = past tense, VBG = gerund or present participle, VBN = past participle, VBP = non-3rd person singular present, and VBZ = 3rd person singular present.
+\item helper_token -- list of any auxiliary verbs in the verb phrase
+\item helper_lemma -- list of base forms of the auxiliary verbs in the verb phrase
+\item xcomp_verb -- list of any open causal complements in the verb phrase
+\item xcomp_helper_token -- list of any auxiliary verbs associated with the open causal complements
+\item xcomp_helper_lemma -- list of base forms of any auxiliary verbs associated with the open causal complements
+\item neg -- Boolean: T if there is a negation token present in the verb phrase; F otherwise
+\item edgeiscomplete -- Boolean: T if the edge has both a source and target node; F otherwise
+\item has_hedge -- Boolean: T if the edge contains a verb or auxiliary verb indicating uncertainty, namely "may","might","can","could", "seem","appear","suggest","tend","assume","indicate","doubt", or "believe"; the value is F otherwise
+\item is_future -- Boolean: T if the edge is future tense, as indicated by auxiliary verbs of the form 'is going to' or 'will/shall'; F otherwise
+\item doc_sent_verb -- unique ID for the edge indicating the document, sentence, and edge verb token separated by underscores
+}
+\item verblist -- data.table of verbs and their attributes, imported from VerbNet 3.3
+\itemize{
+\item head_verb_lemma -- base form of a verb; can match with head_verb_lemma in the edgelist
+\item classes -- the VerbNet 3.3 classes that verb belongs to. For more information visit https://verbs.colorado.edu/verb-index/vn3.3/
+\item type_name -- the VerbNet 3.3 types that verb belongs to. For more information visit https://verbs.colorado.edu/verb-index/VerbNet_Guidelines.pdf
+\item type_id -- numeric IDs corresponding to a unique type_name
+}
+\item appositivelist -- data.table of entities that may be synonyms
+\itemize{
+\item abbrev -- appositive
+\item fullname -- entity that is a head token of the corresponding appositive
+}
+}
 data frame with original parsed sentence + added dependency parsing
 }
 \description{

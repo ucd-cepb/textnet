@@ -24,27 +24,29 @@ export_to_network(
 \item{self_loops}{A boolean, where T allows self-loops, and F removes them}
 }
 \value{
-Returns the "igraph" or "network" object as the first element and the network statistics as the second element. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract.
-num_nodes -- the number of nodes in the resulting "igraph" or "network" object
-num_edges -- the number of edges in the resulting "igraph" or "network" object
-connectedness -- calculates sna::connectedness
-centralization -- degree centralization
-transitivity -- directed weak transitivity
-pct_entitytype_homophily -- percent of all edges whose terminal nodes share an entity type
-reciprocity -- reciprocity
-median_in_degree, median_out_degree, mean_in_degree, mean_out_degree -- the median, or mean in-degree or out-degree of all nodes in the network object, respectively
+Returns the "igraph" or "network" object as the first element and the network statistics as the second element. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract. Network statistics are as described below.
+\itemize{
+\item num_nodes -- the number of nodes in the resulting "igraph" or "network" object
+\item num_edges -- the number of edges in the resulting "igraph" or "network" object
+\item connectedness -- calculates sna::connectedness
+\item centralization -- degree centralization
+\item transitivity -- directed weak transitivity
+\item pct_entitytype_homophily -- percent of all edges whose terminal nodes share an entity type
+\item reciprocity -- reciprocity of the graph
+\item median_in_degree, median_out_degree, mean_in_degree, mean_out_degree -- the median, or mean in-degree or out-degree of all nodes in the network object, respectively
 
 For weighted graphs, if collapse_edges == T:
-modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
-num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
-density -- density of the graph
-mean_edge_weight -- mean weight of all edges in the graph
-mean_in_strength, mean_out_strength, median_in_strength, median_out_strength -- the mean or median strength -- weighted in-degree or weighted out-degree, respectively -- of a node in the network
+\item modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
+\item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
+\item density -- density of the graph
+\item mean_edge_weight -- mean weight of all edges in the graph
+\item mean_in_strength, mean_out_strength, median_in_strength, median_out_strength -- the mean or median strength -- weighted in-degree or weighted out-degree, respectively -- of a node in the network
 
 For multiplex graphs, if collapse_edges == F:
-modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
-num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
-percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
+\item modularity -- calculates igraph::modularity on a weighted, undirected, non-multiplex version of the network.
+\item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
+\item percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
+}
 }
 \description{
 Takes a textnet_extract output and converts it into an "igraph" or "network" object, then calculates network summary statistics. Note, this function does not preserve incomplete edges. The verblist and appositivelist are not used.
