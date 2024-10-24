@@ -1,12 +1,12 @@
 # Exported functions
 # top_features
 
-#' Finds the most common entities and lemmas in the corpus
+#' Finds the highest degree entities and most common lemmas in the network
 #' 
 #' @param files vector of filepaths to igraph objects or list of igraph objects
 #' @param from_file boolean whether files represent filepaths (T) or igraph objects (F)
 #' 
-#' @return list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan
+#' @return list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan. For entities, this is the entity degree over the sum of all entity degrees in the plan, averaged across all plans  
 #' @importFrom magrittr %>%
 #' 
 #' @export

@@ -2,7 +2,7 @@
 % Please edit documentation in R/top_features.R
 \name{top_features}
 \alias{top_features}
-\title{Finds the most common entities and lemmas in the corpus}
+\title{Finds the highest degree entities and most common lemmas in the network}
 \usage{
 top_features(files, from_file = F)
 }
@@ -12,8 +12,8 @@ top_features(files, from_file = F)
 \item{from_file}{boolean whether files represent filepaths (T) or igraph objects (F)}
 }
 \value{
-list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan
+list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan. For entities, this is the entity degree over the sum of all entity degrees in the plan, averaged across all plans
 }
 \description{
-Finds the most common entities and lemmas in the corpus
+Finds the highest degree entities and most common lemmas in the network
 }
