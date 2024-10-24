@@ -2,10 +2,10 @@
 title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data"
 authors: 
    - name: Elise Zufall
-   - affiliation: [1]
+   - affiliation: '1'
    
    - name: Tyler Scott
-   - affiliation: [1]
+   - affiliation: '1'
 
 affiliations:
    - index: 1
