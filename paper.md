@@ -532,7 +532,7 @@ multiplex graph into its weighted equivalent.
           labs(title= "Old Network")+
           theme_void()
 
-![](vignette_figures/figure-markdown_strict/plot-1.png)
+![Figure 1](vignette_figures/figure-markdown_strict/plot-1.png)
 
        #order of these layers matters
        ggraph(new_extract_plot, layout = 'fr')+
@@ -548,7 +548,7 @@ multiplex graph into its weighted equivalent.
           labs(title= "New Network")+
           theme_void()
 
-![](vignette_figures/figure-markdown_strict/plot-2.png)
+![Figure 2](vignette_figures/figure-markdown_strict/plot-2.png)
 
 ### Explore Edge Attributes
 
@@ -701,7 +701,7 @@ preserved.
           labs(title= "Composite Network")+
           theme_void()
 
-![](vignette_figures/figure-markdown_strict/composite-1.png)
+![Figure 3](vignette_figures/figure-markdown_strict/composite-1.png)
 
 ### Explore Node Attributes
 
@@ -868,7 +868,7 @@ nodes in the graph.
 
         grid.arrange(b1, b2, b3, b4, ncol=2)
 
-![](vignette_figures/figure-markdown_strict/step8b4-1.png)
+![Figure 4](vignette_figures/figure-markdown_strict/step8b4-1.png)
 
 ## Potential Further Analyses
 
