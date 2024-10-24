@@ -11,7 +11,7 @@ affiliations:
    - index: 1
    - name: University of California, Davis Department of Environmental Science and Policy
 
-date: 23 October 2024
+date: 24 October 2024
 bibliography: paper.bib
 output: pdf_document
 ---
