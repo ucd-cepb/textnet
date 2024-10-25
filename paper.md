@@ -3,14 +3,11 @@ title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from T
 authors: 
    - name: Elise Zufall
    - affiliation: '1'
-   
    - name: Tyler Scott
    - affiliation: '1'
-
 affiliations:
    - index: 1
-     name: University of California, Davis Department of Environmental Science and Policy
-
+     name: UC Davis Department of Environmental Science and Policy
 date: 24 October 2024
 bibliography: paper.bib
 output: pdf_document
@@ -166,9 +163,10 @@ produce the network object:
 
     extracts <- vector(mode="list",length=length(old_new_parsed))
        for(m in 1:length(old_new_parsed)){
-          extracts[[m]] <- textnet_extract(old_new_parsed[[m]],concatenator="_",cl=4,
-                       keep_entities = c('ORG','GPE','PERSON','WATER'), 
-                       return_to_memory=T, keep_incomplete_edges=T)
+          extracts[[m]] <- textnet_extract(old_new_parsed[[m]],
+                  concatenator="_",cl=4,
+                  keep_entities = c('ORG','GPE','PERSON','WATER'), 
+                  return_to_memory=T, keep_incomplete_edges=T)
        }
 
     ## [1] "crawling 802 sentences"
@@ -388,119 +386,36 @@ et al. 2024), and *network* packages (Butts et al. 2023) are invoked to
 create a network attribute table of common network-level attributes; see
 package documentation for details.
 
-       old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = F, self_loops = T)
-       new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = F, self_loops = T)
+       old_extract_net <- export_to_network(old_extract_clean, "igraph", 
+               keep_isolates = F, collapse_edges = F, self_loops = T)
+       new_extract_net <- export_to_network(new_extract_clean, "igraph", 
+               keep_isolates = F, collapse_edges = F, self_loops = T)
 
-       table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, scientific = F))
+       table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), 
+               digits = 3, scientific = F))
        colnames(table) <- c("old","new")
-       knitr::kable(table)
+       print(table)
 
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: left;"></th>
-<th style="text-align: left;">old</th>
-<th style="text-align: left;">new</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">num_nodes</td>
-<td style="text-align: left;">88</td>
-<td style="text-align: left;">118</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">num_edges</td>
-<td style="text-align: left;">163</td>
-<td style="text-align: left;">248</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">connectedness</td>
-<td style="text-align: left;">0.710</td>
-<td style="text-align: left;">0.677</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">centralization</td>
-<td style="text-align: left;">0.207</td>
-<td style="text-align: left;">0.325</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">transitivity</td>
-<td style="text-align: left;">0.109</td>
-<td style="text-align: left;">0.153</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">pct_entitytype_homophily</td>
-<td style="text-align: left;">0.503</td>
-<td style="text-align: left;">0.581</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">reciprocity</td>
-<td style="text-align: left;">0.245</td>
-<td style="text-align: left;">0.306</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">mean_in_degree</td>
-<td style="text-align: left;">1.85</td>
-<td style="text-align: left;">2.10</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">mean_out_degree</td>
-<td style="text-align: left;">1.85</td>
-<td style="text-align: left;">2.10</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">median_in_degree</td>
-<td style="text-align: left;">1</td>
-<td style="text-align: left;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">median_out_degree</td>
-<td style="text-align: left;">1</td>
-<td style="text-align: left;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">modularity</td>
-<td style="text-align: left;">0.540</td>
-<td style="text-align: left;">0.525</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">num_communities</td>
-<td style="text-align: left;">12</td>
-<td style="text-align: left;">16</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">percent_vbn</td>
-<td style="text-align: left;">0.374</td>
-<td style="text-align: left;">0.423</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">percent_vbg</td>
-<td style="text-align: left;">0.0736</td>
-<td style="text-align: left;">0.0524</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">percent_vbp</td>
-<td style="text-align: left;">0.1288</td>
-<td style="text-align: left;">0.0766</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">percent_vbd</td>
-<td style="text-align: left;">0.0675</td>
-<td style="text-align: left;">0.0685</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">percent_vb</td>
-<td style="text-align: left;">0.135</td>
-<td style="text-align: left;">0.137</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">percent_vbz</td>
-<td style="text-align: left;">0.221</td>
-<td style="text-align: left;">0.242</td>
-</tr>
-</tbody>
-</table>
+    ##                          old      new     
+    ## num_nodes                " 88"    "118"   
+    ## num_edges                "163"    "248"   
+    ## connectedness            "0.710"  "0.677" 
+    ## centralization           "0.207"  "0.325" 
+    ## transitivity             "0.109"  "0.153" 
+    ## pct_entitytype_homophily "0.503"  "0.581" 
+    ## reciprocity              "0.245"  "0.306" 
+    ## mean_in_degree           "1.85"   "2.10"  
+    ## mean_out_degree          "1.85"   "2.10"  
+    ## median_in_degree         "1"      "1"     
+    ## median_out_degree        "1"      "1"     
+    ## modularity               "0.542"  "0.522" 
+    ## num_communities          "12"     "16"    
+    ## percent_vbn              "0.374"  "0.423" 
+    ## percent_vbg              "0.0736" "0.0524"
+    ## percent_vbp              "0.1288" "0.0766"
+    ## percent_vbd              "0.0675" "0.0685"
+    ## percent_vb               "0.135"  "0.137" 
+    ## percent_vbz              "0.221"  "0.242"
 
 The *ggraph* package (Pedersen and RStudio 2024) has been used to create
 the two network visualizations seen here, using a weighted version of
@@ -515,15 +430,18 @@ multiplex graph into its weighted equivalent.
 
     ## Warning: package 'ggplot2' was built under R version 4.3.2
 
-       old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
-       new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
+       old_extract_plot <- export_to_network(old_extract_clean, "igraph", 
+               keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
+       new_extract_plot <- export_to_network(new_extract_clean, "igraph", 
+               keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
        #order of these layers matters
        ggraph(old_extract_plot, layout = 'fr')+
           geom_edge_fan(aes(alpha = weight),
                         end_cap = circle(1,"mm"),
                         color = "#000000",
                         width = 0.3,
-                        arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                        arrow = arrow(angle=15,length=unit(0.07,"inches"),
+                                ends = "last",type = "closed"))+
           #from Paul Tol's bright color scheme
           scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
           geom_node_point(aes(color = entity_type), size = 1,
@@ -531,7 +449,7 @@ multiplex graph into its weighted equivalent.
           labs(title= "Old Network")+
           theme_void()
 
-![Figure 1](vignette_figures/figure-markdown_strict/plot-1.png)
+![Representation of the Event Network of the Old Plan](vignette_figures/figure-markdown_strict/plot-1.png)
 
        #order of these layers matters
        ggraph(new_extract_plot, layout = 'fr')+
@@ -539,7 +457,8 @@ multiplex graph into its weighted equivalent.
                         end_cap = circle(1,"mm"),
                         color = "#000000",
                         width = 0.3,
-                        arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                        arrow = arrow(angle=15,length=unit(0.07,"inches"),
+                                ends = "last",type = "closed"))+
           #from Paul Tol's bright color scheme
           scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
           geom_node_point(aes(color = entity_type), size = 1,
@@ -547,7 +466,7 @@ multiplex graph into its weighted equivalent.
           labs(title= "New Network")+
           theme_void()
 
-![Figure 2](vignette_figures/figure-markdown_strict/plot-2.png)
+![Representation of the Event Network of the New Plan](vignette_figures/figure-markdown_strict/plot-2.png)
 
 ### Explore Edge Attributes
 
@@ -555,58 +474,21 @@ The top\_features() tool calculates the most common verbs across the
 entire corpus of documents, as shown below.
 
        top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
-       knitr::kable(head(top_feats[[2]],10))
+       head(top_feats[[2]],10)
 
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: left;">names</th>
-<th style="text-align: right;">avg_fract_of_a_doc</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">be</td>
-<td style="text-align: right;">0.1043934</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">include</td>
-<td style="text-align: right;">0.0844053</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">provide</td>
-<td style="text-align: right;">0.0660870</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">locate</td>
-<td style="text-align: right;">0.0518875</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">result</td>
-<td style="text-align: right;">0.0406689</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">base</td>
-<td style="text-align: right;">0.0274342</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">receive</td>
-<td style="text-align: right;">0.0254181</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">show</td>
-<td style="text-align: right;">0.0223506</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">develop</td>
-<td style="text-align: right;">0.0212126</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">make</td>
-<td style="text-align: right;">0.0203345</td>
-</tr>
-</tbody>
-</table>
+    ## # A tibble: 10 × 2
+    ##    names   avg_fract_of_a_doc
+    ##    <chr>                <dbl>
+    ##  1 be                  0.104 
+    ##  2 include             0.0844
+    ##  3 provide             0.0661
+    ##  4 locate              0.0519
+    ##  5 result              0.0407
+    ##  6 base                0.0274
+    ##  7 receive             0.0254
+    ##  8 show                0.0224
+    ##  9 develop             0.0212
+    ## 10 make                0.0203
 
 Using a syntax-based extraction technique enables the preservation of a
 rich set of edge attributes giving insight into the nature of the
@@ -632,42 +514,11 @@ gerund or present participle, VBN = past participle, VBP = non-3rd
 person singular present, and VBZ = 3rd person singular present. The most
 common verb tense used in the plan was VBN, or past participle.
 
-       knitr::kable(table(igraph::E(old_extract_net[[1]])$head_verb_tense))
+       table(igraph::E(old_extract_net[[1]])$head_verb_tense)
 
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: left;">Var1</th>
-<th style="text-align: right;">Freq</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">VB</td>
-<td style="text-align: right;">22</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">VBD</td>
-<td style="text-align: right;">11</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">VBG</td>
-<td style="text-align: right;">12</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">VBN</td>
-<td style="text-align: right;">61</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">VBP</td>
-<td style="text-align: right;">21</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">VBZ</td>
-<td style="text-align: right;">36</td>
-</tr>
-</tbody>
-</table>
+    ## 
+    ##  VB VBD VBG VBN VBP VBZ 
+    ##  22  11  12  61  21  36
 
 ### Generate Composite Network
 
@@ -686,13 +537,15 @@ node name is mentioned in multiple documents, the node attributes
 associated with the highest total number of edges for that node name are
 preserved.
 
-       composite_net <- combine_networks(list(old_extract_net[[1]], new_extract_net[[1]]), mode = "weighted")
+       composite_net <- combine_networks(list(old_extract_net[[1]],
+               new_extract_net[[1]]), mode = "weighted")
        ggraph(composite_net, layout = 'fr')+
           geom_edge_fan(aes(alpha = weight),
                         end_cap = circle(1,"mm"),
                         color = "#000000",
                         width = 0.3,
-                        arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                        arrow = arrow(angle=15,length=unit(0.07,"inches"),
+                                ends = "last",type = "closed"))+
           #from Paul Tol's bright color scheme
           scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
           geom_node_point(aes(color = entity_type), size = 1,
@@ -700,7 +553,7 @@ preserved.
           labs(title= "Composite Network")+
           theme_void()
 
-![Figure 3](vignette_figures/figure-markdown_strict/composite-1.png)
+![Composite Weighted Event Network](vignette_figures/figure-markdown_strict/composite-1.png)
 
 ### Explore Node Attributes
 
@@ -751,7 +604,8 @@ network to investigate what kinds of nodes are found in both plans.
                               bipartiate = F, vertices = old_tbl$vertices,
                               matrix.type = "edgelist")
         #we need a matrix version for some node statistics
-        old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
+        old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, 
+                "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
         
         #prepare data frame version of new network, to add composite_tbl variables
         new_tbl <- igraph::as_data_frame(new_extract_net[[1]], what = "both")
@@ -766,41 +620,46 @@ network to investigate what kinds of nodes are found in both plans.
                               bipartiate = F, vertices = new_tbl$vertices,
                               matrix.type = "edgelist")
         #we need a matrix version for some node statistics
-        new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
+        new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, 
+                "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
 
 We can now use these data structures to calculate node statistics, as
 printed below.
 
         paths2 <- diag(old_mat %*% old_mat)
         recip <- 2*paths2 / sna::degree(old_net)
-        totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, type = "directed", isolates="zero")$totalCC))
+        totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
+                type = "directed", isolates="zero")$totalCC))
         closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
         between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
         deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
-        old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, "vertex.names"), 
-                           closens, 
-                           between, 
-                           deg,
-                           recip,
-                           totalCC,
-                           entity_type = network::get.vertex.attribute(old_net,"entity_type"),
-                           num_graphs_in = network::get.vertex.attribute(old_net, "num_graphs_in"))
+        old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, 
+                  "vertex.names"), 
+                  closens, 
+                  between, 
+                  deg,
+                  recip,
+                  totalCC,
+                  entity_type = network::get.vertex.attribute(old_net,"entity_type"),
+                  num_graphs_in = network::get.vertex.attribute(old_net, "num_graphs_in"))
         
 
         paths2 <- diag(new_mat %*% new_mat)
         recip <- 2*paths2 / sna::degree(new_net)
-        totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, type = "directed", isolates="zero")$totalCC))
+        totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, 
+                type = "directed", isolates="zero")$totalCC))
         closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
         between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
         deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
-        new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, "vertex.names"), 
-                           closens, 
-                           between, 
-                           deg,
-                           recip,
-                           totalCC,
-                           entity_type = network::get.vertex.attribute(new_net,"entity_type"),
-                           num_graphs_in = network::get.vertex.attribute(new_net, "num_graphs_in"))
+        new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, 
+                  "vertex.names"), 
+                  closens, 
+                  between, 
+                  deg,
+                  recip,
+                  totalCC,
+                  entity_type = network::get.vertex.attribute(new_net,"entity_type"),
+                  num_graphs_in = network::get.vertex.attribute(new_net, "num_graphs_in"))
         
         summary(old_node_df)
 
@@ -860,14 +719,18 @@ nodes in the graph.
 
         library(gridExtra)
         library(ggplot2)
-        b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + theme_bw() + labs(title="Old Network")
-        b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + theme_bw() + labs(title="New Network")
-            b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) + geom_boxplot() + theme_bw() + labs(title="Old Network")
-        b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) + geom_boxplot() + theme_bw() + labs(title="New Network")
+        b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() 
+                + theme_bw() + labs(title="Old Network")
+        b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() 
+                + theme_bw() + labs(title="New Network")
+        b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) 
+                + geom_boxplot() + theme_bw() + labs(title="Old Network")
+        b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) 
+                + geom_boxplot() + theme_bw() + labs(title="New Network")
 
         grid.arrange(b1, b2, b3, b4, ncol=2)
 
-![Figure 4](vignette_figures/figure-markdown_strict/step8b4-1.png)
+![Comparison of Degree and Betweenness Node Attributes for Old and New Network](vignette_figures/figure-markdown_strict/step8b4-1.png)
 
 ## Potential Further Analyses
 
@@ -999,9 +862,9 @@ six values: “VB” (verb, base form), “VBD” (verb, past tense), “VBG”
 person singular present). Additionally, an edge attribute “is\_future”
 is generated by textNet::textnet\_extract(), which is T if the verb
 phrase contains an xcomp, has the token “going” as a head verb, and a
-being verb token as an auxiliary verb (i.e. is of the form “going to
-<verb>”) or contains one of the following auxiliary verbs:
-“shall”,“will”,“wo”, or “’ll” (i.e. is of the form “will <verb>”).
+being verb token as an auxiliary verb (i.e. is of the form “going to
+\<verb\>”) or contains one of the following auxiliary verbs:
+“shall”,“will”,“wo”, or “’ll” (i.e. is of the form “will \<verb\>”).
 
 ## Acknowledgements
 
@@ -1044,7 +907,8 @@ if the input documents lack headers and footers.
               "new.pdf")
        
        old_new_text <- textNet::pdf_clean(pdfs, keep_pages=T, ocr=F, maxchar=10000, 
-                         export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T)
+               export_paths=NULL, return_to_memory=T, suppressWarn = F, 
+               auto_headfoot_remove = T)
        names(old_new_text) <- c("old","new")
 
 ### Pre-Processing Step II: Parse Text
@@ -1087,7 +951,17 @@ case-sensitive.
        ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
        
 
-       water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", "San Joaquin River", "Cottonwood Creek", "Chowchilla Canal Bypass", "Friant Dam", "Sack Dam", "Friant Canal", "Chowchilla Bypass", "Fresno River", "Sacramento River", "Merced River","Chowchilla River", "Bass Lake", "Crane Valley Dam", "Willow Creek", "Millerton Lake", "Mammoth Pool", "Dam 6 Lake", "Delta","Tulare Lake", "Madera-Chowchilla canal", "lower aquifer", "upper aquifer", "upper and lower aquifers", "lower and upper aquifers", "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", "Lower and upper aquifers")
+       water_bodies <- c("surface water", "Surface water", "groundwater", 
+               "Groundwater", "San Joaquin River", "Cottonwood Creek", 
+               "Chowchilla Canal Bypass", "Friant Dam", "Sack Dam", 
+               "Friant Canal", "Chowchilla Bypass", "Fresno River", 
+               "Sacramento River", "Merced River","Chowchilla River", 
+               "Bass Lake", "Crane Valley Dam", "Willow Creek", "Millerton Lake",
+               "Mammoth Pool", "Dam 6 Lake", "Delta","Tulare Lake",
+               "Madera-Chowchilla canal", "lower aquifer", "upper aquifer", 
+               "upper and lower aquifers", "lower and upper aquifers", 
+               "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", 
+               "Lower and upper aquifers")
 
        old_new_parsed <- textNet::parse_text(ret_path, 
                               keep_hyph_together = F, 
