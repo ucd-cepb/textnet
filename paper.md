@@ -6,7 +6,7 @@ authors:
 
 affiliations:
    - index: 1
-   - name: UC Davis Department of Environmental Science and Policy
+     name: UC Davis, USA
 
 date: 24 October 2024
 bibliography: paper.bib
