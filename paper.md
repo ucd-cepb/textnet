@@ -2,9 +2,9 @@
 title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data"
 authors: 
    - name: Elise Zufall
-   - affiliation: '1'
+     affiliation: '1'
    - name: Tyler Scott
-   - affiliation: '1'
+     affiliation: '1'
 affiliations:
    - index: 1
      name: UC Davis Department of Environmental Science and Policy
@@ -135,6 +135,10 @@ text and replace them with the full entity name.
 graph database to igraph and network objects, top\_features() for
 viewing node and edge attributes, and combine\_networks() for
 aggregating multiple document-based graphs based on common nodes.
+
+The figure below summarizes the functionality of textNet and the flow of function outputs. Optional data cleaning features are shown with dotted arrows.
+
+![Workflow of textNet Functions](vignette_figures/figure-markdown_strict/flowchart.png)
 
 ## Example
 
