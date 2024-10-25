@@ -1,8 +1,11 @@
 ---
 title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data"
+authors:
+   - name: Elise Zufall
+   - name: Tyler Scott
 date: 23 October 2024
 bibliography: paper.bib
-output: md_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -43,11 +46,26 @@ The *textNet* package suggests several convenience wrappers of packages such as 
 ## Overview and Main Functions
 The package architecture relies on four sets of functions around core tasks:
 
-• [OPTIONAL] Pre-processing: pdf_clean(), a wrapper for the pdftools::pdf_text() function which includes a custom header/footer text removal feature; and parse_text(), which is a wrapper for the *spacyr* package and uses the *spaCy* natural language processing engine [@honnibal_spacy_2021] to parse text and perform part of speech tagging, dependency parsing, and named entity recognition (NER). Alternatively, as described below, the user can skip this step and load parsed text directly into the package.
-
+- [OPTIONAL] Pre-processing: pdf_clean(), a wrapper for the pdftools::pdf_text() function which includes a custom header/footer text removal feature; and parse_text(), which is a wrapper for the *spacyr* package and uses the *spaCy* natural language processing engine [@honnibal_spacy_2021] to parse text and perform part of speech tagging, dependency parsing, and named entity recognition (NER). Alternatively, as described below, the user can skip this step and load parsed text directly into the package.
 - Network extraction: textnet_extract(), which generates a graph database from parsed text based upon tags and dependency relations
 - Disambiguation: tools for cleaning, recoding, and aggregating node and edge attributes, such as the find_acronyms() function, which can be paired with the disambiguation() function to identify acronyms in the text and replace them with the full entity name.
 - Exploration: the export_to_network() function for exporting the graph database to igraph and network objects, top_features() for viewing node and edge attributes, and combine_networks() for aggregating multiple document-based graphs based on common nodes.
+
+The figure below summarizes the functionality of *textNet* and the flow of function outputs. 
+Optional data cleaning features are shown with dotted arrows.
+
+![Workflow of textNet Functions](vignette_figures/figure-markdown_strict/flowchart.png)
+
+## Applications
+
+*textNet* has applications in governance network scholarship, as 
+demonstrated by [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556) 
+[-@zufall_syntactic_2024] and by ongoing work on groundwater governance 
+at the UC Davis Center for Environmental Policy and Behavior. Additional potential 
+applications include legal scholarship, social-ecological network analysis, 
+government planning documents, court proceedings, archival research, 
+communication and media research, and other fields interested in exploring events 
+and entity relationships in textual data.
 
 ## Example 
 
@@ -78,8 +96,6 @@ The textnet_extract() function extracts the entity network. It reads in the resu
 The file is saved to the provided filename, if provided. It is returned to memory if return_to_memory is set to T. At least one of these return pathways must be established to avoid an error. In this example, we only keep entity types in the nodelist, edgelist, and appositivelist that are listed under keep_entities; namely, "ORG", "GPE", "PERSON", and "WATER".
 
 The resulting object consists of a nodelist, an edgelist, a verblist, and a list of appositives. The nodelist variables are entity_name, the concatenated name of the entity; entity_type, which is a preservation from the entity_type attribute from the output of textNet::parse_text(); and num_appearances, which is the number of times the entity appears in the PDF text. The default entity types are based on *spaCy*’s NER tags, but entity types can be customized as desired. In this example, we only keep entity types in the nodelist, edgelist, and appositivelist that are listed under keep_entities; namely, “ORG”, “GPE”, “PERSON”, and “WATER”.
-
-
 
 ### Consolidate Entity Synonyms
 In a document, the same real-world entity may be referenced in multiple ways. For instance, the document may introduce an organization using its full name, then use an acronym for the remainder of the document. To have more reliable network results, it is important to consolidate nodes that represent different naming conventions into a single node. The *textNet* package comes with a built-in tool for finding acronyms defined parenthetically within the text. This can be run on the result of pdf_clean() to generate a table with one column for acronyms and another for the corresponding full names, such that each row is a different instance of a phrase for which an acronym was detected. The use of find_acronyms() is demonstrated below.
@@ -164,27 +180,33 @@ tofrom <- data.table::data.table(
 A tool that generates an igraph or network object from the textnet_extract output is included in the package as the function export_to_network(). It returns a list that contains the igraph or network itself as the first element, and an attribute table as the second element. Functions from the *sna* [@butts_sna_2024], *igraph* [@csardi_igraph_2024], and *network* packages [@butts_network_2023] are invoked to create a network attribute table of common network-level attributes; see package documentation for details. 
 
 ```{r export}
-   old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = F, self_loops = T)
-   new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = F, self_loops = T)
+   old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
+                                        collapse_edges = F, self_loops = T)
+   new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
+                                        collapse_edges = F, self_loops = T)
 
-   table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, scientific = F))
+   table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, 
+                     scientific = F))
    colnames(table) <- c("old","new")
-   knitr::kable(table)
+   print(table)
    
 ```
 The *ggraph* package [@pedersen_ggraph_2024] has been used to create the two network visualizations seen here, using a weighted version of the igraphs constructed below. We set collapse_edges = T to convert the multiplex graph into its weighted equivalent.
 
 ```{r plot}
    library(ggraph)
-   old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
-   new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = T)[[1]]
+   old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
+                                         collapse_edges = T, self_loops = T)[[1]]
+   new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
+                                         collapse_edges = T, self_loops = T)[[1]]
    #order of these layers matters
    ggraph(old_extract_plot, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
                     color = "#000000",
                     width = 0.3,
-                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",
+                                  type = "closed"))+
       #from Paul Tol's bright color scheme
       scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
       geom_node_point(aes(color = entity_type), size = 1,
@@ -198,7 +220,8 @@ The *ggraph* package [@pedersen_ggraph_2024] has been used to create the two net
                     end_cap = circle(1,"mm"),
                     color = "#000000",
                     width = 0.3,
-                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",
+                                  type = "closed"))+
       #from Paul Tol's bright color scheme
       scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
       geom_node_point(aes(color = entity_type), size = 1,
@@ -214,13 +237,13 @@ The top_features() tool calculates the most common verbs across the entire corpu
 
 ```{r top}
    top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
-   knitr::kable(head(top_feats[[2]],10))
+   head(top_feats[[2]],10)
 ```
 
 Using a syntax-based extraction technique enables the preservation of a rich set of edge attributes giving insight into the nature of the relationship between each pair of nodes. The edge attributes "head_verb_name" and "head_verb_lemma," respectively, indicate the verb and infinitive form of the verb mediating the relationship between the source and target nodes. The edge attributes "helper_token" and "helper_lemma" indicate the presence of a helping verb in the verb phrase, while the edge attributes "xcomp_helper_lemma" and "xcomp_helper_token" indicate the presence of an open causal complement in the verb phrase. Open causal complements, such as "monitor" in the sentence "The agency is expected to monitor the results," can provide key supplemental information about the relationship between the source and target nodes. Additional edge attributes include indicators for verb tense and the presence of uncertain "hedging" language in the sentence. Other edge attributes travel with the edge to document where in the document, and in which document, the edge occurs. For instance, we can summarize the verb tense of edges in the original plan in a table. The abbreviations follow [Penn Treebank](https://catalog.ldc.upenn.edu/docs/LDC99T42/) classifications [@marcus_treebank-3_1999], such that VB = base form, VBD = past tense, VBG = gerund or present participle, VBN = past participle, VBP = non-3rd person singular present, and VBZ = 3rd person singular present. The most common verb tense used in the plan was VBN, or past participle.
 
 ```{r step6b}
-   knitr::kable(table(igraph::E(old_extract_net[[1]])$head_verb_tense))
+   table(igraph::E(old_extract_net[[1]])$head_verb_tense)
 ```
 
 ### Generate Composite Network
@@ -230,13 +253,15 @@ The combine_networks function allows a composite network to be generated from mu
 For best results, composite network generation should not be done without an adequate disambiguation in Step 4. A function is included that merges the edgelists and nodelists of all documents. If the same node name is mentioned in multiple documents, the node attributes associated with the highest total number of edges for that node name are preserved.
 
 ```{r composite}
-   composite_net <- combine_networks(list(old_extract_net[[1]], new_extract_net[[1]]), mode = "weighted")
+   composite_net <- combine_networks(list(old_extract_net[[1]], new_extract_net[[1]]), 
+                                     mode = "weighted")
    ggraph(composite_net, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
                     color = "#000000",
                     width = 0.3,
-                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",type = "closed"))+
+                    arrow = arrow(angle=15,length=unit(0.07,"inches"),ends = "last",
+                                  type = "closed"))+
       #from Paul Tol's bright color scheme
       scale_color_manual(values = c("#4477AA","#228833","#CCBB44","#66CCEE"))+
       geom_node_point(aes(color = entity_type), size = 1,
@@ -274,7 +299,8 @@ Next, we calculate node-level attributes on a weighted version of the networks. 
                           bipartiate = F, vertices = old_tbl$vertices,
                           matrix.type = "edgelist")
     #we need a matrix version for some node statistics
-    old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
+    old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", 
+                          keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
     
     #prepare data frame version of new network, to add composite_tbl variables
     new_tbl <- igraph::as_data_frame(new_extract_net[[1]], what = "both")
@@ -286,7 +312,8 @@ Next, we calculate node-level attributes on a weighted version of the networks. 
                           bipartiate = F, vertices = new_tbl$vertices,
                           matrix.type = "edgelist")
     #we need a matrix version for some node statistics
-    new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
+    new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", 
+                          keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
 ```
     
 We can now use these data structures to calculate node statistics, as printed below.
@@ -294,18 +321,20 @@ We can now use these data structures to calculate node statistics, as printed be
 ```{r step8b2}
     paths2 <- diag(old_mat %*% old_mat)
     recip <- 2*paths2 / sna::degree(old_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, type = "directed", isolates="zero")$totalCC))
+    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, type = "directed",
+                                                isolates="zero")$totalCC))
     closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
-    old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, "vertex.names"), 
-                       closens, 
-                       between, 
-                       deg,
-                       recip,
-                       totalCC,
-                       entity_type = network::get.vertex.attribute(old_net,"entity_type"),
-                       num_graphs_in = network::get.vertex.attribute(old_net, "num_graphs_in"))
+    old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, 
+            "vertex.names"), 
+            closens, 
+            between, 
+            deg,
+            recip,
+            totalCC,
+            entity_type = network::get.vertex.attribute(old_net,"entity_type"),
+            num_graphs_in = network::get.vertex.attribute(old_net, "num_graphs_in"))
     
 
     paths2 <- diag(new_mat %*% new_mat)
@@ -314,14 +343,15 @@ We can now use these data structures to calculate node statistics, as printed be
     closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
-    new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, "vertex.names"), 
-                       closens, 
-                       between, 
-                       deg,
-                       recip,
-                       totalCC,
-                       entity_type = network::get.vertex.attribute(new_net,"entity_type"),
-                       num_graphs_in = network::get.vertex.attribute(new_net, "num_graphs_in"))
+    new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, 
+            "vertex.names"), 
+            closens, 
+            between, 
+            deg,
+            recip,
+            totalCC,
+            entity_type = network::get.vertex.attribute(new_net,"entity_type"),
+            num_graphs_in = network::get.vertex.attribute(new_net, "num_graphs_in"))
     
     summary(old_node_df)
     summary(new_node_df)
@@ -343,10 +373,14 @@ We can also investigate differences in network statistics between the two plans.
 ```{r step8b4}
     library(gridExtra)
     library(ggplot2)
-    b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + theme_bw() + labs(title="Old Network")
-    b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + theme_bw() + labs(title="New Network")
-        b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) + geom_boxplot() + theme_bw() + labs(title="Old Network")
-    b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) + geom_boxplot() + theme_bw() + labs(title="New Network")
+    b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
+      theme_bw() + labs(title="Old Network")
+    b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
+      theme_bw() + labs(title="New Network")
+        b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) + 
+          geom_boxplot() + theme_bw() + labs(title="Old Network")
+    b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) + 
+      geom_boxplot() + theme_bw() + labs(title="New Network")
 
     grid.arrange(b1, b2, b3, b4, ncol=2)
 ```
@@ -375,7 +409,8 @@ If a verb phrase in the edgelist does not have any sources, the sources associat
 
 The textNet::textnet_extract() function returns the full list of open clausal complement lemmas associated with the main verb as an edge attribute: "xcomp_verb". The list of auxiliary verbs and their corresponding lemmas associated with the main verb, as well as the list of auxiliary verbs and corresponding lemmas associated with the open clausal complements linked to the main verb, are also included as edge attributes: "helper_token", "helper_lemma", "xcomp_helper_token", and "xcomp_helper_lemma", respectively.
 
-The extraction function also detects hedging words and negations. The function textNet::textnet_extract() produces an edge attribute "has_hedge", which is T if there is a hedging auxiliary verb ("may","might","can","could") or main verb ("seem","appear","suggest","tend","assume","indicate","estimate","doubt","believe") in the verb phrase.
+The extraction function also detects hedging words and negations. The function textNet::textnet_extract() produces an edge attribute "has_hedge", which is T if there is a hedging auxiliary verb ("may","might",
+"can","could") or main verb ("seem","appear","suggest","tend","assume","indicate","estimate","doubt","believe") in the verb phrase.
 
 Tense is also detected. The six tenses tagged by *spaCy* in textNet::parse_text() are preserved by textNet::textnet_extract() as an edge attribute "head_verb_tense". This attribute can take on one of six values: "VB" (verb, base form), "VBD" (verb, past tense), "VBG" (verb, gerund or present participle), "VBN" (verb, past participle), "VBP" (verb, non-3rd person singular present), or "VBZ" (verb, 3rd person singular present). Additionally, an edge attribute "is_future" is generated by textNet::textnet_extract(), which is T if the verb phrase contains an xcomp, has the token "going" as a head verb, and a being verb token as an auxiliary verb (i.e. is of the form "going to <verb>") or contains one of the following auxiliary verbs: "shall","will","wo", or "'ll" (i.e. is of the form "will <verb>").
 
@@ -402,7 +437,8 @@ This is a wrapper for pdftools, which has the option of using pdf_text or OCR. W
           "new.pdf")
    
    old_new_text <- textNet::pdf_clean(pdfs, keep_pages=T, ocr=F, maxchar=10000, 
-                     export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T)
+                     export_paths=NULL, return_to_memory=T, suppressWarn = F, 
+                     auto_headfoot_remove = T)
    names(old_new_text) <- c("old","new")
 ```
 
@@ -417,7 +453,16 @@ The user may also specify "phrases_to_concatenate", an argument representing a s
    ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
    
 
-   water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", "San Joaquin River", "Cottonwood Creek", "Chowchilla Canal Bypass", "Friant Dam", "Sack Dam", "Friant Canal", "Chowchilla Bypass", "Fresno River", "Sacramento River", "Merced River","Chowchilla River", "Bass Lake", "Crane Valley Dam", "Willow Creek", "Millerton Lake", "Mammoth Pool", "Dam 6 Lake", "Delta","Tulare Lake", "Madera-Chowchilla canal", "lower aquifer", "upper aquifer", "upper and lower aquifers", "lower and upper aquifers", "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", "Lower and upper aquifers")
+   water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", 
+                  "San Joaquin River", "Cottonwood Creek", "Chowchilla Canal Bypass", 
+                  "Friant Dam", "Sack Dam", "Friant Canal", "Chowchilla Bypass", 
+                  "Fresno River", "Sacramento River", "Merced River","Chowchilla River", 
+                  "Bass Lake", "Crane Valley Dam", "Willow Creek", "Millerton Lake", 
+                  "Mammoth Pool", "Dam 6 Lake", "Delta","Tulare Lake", 
+                  "Madera-Chowchilla canal", "lower aquifer", "upper aquifer", 
+                  "upper and lower aquifers", "lower and upper aquifers", 
+                  "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", 
+                  "Lower and upper aquifers")
 
    old_new_parsed <- textNet::parse_text(ret_path, 
                           keep_hyph_together = F, 

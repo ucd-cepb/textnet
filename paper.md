@@ -109,8 +109,7 @@ and post-processing analysis tools, we recommend installing these
 packages, which for *spacyr* requires integration with Python. However,
 the user may wish to preprocess and parse data using their own NLP
 engine, and skip directly to the textnet\_extract() function, which does
-not depend on any of the aforementioned packages. The textnet\_extract()
-function does, however, use functions from *pbapply* [@solymos_pbapply_2023], *data\_table* [@barrett_datatable_2024], *dplyr* [@wickham_dplyr_2023], and *tidyr* [@wickham_tidyr_2024].
+not depend on *spacyr* or Python integration. 
 
 ## Overview and Main Functions
 
@@ -123,14 +122,7 @@ text removal feature; and parse\_text(), which is a wrapper for the
 *spacyr* package and uses the *spaCy* natural language processing engine
 [@honnibal_spacy_2021] to parse text and perform part of speech tagging, dependency
 parsing, and named entity recognition (NER). Alternatively, the user can 
-skip this step and load parsed text directly into the package. 
-*textNet* is designed for modularity with respect to pdf-to-text
-conversion and NLP engine. The user can derive plain text by any
-approach, and likewise perform event extraction with any NLP engine or
-large language model (LLM) (more on LLM extensions below) and bring
-these data to *textNet*. The textnet\_extract() function expects the
-parsed table to follow specific conventions for column names and speech
-tagging, so externally produced data must be converted to standards
+skip this step and load parsed text directly into the package. Externally produced data must be converted to standards
 outlined in the package manual.
 - Network extraction: textnet\_extract(), which generates a graph
 database from parsed text based upon tags and dependency relations. The object returned
@@ -154,8 +146,7 @@ The figure below summarizes the functionality of *textNet* and the flow of funct
 *textNet* has applications in governance network scholarship, as demonstrated by [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556) [-@zufall_syntactic_2024] and by ongoing work on groundwater governance at the UC Davis Center for Environmental Policy and Behavior. Additional potential applications include legal scholarship, social-ecological network analysis, government planning documents, court proceedings, archival research, communication and media research, and other fields interested in exploring events and entity relationships in textual data.
 
 ## Potential Further Analyses
-*textNet* is compatible with standard network analysis tools in R. Functionality from *ggraph* [@pedersen_ggraph_2024], *sna* (Butts 2024), *igraph* (Csárdi
-et al. 2024), *network* (Butts et al. 2023), and other network visualization 
+*textNet* is compatible with standard network analysis tools in R. Functionality from *ggraph* [@pedersen_ggraph_2024], *sna* [@butts_sna_2024], *igraph* [@csardi_igraph_2024], *network* [@butts_network_2023], and other network visualization 
 and analysis packages can be used to further explore the extracted networks. 
 
 The *ggraph* package has been used to create the network visualization seen here, 
@@ -167,13 +158,9 @@ sample data in *textNet*.
 The network-level attributes output from export\_to\_network can also be
 analyzed against exogenous metadata that has been collected separately
 by the researcher regarding the different documents and their real-world
-context. The extracted networks, with their collections of verb
-attributes, node attributes, edge incidences, and edge attributes, can
+context. The extracted networks can
 also be analyzed through a variety of tools, such as an Exponential
-Random Graph Model, to determine the probability of edge formation under
-certain conditions. A Temporal Exponential Random Graph Model could also
-shed light on the changes of a document over time, such as the multiple
-versions of the groundwater sustainability plan in this example.
+Random Graph Model or a Temporal Exponential Random Graph Model.
 
 ## Vignette
 
@@ -188,11 +175,5 @@ Agricultural Systems program, project award no. 2021-68012-35914, from
 the U.S. Department of Agriculture’s National Institute of Food and
 Agriculture and the National Science Foundation’s Dynamics of Integrated
 Socio-Environmental Systems program, grant no. 2205239.
-
-## Appendix
-
-This appendix describes the pre-processing tools available through the
-*textNet* package, which enable the user to generate the data frame
-expected by the textnet\_extract() function.
 
 ## References
