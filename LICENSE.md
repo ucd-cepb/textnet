@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright (c) 2023 textNet authors
+Copyright (c) 2024 Elise Zufall and Tyler Scott
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
