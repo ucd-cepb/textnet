@@ -14,6 +14,7 @@
 #' @param percent_threshold The required percentage of tokens in a sentence required to be found in the filter to keep the sentence in the dataset. Defaults to 40.
 #' @param case_sensitive Whether the token is required to have the specific casing used in the dictionary to count as a match. Defaults to F.
 #' @return a cleaned version of 'file', keeping only the sentences that pass the threshold requirement.
+#' @importFrom stats aggregate
 
 #' @export
 #' 
