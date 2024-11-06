@@ -8,12 +8,13 @@
 #' 
 #' @return Single igraph object that consolidates nodes and edges from input graphs. If there are multiple nodes with the same name and different attributes originating from different graphs, this function preserves the node attributes associated with the version that appears most commonly. Adds a node attribute num_graphs_in, which denotes the number of input graphs each node was found in. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract. 
 #' @import data.table
-#' 
+#' @import igraph
+#' @importFrom methods is
 #' @export
 #' 
 
 combine_networks <- function(textnet_igraphs, mode){
-  if(!is(textnet_igraphs, "list")){
+  if(!is.list(textnet_igraphs)){
     stop("please format your graphs as elements of a list.")
   }
   num_graphs <- length(textnet_igraphs)
@@ -28,7 +29,7 @@ combine_networks <- function(textnet_igraphs, mode){
   superedges <- vector(mode = "list", length = length(num_graphs))
   for(m in 1:num_graphs){
     single_ig <- textnet_igraphs[[m]]
-    sidf <- igraph::get.data.frame(single_ig, what = "both")
+    sidf <- get.data.frame(single_ig, what = "both")
     supernodes[[m]] <- sidf$vertices
     superedges[[m]] <- sidf$edges
   }

@@ -29,7 +29,8 @@
 #' with a length equal to the number of pages in its respective document. If export_paths
 #' is not null, each character vector of text will be saved to a separate RDS file, where the 
 #' number of files is equal to the number of pdfs. 
-#' 
+#' @importFrom pdftools pdf_text pdf_ocr_text
+#' @importFrom methods is
 #' @export
 #' 
 
@@ -42,21 +43,21 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
   }
   for(k in 1:length(pdfs)){
     if(suppressWarn==T){
-      texts <- suppressMessages(pdftools::pdf_text(pdfs[[k]]))
+      texts <- suppressMessages(pdf_text(pdfs[[k]]))
     }else{
-      texts <- pdftools::pdf_text(pdfs[[k]])
+      texts <- pdf_text(pdfs[[k]])
     }
     
-    if(class(keep_pages)=="list"){
+    if(is.list(keep_pages)){
       texts <- texts[keep_pages[[k]]]
-    } else if(class(keep_pages)!="logical" || keep_pages == F){
+    } else if(!is.logical(keep_pages) || keep_pages == F){
       stop("keep_pages must be either T (to keep all pages) or a list of logical vectors.")
     }
     
     if(ocr==T){
       for(i in 1:length(texts)){
         if (nchar(texts[i])< 20){
-          texts[i] <- pdftools::pdf_ocr_text(pdfs[[k]], pages=i,language = "eng")
+          texts[i] <- pdf_ocr_text(pdfs[[k]], pages=i,language = "eng")
         }
       }
     }
