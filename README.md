@@ -5,19 +5,6 @@ textNet is a set of tools that uses part-of-speech tagging and dependency parsin
 To be used in the main project repo: 
 https://github.com/ucd-cepb/textNet
 
-# Installation
-
-Clone this repo and install with `devtools` from within project directory
-
-```
-devtools::install()
-```
-
-or using devtools::install_github():
-
-```
-devtools::install_github('ucd-cepb/textNet')
-```
 # Overview
 Network extraction from documents has typically required manual coding.
 Furthermore, existing network extraction methods that use co-occurrence
@@ -37,6 +24,20 @@ dates, or custom-defined categories, to be preserved.
 See vignettes/paper.pdf for an overview of the package functionality and potential use cases.  
 
 To demo the package, see vignettes/textNet_vignette_2024.pdf for a reproducible example that transforms raw text data into event networks.
+
+# Installation
+
+Clone this repo and install with `devtools` from within project directory
+
+```
+devtools::install()
+```
+
+or using devtools::install_github():
+
+```
+devtools::install_github('ucd-cepb/textNet')
+```
 
 # Working on this package
 
