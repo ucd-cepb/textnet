@@ -34,9 +34,9 @@ respective network characteristics. Its flexibility allows for any
 desired entity categories, such as organizations, geopolitical entities,
 dates, or custom-defined categories, to be preserved.
 
-See paper.pdf for an overview of the package functionality and potential use cases.  
+See vignettes/paper.pdf for an overview of the package functionality and potential use cases.  
 
-To demo the package, see textNet_vignette_2024.pdf for a reproducible example that transforms raw text data into event networks.
+To demo the package, see vignettes/textNet_vignette_2024.pdf for a reproducible example that transforms raw text data into event networks.
 
 # Working on this package
 
