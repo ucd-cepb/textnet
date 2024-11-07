@@ -15,8 +15,8 @@
 #' @param concatenator Defaults to an underscore. Use regex notation. The concatenator used in elements of v.
 #' @return a cleaned vector of entity names
 
-#' @import stringr
-#' @import stringi
+#' @importFrom stringr str_remove_all
+#' @importFrom stringi stri_replace_all_regex
 #' @export
 #' 
 

@@ -3,7 +3,9 @@
 
 #' Downloads the SCOWL 2020.12.07 dictionary created by Kevin Atkinson, which has a larger vocabulary than Qdap
 #' Code adapted from Mirek Długosz 2016 https://mirekdlugosz.com/blog/2016/how-to-use-r-to-recognize-if-given-string-is-a-word/
-
+#' @importFrom utils download.file unzip
+#' @importFrom tools file_ext
+#' @importFrom stringi stri_read_lines stri_escape_unicode
 
 download_dictionary <- function(){
   
@@ -33,4 +35,3 @@ download_dictionary <- function(){
   save(eng_words, file = "data/eng_words.rda")
   
 }
-

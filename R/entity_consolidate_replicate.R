@@ -6,18 +6,30 @@
 #' Instead, this function basically breaks off a feature of the original function and adds a new column to the original spacyr data.frame that is the concatenated entity.
 #' This feature is inefficient in that the concatenated entity is then replicated multiple times, but this does seem to be the easiest way to preserve the other data.
 #'
-#' @param x parsed spacy document
+#' @param x parsed spacy document in data.frame format
 #' @param concatenator A character that separates string segments when they are collapsed into a single entity. Defaults to "_"
 #' @param remove regex formatted strings to remove as entity components (like "the" in "the Seattle Supersonics")
 #' @return original data frame with added column for concatenated entity
 #' 
 #' @import data.table
-#' @import stringr
+#' @importFrom stringr str_remove_all
 #'
 
-entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
-  #Remove tokens that have no alphabet characters
+entity_consolidate_replicate <- function(x, concatenator = "_", remove = NULL) {
+  # Input validation
+  if (!is.data.frame(x)) {
+    stop("'x' must be a data.frame")
+  }
   
+  if (!is.character(concatenator) || length(concatenator) != 1) {
+    stop("'concatenator' must be a single character string")
+  }
+  
+  if (!is.null(remove) && !is.character(remove)) {
+    stop("'remove' must be NULL or a character vector")
+  }
+
+  #Remove tokens that have no alphabet characters
   spacy_result <- as.data.table(x)
   if(!is.null(remove)){
     index <- which(grepl(paste(remove,collapse = '|'),spacy_result$token,perl = T)&spacy_result$entity!="")

@@ -29,13 +29,41 @@
 #' @return a cleaned textnet extract. See textnet_extract help file for structure.
 #' 
 #' @import data.table
+#' @importFrom stringr str_detect str_remove_all str_replace_all
+#' @importFrom dplyr arrange desc filter
 #' @importFrom magrittr %>%
+#' @importFrom methods is
 #' @export
 #'
 
 #if recursive is true, runs it multiple times to reach the end of the chain.
 
 disambiguate <- function(textnet_extract, from, to, match_partial_entity=rep(F, length(from)), try_drop=NULL, recursive=T, concatenator="_"){
+  # Input validation
+  if(!is.list(from)) {
+    stop("'from' must be a list")
+  }
+  
+  if(!is.list(to)) {
+    stop("'to' must be a list") 
+  }
+  
+  if(!is.logical(match_partial_entity)) {
+    stop("'match_partial_entity' must be a logical vector")
+  }
+  
+  if(!is.null(try_drop) && !is.character(try_drop)) {
+    stop("'try_drop' must be NULL or a character vector")
+  }
+  
+  if(!is.logical(recursive)) {
+    stop("'recursive' must be a logical value")
+  }
+  
+  if(!is.character(concatenator) || length(concatenator) != 1) {
+    stop("'concatenator' must be a single character string")
+  }
+
   options(warn=1)
   #Data formatting checks####
   multi_to <- sapply(1:length(to), function(w) length(to[[w]]) > 1)

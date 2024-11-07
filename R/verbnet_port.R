@@ -9,6 +9,11 @@
 #' @param folder_dest A filepath for the folder in which to put the extracted VerbNet files
 #' 
 #' @import data.table
+#' @importFrom utils download.file untar
+#' @importFrom R.utils gunzip
+#' @importFrom xml2 read_xml xml_attr xml_find_all
+#' @importFrom base strsplit unique
+#' @importFrom dplyr case_when
 #' @return Returns the data.table of verbs and their classifications.
 #' 
 #' 
@@ -18,6 +23,15 @@
 #and folder_dest was set to "data"
 
 verbnet_port <- function(zipdestfile, folder_dest){
+  # Input validation
+  if(!is.character(zipdestfile) || length(zipdestfile) != 1) {
+    stop("'zipdestfile' must be a single character string")
+  }
+  
+  if(!is.character(folder_dest) || length(folder_dest) != 1) {
+    stop("'folder_dest' must be a single character string") 
+  }
+
   url <- "https://verbs.colorado.edu/verb-index/vn/verbnet-3.3.tar.gz"
   utils::download.file(url, paste0(zipdestfile,".tar.gz"), method="curl")
   R.utils::gunzip(paste0(zipdestfile,".tar.gz"))

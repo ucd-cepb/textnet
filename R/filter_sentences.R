@@ -22,7 +22,23 @@
 
 filter_sentences <- function(file, filter = textNet::eng_words, 
                              percent_threshold = 40, case_sensitive = F){
-  if(!is.logical(case_sensitive)){stop("case_sensitive must be T or F.")}
+  # Input validation
+  if(!is.data.frame(file)) {
+    stop("'file' must be a data frame")
+  }
+  
+  if(!is.character(filter)) {
+    stop("'filter' must be a character vector")
+  }
+  
+  if(!is.numeric(percent_threshold) || percent_threshold < 0 || percent_threshold > 100) {
+    stop("'percent_threshold' must be a numeric value between 0 and 100")
+  }
+  
+  if(!is.logical(case_sensitive)) {
+    stop("'case_sensitive' must be a logical value (TRUE/FALSE)")
+  }
+
   if(!case_sensitive){
     filter <- tolower(filter)
     tokens <- tolower(file$token)

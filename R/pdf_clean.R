@@ -29,11 +29,44 @@
 #' number of files is equal to the number of pdfs. 
 #' @importFrom pdftools pdf_text pdf_ocr_text
 #' @importFrom methods is
-#' @import stringr
+#' @importFrom stringr str_split str_detect str_remove
 #' @export
 #' 
 
 pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
+  # Input validation
+  if(!is.character(pdfs)) {
+    stop("'pdfs' must be a character vector of file names")
+  }
+  
+  if(!is.null(keep_pages) && (!is.numeric(keep_pages) || any(keep_pages < 1) || any(keep_pages %% 1 != 0))) {
+    stop("'keep_pages' must be NULL or a vector of positive integers")
+  }
+  
+  if(!is.logical(ocr) || length(ocr) != 1) {
+    stop("'ocr' must be a single logical value")
+  }
+  
+  if(!is.numeric(maxchar) || length(maxchar) != 1 || maxchar <= 0) {
+    stop("'maxchar' must be a single positive numeric value")
+  }
+  
+  if(!is.null(export_paths) && !is.character(export_paths)) {
+    stop("'export_paths' must be NULL or a character vector")
+  }
+  
+  if(!is.logical(return_to_memory) || length(return_to_memory) != 1) {
+    stop("'return_to_memory' must be a single logical value")
+  }
+  
+  if(!is.logical(suppressWarn) || length(suppressWarn) != 1) {
+    stop("'suppressWarn' must be a single logical value")
+  }
+  
+  if(!is.logical(auto_headfoot_remove) || length(auto_headfoot_remove) != 1) {
+    stop("'auto_headfoot_remove' must be a single logical value")
+  }
+
   if(return_to_memory==F & is.null(export_paths)){
     stop("Either return_to_memory must be true or export_paths must be non-null.")
   }

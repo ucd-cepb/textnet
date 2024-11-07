@@ -8,10 +8,24 @@
 #' 
 #' @return list of all entities and lemmas in the corpus, along with their average normalized prevalence as a fraction of a plan. For entities, this is the entity degree over the sum of all entity degrees in the plan, averaged across all plans  
 #' @importFrom magrittr %>%
+#' @importFrom network network
+#' @importFrom ohenery normalize
+#' @importFrom tidyr tibble
+#' @import dplyr
+#' @import igraph
 #' 
 #' @export
 
 top_features <- function(files, from_file=F){
+  # Input validation
+  if(!is.list(files) && !is.character(files)) {
+    stop("'files' must be either a list of igraph objects or a character vector of file paths")
+  }
+  
+  if(!is.logical(from_file) || length(from_file) != 1) {
+    stop("'from_file' must be a single logical value")
+  }
+
   all_lemmas<- vector("list", length = length(files))
   all_entities <- vector("list", length = length(files))
   
@@ -57,4 +71,3 @@ top_features <- function(files, from_file=F){
   return(list(entities = all_entity_percents, lemmas = all_lemma_percents))
   
 }
-

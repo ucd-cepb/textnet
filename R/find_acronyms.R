@@ -5,9 +5,9 @@
 #'
 #' @param str A character vector
 #' 
-#' @import data.table
-#' @import stringr
-#' @import stringi
+#' @importFrom data.table setDT setcolorder rbind
+#' @importFrom stringr str_split str_remove_all str_replace_all
+#' @importFrom stringi stri_match_last stri_match_all
 
 #' @return a data table with a "name" column and an "acronym" column representing its associated acronym.
 #' Each row corresponds to a unique match in the document.
@@ -16,6 +16,11 @@
 #' 
 
 find_acronyms <- function(str){
+  # Input validation
+  if(!is.character(str)) {
+    stop("'str' must be a character vector")
+  }
+
   paren_splits <- str_split(str, pattern = "\\)")
   paren_splits2 <- lapply(paren_splits, function (k) k[nchar(k)>0])
   paren_splits3 <- lapply(paren_splits2, function(m) stringr::str_split(m, pattern = "\\("))
@@ -53,7 +58,7 @@ find_acronyms <- function(str){
   acronym_matches <- rbind(acronym_matches, acronym_matches2)
   acronym_matches <- acronym_matches[!is.na(acronym) & !is.na(name) &nchar(acronym)>1,]
   
-  acronym_matches$name <- stringr::str_replace_all(acronym_matches$name,"-|\\s+","_")
+  acronym_matches$name <- str_replace_all(acronym_matches$name,"-|\\s+","_")
     #change hyphens and spaces to underscores, since in spacyparse they are treated as separate tokens
 
   
