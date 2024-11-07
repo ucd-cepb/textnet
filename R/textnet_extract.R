@@ -116,6 +116,8 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   apposlist <- base::unique(apposlist[nchar(apposlist$fullname)>0,])
   colnames(apposlist) <- c("abbrev", "fullname")
     
+  #we've already incorporated aux and xcomp helpers into the verb phrase as edge attributes
+  #so they should not count as their own row
   #remove aux helpers functioning as aux; xcomp verbs; and appositives
   x <- x[!((pos=="AUX" & dep_rel %in% c("aux","auxpass")) |
              (source_or_target=="appos") | (pos=="VERB" & dep_rel =="xcomp")),]
