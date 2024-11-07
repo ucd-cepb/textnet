@@ -15,20 +15,35 @@
 #' @param case_sensitive Whether the token is required to have the specific casing used in the dictionary to count as a match. Defaults to F.
 #' @return a cleaned version of 'file', keeping only the sentences that pass the threshold requirement.
 #' @importFrom stats aggregate
+#' @importFrom dplyr left_join
 
 #' @export
 #' 
 
 filter_sentences <- function(file, filter = textNet::eng_words, 
                              percent_threshold = 40, case_sensitive = F){
-#TODO class type checks
-  if(case_sensitive == F){
+  # Input validation
+  if(!is.data.frame(file)) {
+    stop("'file' must be a data frame")
+  }
+  
+  if(!is.character(filter)) {
+    stop("'filter' must be a character vector")
+  }
+  
+  if(!is.numeric(percent_threshold) || percent_threshold < 0 || percent_threshold > 100) {
+    stop("'percent_threshold' must be a numeric value between 0 and 100")
+  }
+  
+  if(!is.logical(case_sensitive)) {
+    stop("'case_sensitive' must be a logical value (TRUE/FALSE)")
+  }
+
+  if(!case_sensitive){
     filter <- tolower(filter)
     tokens <- tolower(file$token)
-  }else if(case_sensitive ==T){
+  }else if(case_sensitive){
     tokens <- file$token
-  }else{
-    stop("case_sensitive must be T or F.")
   }
    eng <- tokens %in% filter
    percent_pass_filter <- aggregate(eng, 
@@ -39,6 +54,6 @@ filter_sentences <- function(file, filter = textNet::eng_words,
    percent_pass_filter$x <- NULL
    colnames(percent_pass_filter) <- c("sentence_id", "doc_id")
    
-   file <- dplyr::left_join(percent_pass_filter, file)
+   file <- left_join(percent_pass_filter, file)
    return(file)
 }

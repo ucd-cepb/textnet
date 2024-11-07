@@ -9,6 +9,11 @@
 #' @return list with named empty vectors
 
 create_empty_sentence_parse_list <- function(N){
+  # Input validation
+  if(!is.numeric(N) || length(N) != 1 || N < 0 || N %% 1 != 0) {
+    stop("'N' must be a single non-negative integer")
+  }
+
   raw_empty = vector(mode = "character", N)
   parse_list = list(source_or_target = raw_empty,
                      head_verb_id = raw_empty,

@@ -31,20 +31,41 @@
 #'    \item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
 #'    \item percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
 #' }
+#' @import igraph
+#' @importFrom dplyr filter
+#' @importFrom network network network.size network.edgecount network.density
+#' @importFrom sna connectedness centralization gtrans
+#' @importFrom stats median
+#' @importFrom base unique
 #' @export
 #'
 
 export_to_network <- function(textnet_extract, export_format, keep_isolates=T, collapse_edges, self_loops){
+  # Input validation
+  if(!is.list(textnet_extract)) {
+    stop("'textnet_extract' must be a list")
+  }
+  
+  if(!is.character(export_format) || length(export_format) != 1) {
+    stop("'export_format' must be a single character string")
+  }
+  
   if(!export_format %in% c("igraph","network")){
     stop("export_format must be either 'igraph' or 'network'")
   }
-  if(!keep_isolates %in% c(T,F)){
-    stop("keep_isolates must be either T or F.")
-  }
-  if(!collapse_edges %in% c(T,F)){
-    stop("collapse_edges must be either T or F.")
+  
+  if(!is.logical(keep_isolates) || length(keep_isolates) != 1) {
+    stop("'keep_isolates' must be a single logical value")
   }
   
+  if(!is.logical(collapse_edges) || length(collapse_edges) != 1) {
+    stop("'collapse_edges' must be a single logical value") 
+  }
+  
+  if(!is.logical(self_loops) || length(self_loops) != 1) {
+    stop("'self_loops' must be a single logical value")
+  }
+
   textnet_extract$edgelist <-  dplyr::filter(textnet_extract$edgelist, !is.na(textnet_extract$edgelist$source) & !is.na(textnet_extract$edgelist$target))
   
   
@@ -185,5 +206,4 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
    
 
 }
-
 

@@ -54,6 +54,10 @@
 #' 
 #' @import data.table
 #' @importFrom magrittr %>%
+#' @importFrom dplyr group_by filter
+#' @importFrom tidyr expand
+#' @importFrom pbapply pblapply
+#' @importFrom utils data
 #' @export
 #'
 
@@ -61,6 +65,39 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
                                     keep_entities = c('ORG','GPE','PERSON'),
                                     return_to_memory = T, keep_incomplete_edges=F,
                                     remove_neg = T) {
+
+  # Input validation
+  if(!is.data.frame(x) && !is.data.table(x)) {
+    stop("'x' must be a data.frame or data.table")
+  }
+  
+  if(!is.character(concatenator) || length(concatenator) != 1) {
+    stop("'concatenator' must be a single character string")
+  }
+  
+  if(!is.null(file) && !is.character(file)) {
+    stop("'file' must be NULL or a character string")
+  }
+  
+  if(!is.numeric(cl) || cl < 1 || cl%%1 != 0) {
+    stop("'cl' must be a positive integer")
+  }
+  
+  if(!is.character(keep_entities)) {
+    stop("'keep_entities' must be a character vector")
+  }
+  
+  if(!is.logical(return_to_memory) || length(return_to_memory) != 1) {
+    stop("'return_to_memory' must be a single logical value")
+  }
+  
+  if(!is.logical(keep_incomplete_edges) || length(keep_incomplete_edges) != 1) {
+    stop("'keep_incomplete_edges' must be a single logical value")
+  }
+  
+  if(!is.logical(remove_neg) || length(remove_neg) != 1) {
+    stop("'remove_neg' must be a single logical value")
+  }
 
   ### note this should be an error 
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
@@ -279,6 +316,3 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
     if(return_to_memory){return(list('nodelist' = nodelist,'edgelist' = edgelist,'verblist'=verblist,'appositivelist'=apposlist))}
   
 }
-
-
-

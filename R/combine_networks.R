@@ -7,24 +7,54 @@
 #' @param mode Either "multiplex" or "weighted" depending on the desired exported network format. If "weighted", collapses multiplex edges into a single weighted edge
 #' 
 #' @return Single igraph object that consolidates nodes and edges from input graphs. If there are multiple nodes with the same name and different attributes originating from different graphs, this function preserves the node attributes associated with the version that appears most commonly. Adds a node attribute num_graphs_in, which denotes the number of input graphs each node was found in. For a weighted graph, the weight is equal to the original number of edges between the respective source and target nodes. Edge attributes for a multiplex graph are described in the help file of textnet_extract. 
-#' @import data.table
+#' @importFrom data.table rbindlist
 #' @import igraph
 #' @importFrom methods is
 #' @export
 #' 
 
-combine_networks <- function(textnet_igraphs, mode){
-  if(!is.list(textnet_igraphs)){
-    stop("please format your graphs as elements of a list.")
-  }
-  num_graphs <- length(textnet_igraphs)
-  if(sum(sapply(1:length(textnet_igraphs), function(i) !is(textnet_igraphs[[i]], "igraph")))>0){
-    stop("combine_networks only accepts igraph objects.")
-  }
-  if(!mode %in% c("multiplex","weighted")){
-    stop("Mode must be either multiplex or weighted.")
+combine_networks <- function(textnet_igraphs, mode = c('multiplex','weighted')){
+  # Check if textnet_igraphs is missing
+  if(missing(textnet_igraphs)) {
+    stop("Argument 'textnet_igraphs' is missing. Must provide a list of igraph objects.")
   }
   
+  # Check if textnet_igraphs is a list
+  if(!is.list(textnet_igraphs)){
+    stop("Argument 'textnet_igraphs' must be a list of igraph objects.")
+  }
+  
+  # Check if list is empty
+  if(length(textnet_igraphs) == 0) {
+    stop("Argument 'textnet_igraphs' cannot be an empty list.")
+  }
+  
+  # Check if all elements are igraph objects
+  if(sum(sapply(textnet_igraphs, function(x) !is(x, "igraph"))) > 0){
+    stop("All elements in 'textnet_igraphs' must be igraph objects.")
+  }
+
+  # Check if mode is missing
+  if(missing(mode)) {
+    stop("Argument 'mode' is missing. Must be either 'multiplex' or 'weighted'.")
+  }
+  
+  # Check if mode is character
+  if(!is.character(mode)) {
+    stop("Argument 'mode' must be a character string ('multiplex' or 'weighted').")
+  }
+  
+  # Check if mode is length 1
+  if(length(mode) != 1) {
+    stop("Argument 'mode' must be a single value ('multiplex' or 'weighted').")
+  }
+  
+  # Check if mode has valid value
+  if(!mode %in% c("multiplex","weighted")){
+    stop("Argument 'mode' must be either 'multiplex' or 'weighted'.")
+  }
+
+  num_graphs <- length(textnet_igraphs)
   supernodes <- vector(mode = "list", length = length(num_graphs))
   superedges <- vector(mode = "list", length = length(num_graphs))
   for(m in 1:num_graphs){
