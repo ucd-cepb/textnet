@@ -6,6 +6,8 @@
 #' @param str A character vector
 #' 
 #' @import data.table
+#' @import stringr
+#' @import stringi
 
 #' @return a data table with a "name" column and an "acronym" column representing its associated acronym.
 #' Each row corresponds to a unique match in the document.
@@ -14,29 +16,29 @@
 #' 
 
 find_acronyms <- function(str){
-  paren_splits <- stringr::str_split(str, pattern = "\\)")
+  paren_splits <- str_split(str, pattern = "\\)")
   paren_splits2 <- lapply(paren_splits, function (k) k[nchar(k)>0])
   paren_splits3 <- lapply(paren_splits2, function(m) stringr::str_split(m, pattern = "\\("))
   paren_splits4 <- lapply(paren_splits3, function (j) lapply(j, function(m) m[length(m)==2]))
   paren_splits4 <- unlist(paren_splits4, recursive=F)
   paren_splits5 <- do.call(rbind, paren_splits4)
-  paren_splits$acr1 <- stringi::stri_match_last(str = paren_splits5[,1], regex ="\\b[A-Z]+\\b")
-  paren_splits$acr2 <- stringi::stri_match_all(str = paren_splits5[,2], regex ="\\b[A-Z]+\\b")
-  paren_splits$abb1 <- stringr::str_remove_all(paren_splits5[,1],"[^A-Z]")
+  paren_splits$acr1 <- stri_match_last(str = paren_splits5[,1], regex ="\\b[A-Z]+\\b")
+  paren_splits$acr2 <- stri_match_all(str = paren_splits5[,2], regex ="\\b[A-Z]+\\b")
+  paren_splits$abb1 <- str_remove_all(paren_splits5[,1],"[^A-Z]")
   paren_splits$abb1 <- sapply(1:length(paren_splits$acr2), 
                                   function(s) sapply(1:length(paren_splits$acr2[[s]]), function (m){
-                                    stringi::stri_match_last(str=paren_splits$abb1[s], 
+                                    stri_match_last(str=paren_splits$abb1[s], 
                                         regex = paren_splits$acr2[[s]][m])
                                   }))
   sp_lower <- "[\\s|a-z]+"
   paren_splits$name1 <- sapply(1:length(paren_splits$acr2), 
                                function(s) sapply(1:length(paren_splits$acr2[[s]]), function (m){
-                                 stringi::stri_match_last(str=paren_splits5[s,1], regex = paste0(paste0(stringr::str_split(paren_splits$acr2[[s]][m],pattern="")[[1]],collapse=sp_lower),"[a-z]+"))
+                                 stri_match_last(str=paren_splits5[s,1], regex = paste0(paste0(stringr::str_split(paren_splits$acr2[[s]][m],pattern="")[[1]],collapse=sp_lower),"[a-z]+"))
                                }))
-  paren_splits$abb2 <- stringr::str_remove_all(paren_splits5[,2],"[^A-Z]")
+  paren_splits$abb2 <- str_remove_all(paren_splits5[,2],"[^A-Z]")
   paren_splits$name2 <- sapply(1:length(paren_splits$abb2), 
                                function(s) 
-                                 stringi::stri_match_last(str=paren_splits5[s,2], regex = paste0(paste0(stringr::str_split(paren_splits$acr1[s],pattern="")[[1]],collapse=sp_lower),"[a-z]+"))
+                                 stri_match_last(str=paren_splits5[s,2], regex = paste0(paste0(stringr::str_split(paren_splits$acr1[s],pattern="")[[1]],collapse=sp_lower),"[a-z]+"))
                                )
   
   paren_splits$acr1 <- as.vector(paren_splits$acr1)
@@ -45,8 +47,8 @@ find_acronyms <- function(str){
   paren_splits$acr2 <- unlist(paren_splits$acr2)
   paren_splits$name1 <- unlist(paren_splits$name1)
   
-  acronym_matches <- data.table::setDT(list("name" = paren_splits$name2,"acronym" = paren_splits$acr1))
-  acronym_matches2 <- data.table::setDT(list("name" = paren_splits$name1, "acronym" = paren_splits$acr2))
+  acronym_matches <- setDT(list("name" = paren_splits$name2,"acronym" = paren_splits$acr1))
+  acronym_matches2 <- setDT(list("name" = paren_splits$name1, "acronym" = paren_splits$acr2))
   
   acronym_matches <- rbind(acronym_matches, acronym_matches2)
   acronym_matches <- acronym_matches[!is.na(acronym) & !is.na(name) &nchar(acronym)>1,]
@@ -63,6 +65,6 @@ find_acronyms <- function(str){
   acronym_matches <- acronym_matches[N==1,]
   acronym_matches <- acronym_matches[,N:=NULL]
   #reorder cols
-  data.table::setcolorder(x=acronym_matches,neworder=c("name", "acronym"))
+  setcolorder(x=acronym_matches,neworder=c("name", "acronym"))
   return(acronym_matches)
 }

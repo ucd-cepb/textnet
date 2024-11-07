@@ -12,15 +12,16 @@
 #' @return original data frame with added column for concatenated entity
 #' 
 #' @import data.table
+#' @import stringr
 #'
 
 entity_consolidate_replicate <- function(x, concatenator = "_",remove = NULL) {
   #Remove tokens that have no alphabet characters
   
-  spacy_result <- data.table::as.data.table(x)
+  spacy_result <- as.data.table(x)
   if(!is.null(remove)){
     index <- which(grepl(paste(remove,collapse = '|'),spacy_result$token,perl = T)&spacy_result$entity!="")
-    spacy_result$token[index] <- stringr::str_remove_all(spacy_result$token[index],paste(remove,collapse = '|'))
+    spacy_result$token[index] <- str_remove_all(spacy_result$token[index],paste(remove,collapse = '|'))
     spacy_result$entity[index] <- ""
   }
   

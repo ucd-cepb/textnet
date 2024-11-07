@@ -10,9 +10,7 @@
 #' Entities that have no letters are removed, if remove_nums is set to T.
 #'
 #' @param pdfs a vector of file names
-#' @param keep_pages A list of logical vectors, such that each vector in the list represents a pdf 
-#' and each element of the vector represents a page. All pages for which keep_pages == T will be included
-#' in the exported file. keep_pages defaults to a single logical value: T, which keeps all pages.
+#' @param keep_pages By default, NULL keeps all pages. Alternatively, the user can specify a numeric vector of pages to keep in the exported file. Duplicate values will be returned only once, and the keep_pages vector will be sorted before processing.
 #' @param ocr A logical value: T to run ocr image-to-text detection on pages with fewer than 20 characters;
 #' F to not run ocr on any pages.
 #' @param maxchar A numeric value representing the maximum allowable number of characters per page, 
@@ -31,12 +29,22 @@
 #' number of files is equal to the number of pdfs. 
 #' @importFrom pdftools pdf_text pdf_ocr_text
 #' @importFrom methods is
+#' @import stringr
 #' @export
 #' 
 
-pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
+pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
   if(return_to_memory==F & is.null(export_paths)){
     stop("Either return_to_memory must be true or export_paths must be non-null.")
+  }
+  if(!is.null(keep_pages)){
+    if(any(keep_pages) > length(texts)){
+      stop("pages to keep exceeds the page length of the input document")
+    }
+    if(any(keep_pages) < 1 | any(!keep_pages%%1 == F)){
+      stop("keep_pages must only be positive integers")
+    }
+    if(!is.numeric(keep_pages)){stop("keep_pages must be NULL or a numeric vector")}
   }
   if(return_to_memory){
     all_pdfs <- vector(mode = "list", length = length(pdfs))
@@ -47,11 +55,8 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
     }else{
       texts <- pdf_text(pdfs[[k]])
     }
-    
-    if(is.list(keep_pages)){
-      texts <- texts[keep_pages[[k]]]
-    } else if(!is.logical(keep_pages) || keep_pages == F){
-      stop("keep_pages must be either T (to keep all pages) or a list of logical vectors.")
+    if(!is.null(keep_pages)){
+      texts <- texts[sort(unique(keep_pages))]
     }
     
     if(ocr==T){
@@ -71,7 +76,7 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
     
     if(auto_headfoot_remove == T){
       for(pagenum in 1:length(texts)){
-        linebreaks <- stringr::str_split(texts[pagenum],"\\n")[[1]]
+        linebreaks <- str_split(texts[pagenum],"\\n")[[1]]
         
         #HEADER
         if(length(linebreaks)>6){
@@ -81,14 +86,14 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
           #which is row six in linebreaks
           #and delete it and all the rows above it
           linebreakhead <- linebreaks[1:6]
-          emptylines <- which(stringr::str_detect(linebreakhead,"^\\s*$"))
+          emptylines <- which(str_detect(linebreakhead,"^\\s*$"))
           if(length(emptylines)>=1){
             headercut <- emptylines[length(emptylines)]
             linebreaks <- linebreaks[(headercut+1):length(linebreaks)]
           }
           #if there are no empty lines, don't remove anything
         }else{
-          emptylines <- which(stringr::str_detect(linebreaks,"^\\s*$"))
+          emptylines <- which(str_detect(linebreaks,"^\\s*$"))
           if(length(emptylines)>=1){
             #just remove everything before the first set of two \\n,
             headercut <- emptylines[1]
@@ -114,7 +119,7 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
         #and delete everything below it
         #as long as there are four or fewer lines of text after that cut line
         counter = 0
-        emptylines <- which(stringr::str_detect(linebreaks,"^\\s*$"))
+        emptylines <- which(str_detect(linebreaks,"^\\s*$"))
         
         if(length(emptylines)>=1){
           emptylinegroups <- sapply(c(1:length(emptylines)),
@@ -123,7 +128,7 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
           emptylinegroups <- emptylinegroups[!is.na(emptylinegroups)]
           footercut <- ifelse(length(emptylinegroups)<3,emptylinegroups[1],
                               emptylinegroups[length(emptylinegroups)-2])
-          lineswithtext <- which(stringr::str_detect(linebreaks,"^\\s*$",negate = T))
+          lineswithtext <- which(str_detect(linebreaks,"^\\s*$",negate = T))
           
           while(sum(lineswithtext > footercut)>4 & counter <=2){
             counter = counter + 1
@@ -147,7 +152,7 @@ pdf_clean <- function(pdfs, keep_pages=T, ocr=F, maxchar=10000, export_paths=NUL
         #there are no empty lines.
         
         texts[pagenum] <- ifelse(is.na(linebreaks[1]), NA, paste(linebreaks, collapse = " "))
-        texts[pagenum] <- stringr::str_remove(texts[pagenum],"\\s{3,}([0-9|x|v|i]{1,6}|([a-z]+\\p{Pd}[0-9]+))\\s*$")
+        texts[pagenum] <- str_remove(texts[pagenum],"\\s{3,}([0-9|x|v|i]{1,6}|([a-z]+\\p{Pd}[0-9]+))\\s*$")
         #remove page numbers: 5+ spaces followed by (a combo of 1-6
         #roman and arabic numerals) or (a letter, hyphen, and
         #set of numbers such as c-28) at the end of a page

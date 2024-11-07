@@ -13,6 +13,8 @@
 #' @param custom_entities A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.
 #' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 #' @import data.table
+#' @import stringr
+#' @import stringi
 #' @export
 
 parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
@@ -45,7 +47,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   
   
   #automatically gets rid of phrases without a space
-  phrases_to_concatenate <- phrases_to_concatenate[stringr::str_detect(phrases_to_concatenate,"\\s")]
+  phrases_to_concatenate <- phrases_to_concatenate[str_detect(phrases_to_concatenate,"\\s")]
   
   #generate phrases defaults to false, since it appears spaCy has a more difficult time 
   #identifying proper name phrases linked by underscore as entities
@@ -80,8 +82,8 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
                                    dependency = T,
                                    nounphrase = T)
           saveRDS(parsedtxt, parsed_filenames[m])
-          lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
-          lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
+          lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
+          lettertokensunicodeescaped <- stri_escape_unicode(lettertokens)
           utils::data(eng_words)
           pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped) 
           
@@ -101,7 +103,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   spacyr::spacy_finalize()
   
   for(k in 1:length(custom_entities)){
-    custom_entities[[k]] <- stringr::str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
+    custom_entities[[k]] <- str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
     all_parsed <- lapply(1:length(all_parsed), function (i){
       all_parsed[[i]][all_parsed[[i]]$token %in% custom_entities[[k]] & all_parsed[[i]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
       return(all_parsed[[i]])
