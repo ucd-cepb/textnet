@@ -12,7 +12,7 @@ Entities that have no letters are removed, if remove_nums is set to T.}
 \usage{
 pdf_clean(
   pdfs,
-  keep_pages = T,
+  keep_pages = NULL,
   ocr = F,
   maxchar = 10000,
   export_paths = NULL,
@@ -24,9 +24,12 @@ pdf_clean(
 \arguments{
 \item{pdfs}{a vector of file names}
 
-\item{keep_pages}{A list of logical vectors, such that each vector in the list represents a pdf
-and each element of the vector represents a page. All pages for which keep_pages == T will be included
-in the exported file. keep_pages defaults to a single logical value: T, which keeps all pages.}
+\item{keep_pages}{By default, NULL keeps all pages. Alternatively, the user can specify a list of logical or numeric vectors of pages to keep in the exported file.
+When specified, the length of keep_pages must be equivalent to the length of pdfs.
+Each logical vector in keep_pages must have a length equivalent to the number of pages in the corresponding input pdf.
+All pages with a value of T will be included in the exported file.
+Each numeric vector in keep_pages enumerates specific page numbers to keep.
+For numeric vectors in keep_pages, duplicate values will be returned only once, and the vector will be sorted before processing.}
 
 \item{ocr}{A logical value: T to run ocr image-to-text detection on pages with fewer than 20 characters;
 F to not run ocr on any pages.}

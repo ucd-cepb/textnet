@@ -29,7 +29,6 @@ entity_consolidate_replicate <- function(x, concatenator = "_", remove = NULL) {
     stop("'remove' must be NULL or a character vector")
   }
 
-  #Remove tokens that have no alphabet characters
   spacy_result <- as.data.table(x)
   if(!is.null(remove)){
     index <- which(grepl(paste(remove,collapse = '|'),spacy_result$token,perl = T)&spacy_result$entity!="")

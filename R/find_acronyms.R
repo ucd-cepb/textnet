@@ -5,7 +5,7 @@
 #'
 #' @param str A character vector
 #' 
-#' @importFrom data.table setDT setcolorder rbind
+#' @import data.table
 #' @importFrom stringr str_split str_remove_all str_replace_all
 #' @importFrom stringi stri_match_last stri_match_all
 

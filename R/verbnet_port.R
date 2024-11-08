@@ -12,7 +12,6 @@
 #' @importFrom utils download.file untar
 #' @importFrom R.utils gunzip
 #' @importFrom xml2 read_xml xml_attr xml_find_all
-#' @importFrom base strsplit unique
 #' @importFrom dplyr case_when
 #' @return Returns the data.table of verbs and their classifications.
 #' 

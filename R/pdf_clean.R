@@ -10,7 +10,12 @@
 #' Entities that have no letters are removed, if remove_nums is set to T.
 #'
 #' @param pdfs a vector of file names
-#' @param keep_pages By default, NULL keeps all pages. Alternatively, the user can specify a numeric vector of pages to keep in the exported file. Duplicate values will be returned only once, and the keep_pages vector will be sorted before processing.
+#' @param keep_pages By default, NULL keeps all pages. Alternatively, the user can specify a list of logical or numeric vectors of pages to keep in the exported file. 
+#' When specified, the length of keep_pages must be equivalent to the length of pdfs.
+#' Each logical vector in keep_pages must have a length equivalent to the number of pages in the corresponding input pdf. 
+#' All pages with a value of T will be included in the exported file. 
+#' Each numeric vector in keep_pages enumerates specific page numbers to keep. 
+#' For numeric vectors in keep_pages, duplicate values will be returned only once, and the vector will be sorted before processing.
 #' @param ocr A logical value: T to run ocr image-to-text detection on pages with fewer than 20 characters;
 #' F to not run ocr on any pages.
 #' @param maxchar A numeric value representing the maximum allowable number of characters per page, 
@@ -34,13 +39,17 @@
 #' 
 
 pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
-  # Input validation
   if(!is.character(pdfs)) {
     stop("'pdfs' must be a character vector of file names")
   }
   
-  if(!is.null(keep_pages) && (!is.numeric(keep_pages) || any(keep_pages < 1) || any(keep_pages %% 1 != 0))) {
-    stop("'keep_pages' must be NULL or a vector of positive integers")
+  if(!is.null(keep_pages)){
+    if(!is.list(keep_pages) | length(keep_pages)!=length(pdfs)){
+      stop("if specified, keep_pages must be a list of the same length as pdfs")
+    }
+    if(any(unlist(lapply(keep_pages, function(i) !is.logical(i) & !is.numeric(i))))){
+      stop("if specified, elements of the list keep_pages must be either numeric or logical")
+    }
   }
   
   if(!is.logical(ocr) || length(ocr) != 1) {
@@ -70,18 +79,11 @@ pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=
   if(return_to_memory==F & is.null(export_paths)){
     stop("Either return_to_memory must be true or export_paths must be non-null.")
   }
-  if(!is.null(keep_pages)){
-    if(any(keep_pages) > length(texts)){
-      stop("pages to keep exceeds the page length of the input document")
-    }
-    if(any(keep_pages) < 1 | any(!keep_pages%%1 == F)){
-      stop("keep_pages must only be positive integers")
-    }
-    if(!is.numeric(keep_pages)){stop("keep_pages must be NULL or a numeric vector")}
-  }
+  
   if(return_to_memory){
     all_pdfs <- vector(mode = "list", length = length(pdfs))
   }
+  
   for(k in 1:length(pdfs)){
     if(suppressWarn==T){
       texts <- suppressMessages(pdf_text(pdfs[[k]]))
@@ -89,8 +91,23 @@ pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=
       texts <- pdf_text(pdfs[[k]])
     }
     if(!is.null(keep_pages)){
-      texts <- texts[sort(unique(keep_pages))]
-    }
+      if(is.logical(keep_pages[[k]])){
+        if(length(keep_pages[[k]]) != 1 & length(keep_pages[[k]]) != length(texts)){
+          stop("Each logical vector within keep_pages must be either length 1 or the page length of the input document")
+        }
+        texts <- texts[keep_pages[[k]]]
+      }
+      if(is.numeric(keep_pages[[k]])){
+        if(any(keep_pages[[k]] > length(texts))){
+          stop("page numbers in keep_pages to keep may not exceed the page length of the input document")
+        }
+        if(any(keep_pages[[k]] < 1) | any(!keep_pages[[k]]%%1 == F)){
+          stop("keep_pages must only be positive integers")
+        }
+        #removes duplicated pages and sorts from first to last
+        texts <- texts[sort(base::unique(keep_pages[[k]]))]
+      }
+    } 
     
     if(ocr==T){
       for(i in 1:length(texts)){

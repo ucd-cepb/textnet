@@ -4,7 +4,7 @@
 \alias{combine_networks}
 \title{Superimposes multiple textNet igraphs into a single igraph.}
 \usage{
-combine_networks(textnet_igraphs, mode)
+combine_networks(textnet_igraphs, mode = c("multiplex", "weighted"))
 }
 \arguments{
 \item{textnet_igraphs}{List of textnet igraphs, the outputs of export_to_network(export_format = "igraph)}
