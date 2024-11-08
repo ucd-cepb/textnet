@@ -36,7 +36,6 @@
 #' @importFrom network network network.size network.edgecount network.density
 #' @importFrom sna connectedness centralization gtrans
 #' @importFrom stats median
-#' @importFrom base unique
 #' @export
 #'
 

@@ -105,7 +105,7 @@ pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=
           stop("keep_pages must only be positive integers")
         }
         #removes duplicated pages and sorts from first to last
-        texts <- texts[sort(unique(keep_pages[[k]]))]
+        texts <- texts[sort(base::unique(keep_pages[[k]]))]
       }
     } 
     

@@ -10,7 +10,7 @@ This feature is inefficient in that the concatenated entity is then replicated m
 entity_consolidate_replicate(x, concatenator = "_", remove = NULL)
 }
 \arguments{
-\item{x}{parsed spacy document}
+\item{x}{parsed spacy document in data.frame format}
 
 \item{concatenator}{A character that separates string segments when they are collapsed into a single entity. Defaults to "_"}
 
