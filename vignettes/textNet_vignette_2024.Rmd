@@ -3,7 +3,7 @@ title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from T
 authors:
    - name: Elise Zufall
    - name: Tyler Scott
-date: 23 October 2024
+date: 7 November 2024
 bibliography: paper.bib
 output: pdf_document
 ---
@@ -428,13 +428,13 @@ This is a wrapper for pdftools, which has the option of using pdf_text or OCR. W
    library(textNet)
    library(stringr)
    URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
-   download.file(URL, destfile = "old.pdf", method="curl")
+   download.file(URL, destfile = "vignettes/old.pdf", method="curl")
    
    URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
-   download.file(URL, destfile = "new.pdf", method="curl")
+   download.file(URL, destfile = "vignettes/new.pdf", method="curl")
    
-   pdfs <- c("old.pdf", 
-          "new.pdf")
+   pdfs <- c("vignettes/old.pdf", 
+          "vignettes/new.pdf")
    
    old_new_text <- textNet::pdf_clean(pdfs, keep_pages=T, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
@@ -444,7 +444,7 @@ This is a wrapper for pdftools, which has the option of using pdf_text or OCR. W
 
 ### Pre-Processing Step II: Parse Text
 
-This is a wrapper for the pre-trained multipurpose NLP model *spaCy* [@key], which we access through the R package *spacyr* [@key]. It produces a table that can be fed into the textnet_extract function in the following step. To initialize the session, the user must define the "RETICULATE_PYTHON" path, abbreviated as "ret_path" in *textNet*, as demonstrated in the example below. The page contents processed in the Step 1 must now be specified in vector form in the "pages" argument. To determine which file each page belongs to, the user must specify the file_ids of each page. We have demonstrated how to do this below. The package by default does not preserve hyphenated terms, but rather treats them as separate tokens. This can be adjusted. 
+This is a wrapper for the pre-trained multipurpose NLP model *spaCy* [@honnibal_spacy_2021], which we access through the R package *spacyr* [@benoit_spacyr_2023]. It produces a table that can be fed into the textnet_extract function in the following step. To initialize the session, the user must define the "RETICULATE_PYTHON" path, abbreviated as "ret_path" in *textNet*, as demonstrated in the example below. The page contents processed in the Step 1 must now be specified in vector form in the "pages" argument. To determine which file each page belongs to, the user must specify the file_ids of each page. We have demonstrated how to do this below. The package by default does not preserve hyphenated terms, but rather treats them as separate tokens. This can be adjusted. 
 
 The user may also specify "phrases_to_concatenate", an argument representing a set of phrases for spaCy to keep together during its parsing. The example below demonstrates how to use this feature to supplement the NER capabilities of spaCy with a custom list of entities. This supplementation could be used to ensure that specific known entities are recognized; for instance, spaCy might not detect that a consulting firm such as "Schmidt and Associates" is one entity rather than two. Conversely, this capability could be leveraged to create a new category of entities to detect, that a pretrained model is not designed to specifically recognize. For instance, to create a public health network, one might include a known list of contaminants and diseases and designate custom entity type tags for them, such as "CONTAM" and "DISEASE"). In this example, we investigate the connections between the organizations, people, and geopolitical entities discussed in the plan with the flow of water in the basin. To assist with this, we have input a custom list of known water bodies in the region governed by our test document and have given it the entity designation "WATER". This is carried out by setting the variable "phrases_to_concatenate" to a character vector, including all of the custom entities. Then, the entity type can be set to the desired category. Note that this function is case-sensitive.
 
