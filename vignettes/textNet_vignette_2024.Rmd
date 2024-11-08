@@ -1,8 +1,6 @@
 ---
 title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data"
-authors:
-   - name: Elise Zufall
-   - name: Tyler Scott
+author: Elise Zufall and Tyler Scott
 date: 7 November 2024
 bibliography: paper.bib
 output: pdf_document
@@ -74,7 +72,7 @@ The following example uses parsed text from the Gravelly Ford Water District Gro
 ### Extract Networks
 First, we read in the pre-processed data and call textnet_extract() to produce the network object:
 
-```{r readpreprocessed}
+```{r readpreprocessed, message=F, warning=F}
 library(textNet)
 old_new_parsed <- textNet::old_new_parsed
 
@@ -193,7 +191,7 @@ A tool that generates an igraph or network object from the textnet_extract outpu
 ```
 The *ggraph* package [@pedersen_ggraph_2024] has been used to create the two network visualizations seen here, using a weighted version of the igraphs constructed below. We set collapse_edges = T to convert the multiplex graph into its weighted equivalent.
 
-```{r plot}
+```{r plot, message=F, warning=F}
    library(ggraph)
    old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
@@ -370,7 +368,7 @@ The 2x2 table below summarizes the rate at which each entity type is found in bo
 
 We can also investigate differences in network statistics between the two plans. For instance, the distribution of degree does not change much between plan versions. The distribution of betweenness, likewise, is relatively stable except for person nodes, which are the least common nodes in the graph.
 
-```{r step8b4}
+```{r step8b4, warning=F, message=F}
     library(gridExtra)
     library(ggplot2)
     b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
@@ -436,7 +434,7 @@ This is a wrapper for pdftools, which has the option of using pdf_text or OCR. W
    pdfs <- c("vignettes/old.pdf", 
           "vignettes/new.pdf")
    
-   old_new_text <- textNet::pdf_clean(pdfs, keep_pages=T, ocr=F, maxchar=10000, 
+   old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
                      auto_headfoot_remove = T)
    names(old_new_text) <- c("old","new")

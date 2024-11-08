@@ -1,8 +1,6 @@
 ---
 title: "Testing Protocol Companion to textNet Vignette"
-author:
-   - name: Elise Zufall
-   - name: Tyler Scott
+author: Elise Zufall and Tyler Scott
 date: 7 November 2024
 output: pdf_document
 ---
