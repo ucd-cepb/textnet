@@ -31,7 +31,26 @@
 #'    \item num_communities -- number of communities using louvain cluster algorithm on a weighted, undirected, non-multiplex version of the network
 #'    \item percent_vbn, percent_vbg, percent_vpb, percent_vbd, percent_vb, percent_vbz -- percent of edges in the graph that are of the respective verb tense
 #' }
-#' @import igraph
+#' @importFrom igraph delete_edge_attr
+#' @importFrom igraph delete.edges
+#' @importFrom igraph E
+#' @importFrom igraph edge_attr
+#' @importFrom igraph edge_attr_names
+#' @importFrom igraph head_of
+#' @importFrom igraph tail_of
+#' @importFrom igraph strength
+#' @importFrom igraph reciprocity
+#' @importFrom igraph cluster_louvain
+#' @importFrom igraph modularity
+#' @importFrom igraph V
+#' @importFrom igraph delete.vertices
+#' @importFrom igraph vertex_attr
+#' @importFrom igraph graph_from_data_frame
+#' @importFrom igraph is.loop
+#' @importFrom igraph simplify
+#' @importFrom igraph degree
+#' @importFrom igraph as_data_frame
+#' @importFrom igraph as.undirected
 #' @importFrom dplyr filter
 #' @importFrom network network network.size network.edgecount network.density
 #' @importFrom sna connectedness centralization gtrans
@@ -117,7 +136,7 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
     }
 
   #network object
-  agency_df <- igraph::get.data.frame(igr, what = "both")
+  agency_df <- igraph::as_data_frame(igr, what = "both")
   if(keep_isolates==T & collapse_edges == F){
     #keep_all
     net <- network::network(x=agency_df$edges, directed = T,

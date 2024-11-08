@@ -11,8 +11,13 @@
 #' @importFrom network network
 #' @importFrom ohenery normalize
 #' @importFrom tidyr tibble
-#' @import dplyr
-#' @import igraph
+#' @importFrom dplyr group_by
+#' @importFrom dplyr summarize
+#' @importFrom dplyr arrange
+#' @importFrom dplyr desc
+#' @importFrom igraph degree
+#' @importFrom igraph edge_attr
+#' @importFrom igraph as_data_frame
 #' 
 #' @export
 
@@ -36,7 +41,7 @@ top_features <- function(files, from_file=F){
     }else{
       igr <- files[[i]]
     }
-    igr_df <- igraph::get.data.frame(igr, what = "both")
+    igr_df <- igraph::as_data_frame(igr, what = "both")
     
     net <- network::network(x=igr_df$edges[,1:2], directed = T,
                           hyper = F, loops = T, multiple = T, 
@@ -45,7 +50,7 @@ top_features <- function(files, from_file=F){
     
     
     all_entities[[i]] <- sort(igraph::degree(igr),decreasing = T)
-    all_lemmas[[i]] <- sort(table(igraph::get.edge.attribute(
+    all_lemmas[[i]] <- sort(table(igraph::edge_attr(
       igr, "head_verb_lemma")), decreasing = T)
   }
   

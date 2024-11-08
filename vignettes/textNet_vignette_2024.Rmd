@@ -319,8 +319,8 @@ We can now use these data structures to calculate node statistics, as printed be
 ```{r step8b2}
     paths2 <- diag(old_mat %*% old_mat)
     recip <- 2*paths2 / sna::degree(old_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, type = "directed",
-                                                isolates="zero")$totalCC))
+    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
+            type = "directed", isolates="zero")$totalCC))
     closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
@@ -337,7 +337,8 @@ We can now use these data structures to calculate node statistics, as printed be
 
     paths2 <- diag(new_mat %*% new_mat)
     recip <- 2*paths2 / sna::degree(new_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, type = "directed", isolates="zero")$totalCC))
+    totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, 
+                 type = "directed", isolates="zero")$totalCC))
     closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
