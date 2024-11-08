@@ -1,9 +1,9 @@
 ---
 title: "Testing Protocol Companion to textNet Vignette"
-authors:
+author:
    - name: Elise Zufall
    - name: Tyler Scott
-date: 23 October 2024
+date: 7 November 2024
 output: pdf_document
 ---
 
@@ -14,18 +14,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Pre-Processing Step I: Process PDFs
 
-```{r pdf_clean}
+```{r pdf_clean, message=F, warning=F}
    library(textNet)
    library(stringr)
    library(testthat)
    URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
-   download.file(URL, destfile = "vignettes/old.pdf", method="curl")
+   download.file(URL, destfile = "old.pdf", method="curl")
    
    URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
-   download.file(URL, destfile = "vignettes/new.pdf", method="curl")
+   download.file(URL, destfile = "new.pdf", method="curl")
    
-   pdfs <- c("vignettes/old.pdf", 
-          "vignettes/new.pdf")
+   pdfs <- c("old.pdf", 
+          "new.pdf")
    
    old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
@@ -39,7 +39,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Pre-Processing Step II: Parse Text
 
 
-```{r parse}
+```{r parse, message=F, warning=F}
    library(findpython)
    ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
    
@@ -204,7 +204,7 @@ tofrom <- data.table::data.table(
 ```
 
 
-```{r plot}
+```{r plot, message=F, warning=F}
    library(ggraph)
    old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
