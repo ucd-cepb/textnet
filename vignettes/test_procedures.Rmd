@@ -90,9 +90,10 @@ for(m in 1:length(old_new_parsed)){
   #checking list of entities
   onp <- old_new_parsed[[m]] |> dplyr::mutate(entitynum = cumsum(str_detect(entity, "_B")))
   onp$entitynum <- ifelse(onp$entity == "", NA, onp$entitynum)
-  onp <- onp |> dplyr::group_by(entitynum) |> dplyr::mutate(entityconcat = paste(token, collapse = "_"))
+  onp <- onp |> dplyr::group_by(entitynum) |> dplyr::mutate(entityconcat = paste(
+    token, collapse = "_"))
   onp$entityconcat <- ifelse(str_detect(onp$entity, 
-                       paste0(ent_types, "_B", sep = "", collapse = "|")), onp$entityconcat, NA)
+        paste0(ent_types, "_B", sep = "", collapse = "|")), onp$entityconcat, NA)
   
   #node entities should be a subset of all entities since
   #sometimes there are improper sentences that cause
@@ -109,7 +110,8 @@ for(m in 1:length(old_new_parsed)){
   nodentities <- nodentities |> str_replace_all("_", "_.*_*")
   #this method accounts for the fact that the nodentity might be a substring of the 
   #original entity, since it may have included an appositive
-  expect_that(all(unlist(lapply(nodentities, function(j) any(str_detect(string = allentities, pattern = j))))), equals(T))
+  expect_that(all(unlist(lapply(nodentities, function(j) any(str_detect(
+    string = allentities, pattern = j))))), equals(T))
 }
    
 ```
@@ -156,7 +158,8 @@ tofrom <- data.table::data.table(
    expect_that(length(old_extract_clean), equals(length(extracts[[1]])))
    #we converted from acronyms to full names so should not see any acronyms
    expect_that(any(str_detect(old_extract_clean$nodelist$entity_name,
-                               paste0("^", paste0(old_acronyms$acronym, collapse = "$|^"), "$"))),equals(F))
+        paste0("^", paste0(old_acronyms$acronym, collapse = "$|^"),
+               "$"))),equals(F))
    
    tofrom <- data.table::data.table(
    from = c(as.list(new_acronyms$acronym),
@@ -333,8 +336,8 @@ library(igraph)
 ```{r step8b2}
     paths2 <- diag(old_mat %*% old_mat)
     recip <- 2*paths2 / sna::degree(old_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, type = "directed",
-                                                isolates="zero")$totalCC))
+    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
+                type = "directed", isolates="zero")$totalCC))
     closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
@@ -351,7 +354,8 @@ library(igraph)
 
     paths2 <- diag(new_mat %*% new_mat)
     recip <- 2*paths2 / sna::degree(new_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, type = "directed", isolates="zero")$totalCC))
+    totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, 
+                  type = "directed", isolates="zero")$totalCC))
     closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
     between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
     deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
