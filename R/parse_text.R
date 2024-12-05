@@ -135,14 +135,17 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   }
   spacyr::spacy_finalize()
   
-  for(k in 1:length(custom_entities)){
-    custom_entities[[k]] <- str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
-    all_parsed <- lapply(1:length(all_parsed), function (i){
-      all_parsed[[i]][all_parsed[[i]]$token %in% custom_entities[[k]] & all_parsed[[i]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
-      return(all_parsed[[i]])
-    })
+  if(!is.null(custom_entities)){
+    for(k in 1:length(custom_entities)){
+      custom_entities[[k]] <- str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
+      all_parsed <- lapply(1:length(all_parsed), function (i){
+        all_parsed[[i]][all_parsed[[i]]$token %in% custom_entities[[k]] & all_parsed[[i]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
+        return(all_parsed[[i]])
+      })
+    }
+    
   }
-  
+
   
   return(all_parsed)
 }
