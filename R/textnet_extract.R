@@ -110,7 +110,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   dep_rels_subj_keep <- c('nsubj','nsubjpass','csubj','csubjpass','agent','expl')        
   dep_rels_obj_keep <- c('pobj','iobj','dative','attr','dobj','oprd','ccomp','xcomp','acomp','pcom') 
 
-  x <- x[,keep:=any(dep_rel %in% dep_rels_subj_keep) & any(dep_rel %in% dep_rels_obj_keep) & any(pos=='VERB'),by=.(doc_id,sentence_id)]
+  x <- x[,keep:=any(dep_rel %in% dep_rels_subj_keep) & any(dep_rel %in% dep_rels_obj_keep) & any(pos%in%c('VERB','AUX')),by=.(doc_id,sentence_id)]
   x <- x[keep==T,]
   x$doc_sent <- paste0(x$doc_id, "_", x$sentence_id)
 
@@ -150,8 +150,16 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
       }
   }, cl=cl)
   apposlist <- data.table::rbindlist(apposlist)
-  apposlist <- base::unique(apposlist[nchar(apposlist$fullname)>0,])
-  colnames(apposlist) <- c("abbrev", "fullname")
+  
+  #if it's not empty, it will have two columns, which we can name.
+  if(ncol(apposlist)>0){
+    colnames(apposlist) <- c("abbrev", "fullname")
+    apposlist <- base::unique(apposlist[nchar(apposlist$fullname)>0,])
+  #if it's empty, we create an empty 2-column dataframe
+  }else{
+    apposlist <- data.table::data.table("abbrev" = character(), "fullname" = character())
+  }
+
     
   #we've already incorporated aux and xcomp helpers into the verb phrase as edge attributes
   #so they should not count as their own row
@@ -235,9 +243,28 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   #create all combos of source and target by doc_sent_verb
   st_pivot <- data.table::dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_name")
   
-  st_pivot <- data.table::as.data.table(st_pivot %>% dplyr::group_by(doc_sent_verb) %>% tidyr::expand(source, target))
-
-  edgelist <- data.table::merge.data.table(st_pivot, verb_dt, by = c("doc_sent_verb"),all.x=F, all.y=F)
+  if(nrow(st_pivot)>0){
+    st_pivot <- data.table::as.data.table(st_pivot %>% dplyr::group_by(doc_sent_verb) %>% tidyr::expand(source, target))
+    edgelist <- data.table::merge.data.table(st_pivot, verb_dt, by = c("doc_sent_verb"),all.x=F, all.y=F)
+    
+  }else{
+    #make an empty data.table if there are no edges in the network
+    edgelist <- data.table::data.table("source" = character(),
+                                       "target" = character(),
+                                       "head_verb_name" = character(),
+                                       "head_verb_lemma" = character(),
+                                       "head_verb_tense" = character(),
+                                       "helper_lemma" = list(),
+                                       "helper_token" = list(),
+                                       "xcomp_verb" = list(),
+                                       "xcomp_helper_lemma" = list(),
+                                       "xcomp_helper_token" = list(),
+                                       "neg" = logical(),
+                                       "edgeiscomplete" = logical(),
+                                       "has_hedge" = logical(),
+                                       "is_future" = logical(),
+                                       "doc_sent_verb" = character())
+  }
   
   if(keep_incomplete_edges==T){
     #preserves verbs with only sources or targets
@@ -252,30 +279,34 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   hedging_helpers <- c("may","might","can","could")
   hedging_verbs <- c("seem","appear","suggest","tend","assume","indicate","doubt","believe")
-  has_hedging_verb <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_verbs, 
-                                        edgelist$head_verb_lemma[[z]]), na.rm=T)>0 | 
-           sum(match(hedging_verbs, edgelist$xcomp_verb[[z]]), na.rm=T)>0))
- 
-  has_hedging_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_helpers, 
-                                        edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
-           sum(match(hedging_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0)) #although xcomp_helpers shouldn't have any hedges
+  if(nrow(edgelist)>0){
+    has_hedging_verb <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_verbs, 
+                                                                        edgelist$head_verb_lemma[[z]]), na.rm=T)>0 | 
+                                                                sum(match(hedging_verbs, edgelist$xcomp_verb[[z]]), na.rm=T)>0))
+    has_hedging_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(hedging_helpers, 
+                                                                          edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
+                                                                  sum(match(hedging_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0)) #although xcomp_helpers shouldn't have any hedges
+    future_helpers <- c("shall","will","wo","'ll")
+    has_future_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(future_helpers, 
+                                                                         edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
+                                                                 sum(match(future_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0))#although xcomps shouldn't have any future helpers
+    be_tokens <- c("am","is","are","'m","'s","'re")
+    has_future_going <- sapply(1:nrow(edgelist), function(z){(
+      !is.null(edgelist$xcomp_verb[[z]]) && edgelist$head_verb_name[[z]]=="going" &&
+        (sum(match(be_tokens, edgelist$helper_lemma[[z]]), na.rm=T)>0))
+    })
+    
+    edgelist$has_hedge <- has_hedging_verb | has_hedging_helper
+    edgelist$is_future <- has_future_helper | has_future_going
+    
+    edgelist$doc_sent_parent <- NULL
+    edgelist$head_verb_id <- NULL
+    edgelist$parent_verb_id <- NULL
+  }
   
-  future_helpers <- c("shall","will","wo","'ll")
-  has_future_helper <- sapply(1:nrow(edgelist), function(z) (sum(match(future_helpers, 
-                          edgelist$helper_lemma[[z]]), na.rm=T)>0 | 
-                   sum(match(future_helpers, edgelist$xcomp_helper_lemma[[z]]), na.rm=T)>0))#although xcomps shouldn't have any future helpers
+  
+  
 
-  be_tokens <- c("am","is","are","'m","'s","'re")
-  has_future_going <- sapply(1:nrow(edgelist), function(z){(
-    !is.null(edgelist$xcomp_verb[[z]]) && edgelist$head_verb_name[[z]]=="going" &&
-    (sum(match(be_tokens, edgelist$helper_lemma[[z]]), na.rm=T)>0))
-  })
-  
-  edgelist$has_hedge <- has_hedging_verb | has_hedging_helper
-  edgelist$is_future <- has_future_helper | has_future_going
-  edgelist$doc_sent_parent <- NULL
-  edgelist$head_verb_id <- NULL
-  edgelist$parent_verb_id <- NULL
   
   #remove duplicates that arose from concatenating entity names
   nodelist <- nodelist[,.(entity_id, entity_name, entity_type, doc_sent_verb)]
