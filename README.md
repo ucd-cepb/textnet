@@ -1,6 +1,6 @@
 # textNet
 
-textNet is a set of tools that uses part-of-speech tagging and dependency parsing to generate semantic networks from text data.
+textNet is a set of tools in the R language that uses part-of-speech tagging and dependency parsing to generate semantic networks from text data. It is compatible with Universal Dependencies and has been tested on English-language text data.
 
 To be used in the main project repo: 
 https://github.com/ucd-cepb/textNet
@@ -37,6 +37,16 @@ or using devtools::install_github():
 
 ```
 devtools::install_github('ucd-cepb/textNet')
+```
+
+# Suggested packages
+The primary function, textnet_extract(), can be used without the use of spaCy, if the user prefers to import compatible data from a separate tool. A wrapper of the spacyr package is included for convenience, to conduct preprocessing in-house. Use of this functionality requires installation of the reticulate and spacyr packages. Use of the spacyr wrapper also requires installing spaCy and the 'en_core_web_lg' model. For assistance, please see the spacyr documentation page: https://spacyr.quanteda.io/reference/spacy_install.html
+
+```
+install.packages("reticulate")
+install.packages("spacyr")
+spacy_install()
+spacy_download_langmodel(model = 'en_core_web_lg')
 ```
 
 # Working on this package
