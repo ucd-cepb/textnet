@@ -114,14 +114,13 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
                                    entity = T,
                                    dependency = T,
                                    nounphrase = T)
-          saveRDS(parsedtxt, parsed_filenames[m])
           lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
           lettertokensunicodeescaped <- stri_escape_unicode(lettertokens)
           utils::data(eng_words)
           pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped) 
           
           if(pctlettersineng<0.5){
-            warning("Fewer than 50% of letter-containing tokens in this PDF are English words. This may be due to a PDF formatting issue. It is not recommended to use textnet_extract on this pdf.")
+            warning(paste0("Fewer than 50% of letter-containing tokens in the document ", unique_files[m] ," are English words."))
           }
           print(paste0("parsing complete: ",unique_files[m]))
         
@@ -132,20 +131,18 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       parsedtxt <- readRDS(parsed_filenames[m])
     }
       all_parsed[[m]] <- parsedtxt
+      if(!is.null(custom_entities)){
+        for(k in 1:length(custom_entities)){
+          custom_entities[[k]] <- stringr::str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
+          #this if condition prevents an error if the custom entity doesn't exist as a token in the doc
+          if(length(all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity)>0){
+            all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
+          }
+        }
+      }
+      saveRDS(all_parsed[[m]], parsed_filenames[m])
   }
   spacyr::spacy_finalize()
-  
-  if(!is.null(custom_entities)){
-    for(k in 1:length(custom_entities)){
-      custom_entities[[k]] <- str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
-      all_parsed <- lapply(1:length(all_parsed), function (i){
-        all_parsed[[i]][all_parsed[[i]]$token %in% custom_entities[[k]] & all_parsed[[i]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
-        return(all_parsed[[i]])
-      })
-    }
-    
-  }
-
   
   return(all_parsed)
 }
