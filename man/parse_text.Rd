@@ -12,7 +12,8 @@ parse_text(
   text_list,
   parsed_filenames,
   overwrite = T,
-  custom_entities = NULL
+  custom_entities = NULL,
+  model = "en_core_web_lg"
 )
 }
 \arguments{

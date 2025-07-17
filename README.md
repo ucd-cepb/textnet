@@ -40,13 +40,14 @@ devtools::install_github('ucd-cepb/textNet')
 ```
 
 # Suggested packages
-The primary function, textnet_extract(), can be used without the use of spaCy, if the user prefers to import compatible data from a separate tool. A wrapper of the spacyr package is included for convenience, to conduct preprocessing in-house. Use of this functionality requires installation of the reticulate and spacyr packages. Use of the spacyr wrapper also requires installing spaCy and the 'en_core_web_lg' model. For assistance, please see the spacyr documentation page: https://spacyr.quanteda.io/reference/spacy_install.html
+The primary function, textnet_extract(), can be used without the use of spaCy, if the user prefers to import compatible data from a separate tool. A wrapper of the spacyr package is included for convenience, to conduct preprocessing in-house. Use of this functionality requires installation of the reticulate and spacyr packages, as seen below. Use of the spacyr wrapper also requires installing spaCy and a language model; the 'en_core_web_lg' model is recommended (see below). For assistance, please see the spacyr documentation page: https://spacyr.quanteda.io/reference/spacy_install.html
 
 ```
 install.packages("reticulate")
 install.packages("spacyr")
+library(spacyr)
 spacy_install()
-spacy_download_langmodel(model = 'en_core_web_lg')
+spacy_download_langmodel('en_core_web_lg')
 ```
 
 # Working on this package

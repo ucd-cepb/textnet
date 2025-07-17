@@ -17,14 +17,15 @@
 #' @importFrom stringi stri_replace_all_regex stri_escape_unicode
 #' @importFrom pbapply pblapply
 #' @importFrom utils data
-#' @importFrom reticulate py_config
-#' @importFrom spacyr spacy_initialize spacy_parse spacy_finalize
 #' @export
 
 parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
                               concatenator="_", text_list, parsed_filenames,
-                              overwrite=T, custom_entities = NULL){
-  
+                              overwrite=T, custom_entities = NULL, model = "en_core_web_lg"){
+  if(!requireNamespace("spacyr", quietly = T)){
+    stop("Package 'spacyr' must be installed to use this function.",
+         call.=F)
+  }
   # Input validation
   if(!is.character(ret_path) || length(ret_path) != 1) {
     stop("'ret_path' must be a single character string")
@@ -62,12 +63,28 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   }
   #prerequisites: step 1, install python
   #step 2, install miniconda from https://conda.io/miniconda.html
-  #step 3 (unsure if this was required) I installed virtualenv, numpy, conda, and spacy
+  #step 3, if necessary: install virtualenv, numpy, conda, and spacy
   Sys.setenv(RETICULATE_PYTHON=ret_path)
-  reticulate::py_config()
+  if(!requireNamespace("reticulate", quietly = T)){
+    stop("Package 'reticulate' must be installed to use this function.",
+         call.=F)
+  }
+  if(requireNamespace("reticulate", quietly = T)){
+    reticulate::py_config()
+  }
   #spacy_install()
-  #spacy_download_langmodel(model = 'en_core_web_lg')
-  spacyr::spacy_initialize(model = "en_core_web_lg")
+  #spacy_download_langmodel(lang_mode = 'en_core_web_lg')
+  if(!stringr::str_detect(model, "^en_")){
+    warning("This package was developed and tested on English texts. Use of this package to extract event networks in other languages may yield unexpected results.")
+  }
+  tryCatch(
+    if(requireNamespace("spacyr", quietly = T)){
+      spacyr::spacy_initialize(model = model)
+    },
+           error = function(e){
+             message(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
+           })
+  
   
   #pages is a character vector, in which each element is a string that represents one page of text
   pages <- unlist(text_list)
@@ -107,13 +124,16 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
         
           single_plan_text <- unlist(pages[file_ids==unique_files[m]])
           
-          parsedtxt <- spacyr::spacy_parse(single_plan_text,
-                                   pos = T,
-                                   tag = T,
-                                   lemma = T,
-                                   entity = T,
-                                   dependency = T,
-                                   nounphrase = T)
+          if(requireNamespace("spacyr", quietly = T)){
+            parsedtxt <- spacyr::spacy_parse(single_plan_text,
+                                             pos = T,
+                                             tag = T,
+                                             lemma = T,
+                                             entity = T,
+                                             dependency = T,
+                                             nounphrase = T)
+          }
+          
           lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
           lettertokensunicodeescaped <- stri_escape_unicode(lettertokens)
           utils::data(eng_words)
@@ -142,7 +162,10 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       }
       saveRDS(all_parsed[[m]], parsed_filenames[m])
   }
-  spacyr::spacy_finalize()
+  if(requireNamespace("spacyr", quietly = T)){
+    spacyr::spacy_finalize()
+  }
+  
   
   return(all_parsed)
 }

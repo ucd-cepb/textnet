@@ -53,6 +53,10 @@ knitr::opts_chunk$set(echo = TRUE)
                   "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", 
                   "Lower and upper aquifers")
 
+   if(!requireNamespace("spacyr", quietly = T)){
+    stop("Package 'spacyr' must be installed to use this function.",
+         call.=F)
+  }
    old_new_parsed <- textNet::parse_text(ret_path, 
                           keep_hyph_together = F, 
                           phrases_to_concatenate = water_bodies, 
@@ -75,7 +79,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Extraction Expectations
 Next we call textnet_extract() to produce the network object:
 
-```{r extract}
+```{r extract, results = 'hide'}
 ent_types <- c('ORG','GPE','PERSON','WATER')
 extracts <- vector(mode="list",length=length(old_new_parsed))
    for(m in 1:length(old_new_parsed)){
@@ -84,7 +88,9 @@ extracts <- vector(mode="list",length=length(old_new_parsed))
                    return_to_memory=T, keep_incomplete_edges=T)
    }
 
+```
 
+```{r extr_test}
 #test conditions
 for(m in 1:length(old_new_parsed)){
   #checking list of entities
@@ -190,10 +196,12 @@ tofrom <- data.table::data.table(
 
 
 ```{r export}
+  set.seed(50000)
    old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                         collapse_edges = F, self_loops = T)
    expect_that(class(old_extract_net[[1]]), equals("igraph"))
-  new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
+  set.seed(50000)
+   new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
                                         collapse_edges = F, self_loops = T)
 
   expect_that(class(new_extract_net[[1]]), equals("igraph"))
@@ -207,11 +215,14 @@ tofrom <- data.table::data.table(
 
 ```{r plot, message=F, warning=F}
    library(ggraph)
+  set.seed(50000)
    old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
+   set.seed(50000)
    new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
    #order of these layers matters
+   set.seed(50000)
    ggraph(old_extract_plot, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
@@ -227,6 +238,7 @@ tofrom <- data.table::data.table(
       theme_void()
 
    #order of these layers matters
+   set.seed(50000)
    ggraph(new_extract_plot, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
@@ -269,7 +281,7 @@ tofrom <- data.table::data.table(
   expect_contains(c(old_extract_clean$nodelist$entity_name,
                     new_extract_clean$nodelist$entity_name),
                     igraph::get.vertex.attribute(composite_net, "name"))
-  
+  set.seed(50000)
    ggraph(composite_net, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
@@ -314,6 +326,7 @@ library(igraph)
                           bipartiate = F, vertices = old_tbl$vertices,
                           matrix.type = "edgelist")
     #we need a matrix version for some node statistics
+    set.seed(50000)
     old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", 
                           keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
     
@@ -327,6 +340,7 @@ library(igraph)
                           bipartiate = F, vertices = new_tbl$vertices,
                           matrix.type = "edgelist")
     #we need a matrix version for some node statistics
+    set.seed(50000)
     new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", 
                           keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
 ```
