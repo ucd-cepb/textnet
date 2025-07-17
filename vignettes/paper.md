@@ -29,10 +29,25 @@ more). But there is, to our knowledge, no open-source tool that
 generates network data based on the syntactic relationships between
 entities within a sentence. *textNet* allows a user to input one or more
 PDF documents and create arbitrarily complex directed, multiplex, and
-multimodal network graphs. *textNet* also works on arbitrarily long
-documents, making it well suited for research applications using long
-texts such as government planning documents, court proceedings,
-regulatory impact analyses, and environmental impact assessments.
+multimodal network graphs, enabling rich analysis of the relationships between
+verb attributes and tenses, entity types, structural motifs, and other network 
+characteristics. For instance, [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556)
+demonstrate the use of *textNet* to identify which actors are involved in start-up
+versus ongoing or future management tasks, characterize patterns of information 
+and funding flows, and compare the distribution of management tasks in networks from
+regions known to have contrasting characteristics [-@zufall_syntactic_2024]. 
+*textNet* also works on arbitrarily long documents, making it well suited 
+for research applications using long texts such as government planning documents, 
+court proceedings, regulatory impact analyses, and environmental impact assessments.
+
+*textNet* has applications in governance network scholarship, as demonstrated by
+[Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556) 
+[-@zufall_syntactic_2024] and by ongoing work on groundwater governance at the 
+UC Davis Center for Environmental Policy and Behavior. Additional potential 
+applications include legal scholarship, social-ecological network analysis, 
+government planning documents, court proceedings, archival research, communication 
+and media research, and other fields interested in exploring events and entity 
+relationships in textual data.
 
 ## Statement of Need
 
@@ -128,10 +143,6 @@ aggregating multiple document-based graphs based on common nodes.
 The figure below summarizes the functionality of *textNet* and the flow of function outputs. Optional data cleaning features are shown with dotted arrows.
 
 ![Workflow of textNet Functions](vignette_figures/figure-markdown_strict/flowchart.png)
-
-## Applications
-
-*textNet* has applications in governance network scholarship, as demonstrated by [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556) [-@zufall_syntactic_2024] and by ongoing work on groundwater governance at the UC Davis Center for Environmental Policy and Behavior. Additional potential applications include legal scholarship, social-ecological network analysis, government planning documents, court proceedings, archival research, communication and media research, and other fields interested in exploring events and entity relationships in textual data.
 
 ## Potential Further Analyses
 *textNet* is compatible with standard network analysis tools in R. Functionality from *ggraph* [@pedersen_ggraph_2024], *sna* [@butts_sna_2024], *igraph* [@csardi_igraph_2024], *network* [@butts_network_2023], and other network visualization 
