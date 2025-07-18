@@ -62,7 +62,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     }
   }
   #prerequisites: step 1, install python
-  #step 2, install miniconda from https://conda.io/miniconda.html
+  #step 2, if necessary: install miniconda from https://conda.io/miniconda.html
   #step 3, if necessary: install virtualenv, numpy, conda, and spacy
   Sys.setenv(RETICULATE_PYTHON=ret_path)
   if(!requireNamespace("reticulate", quietly = T)){
@@ -82,7 +82,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       spacyr::spacy_initialize(model = model)
     },
            error = function(e){
-             message(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
+             stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
            })
   
   
