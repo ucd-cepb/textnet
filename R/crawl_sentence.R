@@ -165,7 +165,7 @@ empty_list$xcomp_helper_token[headverb_rows] <- lapply(seq_along(headverb_rows),
     ])
 })
 
-#TODO verb info for xcomp targets is updated to parent verb attributes because xcomp rows will be deleted
+#verb info for xcomp targets is updated to parent verb attributes because xcomp rows will be deleted
 #No need to duplicate the rows because xcomp rows will be deleted
 xcomp_indices <- which(empty_list$head_verb_dep_rel=="xcomp")
 xcomp_parents <- as.numeric(empty_list$x_parent_verb_id[xcomp_indices])

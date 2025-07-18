@@ -198,12 +198,15 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
   }else{
     
     undir <- igr
+    #delete edge attributes before collapsing network
+    #since we need the weighted version for some of these statistics
     for(q in igraph::edge_attr_names(undir)){
       undir <- igraph::delete_edge_attr(undir, q)
     }
     
     igraph::E(undir)$weight <- 1
     undir <- igraph::simplify(undir, edge.attr.comb=list(weight="sum"), remove.loops = !self_loops)
+    #undir is an undirected, weighted version of the network
     undir <- igraph::as.undirected(undir, mode = "collapse")
     lc <- igraph::cluster_louvain(undir, weights = igraph::edge_attr(undir,"weight"))#uses weights of undirected igraph
     attr_tbl$modularity <- igraph::modularity(undir,membership = lc$membership, weights = igraph::edge_attr(undir, "weight"))

@@ -13,36 +13,31 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Pre-Processing Step I: Process PDFs
 
 ```{r pdf_clean, message=F, warning=F}
-   library(textNet)
-   library(stringr)
-   library(testthat)
-   URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
-   download.file(URL, destfile = "old.pdf", method="curl")
-   
-   URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
-   download.file(URL, destfile = "new.pdf", method="curl")
-   
-   pdfs <- c("old.pdf", 
+library(textNet)
+library(stringr)
+library(testthat)
+#these example pdfs are included with the package
+pdfs <- c("old.pdf", 
           "new.pdf")
    
-   old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
+old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
                      auto_headfoot_remove = T)
-   names(old_new_text) <- c("old","new")
+names(old_new_text) <- c("old","new")
    
-   #we expect one element per pdf
-   expect_that(length(old_new_text), equals(length(pdfs)))
+#we expect one element per pdf
+expect_that(length(old_new_text), equals(length(pdfs)))
 ```
 
 ### Pre-Processing Step II: Parse Text
 
 
 ```{r parse, message=F, warning=F}
-   library(findpython)
-   ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
+library(findpython)
+ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
    
 
-   water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", 
+water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", 
                   "San Joaquin River", "Cottonwood Creek", "Chowchilla Canal Bypass", 
                   "Friant Dam", "Sack Dam", "Friant Canal", "Chowchilla Bypass", 
                   "Fresno River", "Sacramento River", "Merced River","Chowchilla River", 
@@ -53,11 +48,11 @@ knitr::opts_chunk$set(echo = TRUE)
                   "Lower aquifer", "Upper aquifer", "Upper and lower aquifers", 
                   "Lower and upper aquifers")
 
-   if(!requireNamespace("spacyr", quietly = T)){
+if(!requireNamespace("spacyr", quietly = T)){
     stop("Package 'spacyr' must be installed to use this function.",
          call.=F)
   }
-   old_new_parsed <- textNet::parse_text(ret_path, 
+old_new_parsed <- textNet::parse_text(ret_path, 
                           keep_hyph_together = F, 
                           phrases_to_concatenate = water_bodies, 
                           concatenator = "_", 
@@ -66,9 +61,9 @@ knitr::opts_chunk$set(echo = TRUE)
                                  overwrite = T,
                           custom_entities = list(WATER = water_bodies))
    
-   #expect all pages are preserved 
-   for(k in 1:length(old_new_parsed)){
-     maxpage <- max(as.numeric(stringr::str_remove(old_new_parsed[[k]]$doc_id, "text")))
+#expect all pages are preserved 
+for(k in 1:length(old_new_parsed)){
+   maxpage <- max(as.numeric(stringr::str_remove(old_new_parsed[[k]]$doc_id, "text")))
    expect_that(maxpage, equals(length(old_new_text[[k]])))
    }
    
@@ -82,10 +77,9 @@ Next we call textnet_extract() to produce the network object:
 ```{r extract, results = 'hide'}
 ent_types <- c('ORG','GPE','PERSON','WATER')
 extracts <- vector(mode="list",length=length(old_new_parsed))
-   for(m in 1:length(old_new_parsed)){
-      extracts[[m]] <- textnet_extract(old_new_parsed[[m]],concatenator="_",cl=4,
-                   keep_entities = ent_types, 
-                   return_to_memory=T, keep_incomplete_edges=T)
+for(m in 1:length(old_new_parsed)){
+   extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=4,
+                   keep_entities = ent_types, keep_incomplete_edges=T)
    }
 
 ```
@@ -94,12 +88,13 @@ extracts <- vector(mode="list",length=length(old_new_parsed))
 #test conditions
 for(m in 1:length(old_new_parsed)){
   #checking list of entities
-  onp <- old_new_parsed[[m]] |> dplyr::mutate(entitynum = cumsum(str_detect(entity, "_B")))
+  onp <- old_new_parsed[[m]] |> dplyr::mutate(
+    entitynum = cumsum(str_detect(entity, "_B")))
   onp$entitynum <- ifelse(onp$entity == "", NA, onp$entitynum)
   onp <- onp |> dplyr::group_by(entitynum) |> dplyr::mutate(entityconcat = paste(
     token, collapse = "_"))
   onp$entityconcat <- ifelse(str_detect(onp$entity, 
-        paste0(ent_types, "_B", sep = "", collapse = "|")), onp$entityconcat, NA)
+    paste0(ent_types, "_B", sep = "", collapse = "|")), onp$entityconcat, NA)
   
   #node entities should be a subset of all entities since
   #sometimes there are improper sentences that cause
@@ -128,10 +123,10 @@ for(m in 1:length(old_new_parsed)){
 
 ```{r acronyms}
 
-   old_acronyms <- find_acronyms(old_new_text[[1]])
-   new_acronyms <- find_acronyms(old_new_text[[2]])
+old_acronyms <- find_acronyms(old_new_text[[1]])
+new_acronyms <- find_acronyms(old_new_text[[2]])
    
-   print(head(old_acronyms))
+print(head(old_acronyms))
    
 ```
 
@@ -139,14 +134,14 @@ for(m in 1:length(old_new_parsed)){
 
 ```{r consolidate}
 tofrom <- data.table::data.table(
-   from = c(as.list(old_acronyms$acronym),
+  from = c(as.list(old_acronyms$acronym),
              list("Sub_basin",
                   "Sub_Basin",
                   "upper_and_lower_aquifers",
                   "Upper_and_lower_aquifers",
                   "Lower_and_upper_aquifers",
                   "lower_and_upper_aquifers")), 
-   to = c(as.list(old_acronyms$name),
+  to = c(as.list(old_acronyms$name),
              list("Subbasin",
                   "Subbasin",
                   c("upper_aquifer","lower_aquifer"),
@@ -154,28 +149,28 @@ tofrom <- data.table::data.table(
                   c("upper_aquifer","lower_aquifer"),
                   c("upper_aquifer","lower_aquifer"))))
 
-   old_extract_clean <- disambiguate(
-      textnet_extract = extracts[[1]],
-      from = tofrom$from, 
-      to = tofrom$to,
-      match_partial_entity = c(rep(F,nrow(old_acronyms)),T,T,F,F,F,F))
+old_extract_clean <- disambiguate(
+  textnet_extract = extracts[[1]],
+  from = tofrom$from, 
+  to = tofrom$to,
+  match_partial_entity = c(rep(F,nrow(old_acronyms)),T,T,F,F,F,F))
    
-   #we shouldn't have changed the overall structure of the data
-   expect_that(length(old_extract_clean), equals(length(extracts[[1]])))
-   #we converted from acronyms to full names so should not see any acronyms
-   expect_that(any(str_detect(old_extract_clean$nodelist$entity_name,
+#we shouldn't have changed the overall structure of the data
+expect_that(length(old_extract_clean), equals(length(extracts[[1]])))
+#we converted from acronyms to full names so should not see any acronyms
+expect_that(any(str_detect(old_extract_clean$nodelist$entity_name,
         paste0("^", paste0(old_acronyms$acronym, collapse = "$|^"),
                "$"))),equals(F))
    
-   tofrom <- data.table::data.table(
-   from = c(as.list(new_acronyms$acronym),
+tofrom <- data.table::data.table(
+  from = c(as.list(new_acronyms$acronym),
              list("Sub_basin",
                   "Sub_Basin",
                   "upper_and_lower_aquifers",
                   "Upper_and_lower_aquifers",
                   "Lower_and_upper_aquifers",
                   "lower_and_upper_aquifers")), 
-   to = c(as.list(new_acronyms$name),
+  to = c(as.list(new_acronyms$name),
              list("Subbasin",
                   "Subbasin",
                   c("upper_aquifer","lower_aquifer"),
@@ -183,11 +178,11 @@ tofrom <- data.table::data.table(
                   c("upper_aquifer","lower_aquifer"),
                   c("upper_aquifer","lower_aquifer"))))
    
-   new_extract_clean <- disambiguate(
-      textnet_extract = extracts[[2]], 
-      from = tofrom$from, 
-      to = tofrom$to,
-      match_partial_entity = c(rep(F,nrow(new_acronyms)),T,T,F,F,F,F))
+new_extract_clean <- disambiguate(
+  textnet_extract = extracts[[2]], 
+  from = tofrom$from, 
+  to = tofrom$to,
+  match_partial_entity = c(rep(F,nrow(new_acronyms)),T,T,F,F,F,F))
 
    
 ```
@@ -196,34 +191,34 @@ tofrom <- data.table::data.table(
 
 
 ```{r export}
-  set.seed(50000)
-   old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
+set.seed(50000)
+old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                         collapse_edges = F, self_loops = T)
-   expect_that(class(old_extract_net[[1]]), equals("igraph"))
-  set.seed(50000)
-   new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
+expect_that(class(old_extract_net[[1]]), equals("igraph"))
+set.seed(50000)
+new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
                                         collapse_edges = F, self_loops = T)
 
-  expect_that(class(new_extract_net[[1]]), equals("igraph"))
-   table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, 
+expect_that(class(new_extract_net[[1]]), equals("igraph"))
+table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, 
                      scientific = F))
-   colnames(table) <- c("old","new")
-   print(table)
+colnames(table) <- c("old","new")
+print(table)
    
 ```
 
 
 ```{r plot, message=F, warning=F}
-   library(ggraph)
-  set.seed(50000)
-   old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
+library(ggraph)
+set.seed(50000)
+old_extract_plot <- export_to_network(old_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
-   set.seed(50000)
-   new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
+set.seed(50000)
+new_extract_plot <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
                                          collapse_edges = T, self_loops = T)[[1]]
    #order of these layers matters
-   set.seed(50000)
-   ggraph(old_extract_plot, layout = 'fr')+
+set.seed(50000)
+ggraph(old_extract_plot, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
                     color = "#000000",
@@ -237,9 +232,9 @@ tofrom <- data.table::data.table(
       labs(title= "Old Network")+
       theme_void()
 
-   #order of these layers matters
-   set.seed(50000)
-   ggraph(new_extract_plot, layout = 'fr')+
+#order of these layers matters
+set.seed(50000)
+ggraph(new_extract_plot, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
                     color = "#000000",
@@ -259,14 +254,14 @@ tofrom <- data.table::data.table(
 
 
 ```{r top}
-   top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
-   head(top_feats[[2]],10)
+top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
+head(top_feats[[2]],10)
 ```
 
 
 
 ```{r step6b}
-   table(igraph::E(old_extract_net[[1]])$head_verb_tense)
+table(igraph::E(old_extract_net[[1]])$head_verb_tense)
 ```
 
 ### Composite Network Expectations
@@ -274,15 +269,15 @@ tofrom <- data.table::data.table(
 
 
 ```{r composite}
-   composite_net <- combine_networks(list(old_extract_net[[1]], new_extract_net[[1]]), 
+composite_net <- combine_networks(list(old_extract_net[[1]], new_extract_net[[1]]), 
                                      mode = "weighted")
 
 #we expect the new nodes to be in the cleaned extracts
-  expect_contains(c(old_extract_clean$nodelist$entity_name,
+expect_contains(c(old_extract_clean$nodelist$entity_name,
                     new_extract_clean$nodelist$entity_name),
                     igraph::get.vertex.attribute(composite_net, "name"))
-  set.seed(50000)
-   ggraph(composite_net, layout = 'fr')+
+set.seed(50000)
+ggraph(composite_net, layout = 'fr')+
       geom_edge_fan(aes(alpha = weight),
                     end_cap = circle(1,"mm"),
                     color = "#000000",
@@ -306,56 +301,56 @@ tofrom <- data.table::data.table(
 library(network)
 library(igraph)
 
-   top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
-   print(head(top_feats[[1]],10))
+top_feats <- top_features(list(old_extract_net[[1]], new_extract_net[[1]]))
+print(head(top_feats[[1]],10))
 ```
 
 
 
 ```{r step8b}
-    composite_tbl <- igraph::as_data_frame(composite_net, what = "vertices")
-    composite_tbl <- composite_tbl[,c("name","num_graphs_in")]
+composite_tbl <- igraph::as_data_frame(composite_net, what = "vertices")
+composite_tbl <- composite_tbl[,c("name","num_graphs_in")]
     
-    #prepare data frame version of old network, to add composite_tbl variables
-    old_tbl <- igraph::as_data_frame(old_extract_net[[1]], what = "both")
-    #this adds the num_graphs_in variable from composite_tbl
-    old_tbl$vertices <- dplyr::left_join(old_tbl$vertices, composite_tbl)
-    #turn back into a network
-    old_net <- network::network(x=old_tbl$edges[,1:2], directed = T,
+#prepare data frame version of old network, to add composite_tbl variables
+old_tbl <- igraph::as_data_frame(old_extract_net[[1]], what = "both")
+#this adds the num_graphs_in variable from composite_tbl
+old_tbl$vertices <- dplyr::left_join(old_tbl$vertices, composite_tbl)
+#turn back into a network
+old_net <- network::network(x=old_tbl$edges[,1:2], directed = T,
                           hyper = F, loops = T, multiple = T, 
                           bipartiate = F, vertices = old_tbl$vertices,
                           matrix.type = "edgelist")
-    #we need a matrix version for some node statistics
-    set.seed(50000)
-    old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", 
+#we need a matrix version for some node statistics
+set.seed(50000)
+old_mat <- as.matrix(as.matrix(export_to_network(old_extract_clean, "igraph", 
                           keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
     
-    #prepare data frame version of new network, to add composite_tbl variables
-    new_tbl <- igraph::as_data_frame(new_extract_net[[1]], what = "both")
-    #this adds the num_graphs_in variable from composite_tbl
-    new_tbl$vertices <- dplyr::left_join(new_tbl$vertices, composite_tbl)
-    #turn back into a network
-    new_net <- network::network(x=new_tbl$edges[,1:2], directed = T,
+#prepare data frame version of new network, to add composite_tbl variables
+new_tbl <- igraph::as_data_frame(new_extract_net[[1]], what = "both")
+#this adds the num_graphs_in variable from composite_tbl
+new_tbl$vertices <- dplyr::left_join(new_tbl$vertices, composite_tbl)
+#turn back into a network
+new_net <- network::network(x=new_tbl$edges[,1:2], directed = T,
                           hyper = F, loops = T, multiple = T, 
                           bipartiate = F, vertices = new_tbl$vertices,
                           matrix.type = "edgelist")
-    #we need a matrix version for some node statistics
-    set.seed(50000)
-    new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", 
+#we need a matrix version for some node statistics
+set.seed(50000)
+new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph", 
                           keep_isolates = F, collapse_edges = T, self_loops = F)[[1]]))
 ```
     
 
 
 ```{r step8b2}
-    paths2 <- diag(old_mat %*% old_mat)
-    recip <- 2*paths2 / sna::degree(old_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
+paths2 <- diag(old_mat %*% old_mat)
+recip <- 2*paths2 / sna::degree(old_net)
+totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
                 type = "directed", isolates="zero")$totalCC))
-    closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
-    between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
-    deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
-    old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, 
+closens <- sna::closeness(old_net, gmode = "graph", cmode="suminvundir")
+between <- sna::betweenness(old_net,gmode = "graph",cmode="undirected")
+deg <- sna::degree(old_net, gmode = "graph", cmode = "undirected")
+old_node_df <- dplyr::tibble(name = network::get.vertex.attribute(old_net, 
             "vertex.names"), 
             closens, 
             between, 
@@ -366,14 +361,14 @@ library(igraph)
             num_graphs_in = network::get.vertex.attribute(old_net, "num_graphs_in"))
     
 
-    paths2 <- diag(new_mat %*% new_mat)
-    recip <- 2*paths2 / sna::degree(new_net)
-    totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, 
+paths2 <- diag(new_mat %*% new_mat)
+recip <- 2*paths2 / sna::degree(new_net)
+totalCC <- as.vector(unname(DirectedClustering::ClustF(new_mat, 
                   type = "directed", isolates="zero")$totalCC))
-    closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
-    between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
-    deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
-    new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, 
+closens <- sna::closeness(new_net, gmode = "graph", cmode="suminvundir")
+between <- sna::betweenness(new_net,gmode = "graph",cmode="undirected")
+deg <- sna::degree(new_net, gmode = "graph", cmode = "undirected")
+new_node_df <- dplyr::tibble(name = network::get.vertex.attribute(new_net, 
             "vertex.names"), 
             closens, 
             between, 
@@ -383,36 +378,36 @@ library(igraph)
             entity_type = network::get.vertex.attribute(new_net,"entity_type"),
             num_graphs_in = network::get.vertex.attribute(new_net, "num_graphs_in"))
     
-    summary(old_node_df)
-    summary(new_node_df)
+summary(old_node_df)
+summary(new_node_df)
     
 ```
     
 
 
 ```{r step8b3}
-    old_node_df$plan_version <- "old"
-    new_node_df$plan_version <- "new"
-    combineddf <- rbind(old_node_df, new_node_df)
-    with(combineddf,table(plan_version,num_graphs_in))
+old_node_df$plan_version <- "old"
+new_node_df$plan_version <- "new"
+combineddf <- rbind(old_node_df, new_node_df)
+with(combineddf,table(plan_version,num_graphs_in))
     
 ```
 
 
 
 ```{r step8b4}
-    library(gridExtra)
-    library(ggplot2)
-    b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
+library(gridExtra)
+library(ggplot2)
+b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
       theme_bw() + labs(title="Old Network")
-    b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
+b2 <- ggplot(new_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 
       theme_bw() + labs(title="New Network")
-        b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) + 
+b3 <- ggplot(old_node_df, aes(x = entity_type, y = log(between+0.01))) + 
           geom_boxplot() + theme_bw() + labs(title="Old Network")
-    b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) + 
+b4 <- ggplot(new_node_df, aes(x = entity_type, y = log(between+0.01))) + 
       geom_boxplot() + theme_bw() + labs(title="New Network")
 
-    grid.arrange(b1, b2, b3, b4, ncol=2)
+grid.arrange(b1, b2, b3, b4, ncol=2)
 ```
 
 

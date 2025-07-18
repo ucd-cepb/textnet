@@ -162,10 +162,10 @@ tofrom <- data.table::data.table(
 #multiple ways of referring to a single entity 
 #(e.g. acronyms. vs. full name)
 old_extract_clean <- disambiguate(
-      textnet_extract = extracts[[1]],
-      from = tofrom$from, 
-      to = tofrom$to,
-      match_partial_entity = c(rep(F,nrow(old_acronyms)),T,T,F,F,F,F))
+  textnet_extract = extracts[[1]],
+  from = tofrom$from, 
+  to = tofrom$to,
+  match_partial_entity = c(rep(F,nrow(old_acronyms)),T,T,F,F,F,F))
 
 #same thing, now for the new network
 tofrom <- data.table::data.table(
@@ -185,10 +185,10 @@ tofrom <- data.table::data.table(
                   c("upper_aquifer","lower_aquifer"))))
    
 new_extract_clean <- disambiguate(
-      textnet_extract = extracts[[2]], 
-      from = tofrom$from, 
-      to = tofrom$to,
-      match_partial_entity = c(rep(F,nrow(new_acronyms)),T,T,F,F,F,F))
+  textnet_extract = extracts[[2]], 
+  from = tofrom$from, 
+  to = tofrom$to,
+  match_partial_entity = c(rep(F,nrow(new_acronyms)),T,T,F,F,F,F))
 
 ```
 
@@ -205,7 +205,7 @@ old_extract_net <- export_to_network(old_extract_clean, "igraph", keep_isolates 
 set.seed(50000)
 new_extract_net <- export_to_network(new_extract_clean, "igraph", keep_isolates = F, 
                                         collapse_edges = F, self_loops = T)
-
+#table of old and new network statistics side by side
 table <- t(format(rbind(old_extract_net[[2]], new_extract_net[[2]]), digits = 3, 
                      scientific = F))
 colnames(table) <- c("old","new")
@@ -336,7 +336,7 @@ old_tbl <- igraph::as_data_frame(old_extract_net[[1]], what = "both")
 #in this example we want to incorporate the num_graphs_in variable 
 #from composite_tbl into our analysis. We can use a join to do this
 old_tbl$vertices <- dplyr::left_join(old_tbl$vertices, composite_tbl)
-#turn back into a network
+#ready to turn back into a network 
 old_net <- network::network(x=old_tbl$edges[,1:2], directed = T,
                           hyper = F, loops = T, multiple = T, 
                           bipartiate = F, vertices = old_tbl$vertices,
@@ -476,7 +476,9 @@ This is a wrapper for pdftools, which has the option of using pdf_text or OCR. W
 ```{r pdf_clean, eval = F}
 library(textNet)
 library(stringr)
-#download sample pdf data from internet
+#download sample pdf data from state website
+#this is the same as old.pdf and new.pdf
+#that are included in the package
 URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
 download.file(URL, destfile = "vignettes/old.pdf", method="curl")
    
