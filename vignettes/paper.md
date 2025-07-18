@@ -4,7 +4,7 @@ authors:
    - name: Elise Zufall
      affiliation: '1'
    - name: Tyler Scott
-     affiliation: '1''2'
+     affiliation: '1, 2'
 affiliations:
    - index: 1
      name: Center for Environmental Policy & Behavior, UC Davis
