@@ -23,7 +23,7 @@ dates, or custom-defined categories, to be preserved.
 
 See vignettes/paper.pdf for an overview of the package functionality and potential use cases.  
 
-To demo the package, see vignettes/textNet_vignette_2024.pdf for a reproducible example that transforms raw text data into event networks.
+To demo the package, see vignettes/textNet_vignette_2025.pdf for a reproducible example that transforms raw text data into event networks.
 
 # Installation
 
