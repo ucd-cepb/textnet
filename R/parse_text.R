@@ -11,6 +11,8 @@
 #' The parsed data will be exported to these files.
 #' @param overwrite A boolean. Whether to overwrite existing files
 #' @param custom_entities A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.
+#' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline before processing.
+#' @param model A string referencing a spaCy model, currently supports two options: English large and English transformer, see https://spacy.io/models/en
 #' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 #' @importFrom data.table setDT
 #' @importFrom stringr str_detect str_replace_all
@@ -21,7 +23,7 @@
 
 parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
                               concatenator="_", text_list, parsed_filenames,
-                              overwrite=T, custom_entities = NULL, model = "en_core_web_lg"){
+                              overwrite=T, custom_entities = NULL, entity_ruler_patterns = NULL, model = c("en_core_web_lg",'en_core_web_trf'){
   if(!requireNamespace("spacyr", quietly = T)){
     stop("Package 'spacyr' must be installed to use this function.",
          call.=F)
@@ -61,6 +63,18 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       stop("custom_entities must be a named list.")
     }
   }
+  
+  if(!is.null(entity_ruler_patterns)){
+    if(!is.list(entity_ruler_patterns)){
+      stop("entity_ruler_patterns must be a list.")
+    }
+    for(i in 1:length(entity_ruler_patterns)){
+      if(!is.list(entity_ruler_patterns[[i]]) || 
+         !all(c("label", "pattern") %in% names(entity_ruler_patterns[[i]]))){
+        stop("Each element in entity_ruler_patterns must be a list with 'label' and 'pattern' elements.")
+      }
+    }
+  }
   #prerequisites: step 1, install python
   #step 2, if necessary: install miniconda from https://conda.io/miniconda.html
   #step 3, if necessary: install virtualenv, numpy, conda, and spacy
@@ -84,6 +98,26 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
            error = function(e){
              stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
            })
+  
+  # Configure EntityRuler if patterns are provided
+  if(!is.null(entity_ruler_patterns)){
+    if(requireNamespace("reticulate", quietly = T)){
+      tryCatch({
+        # Get the spacy nlp object
+        nlp <- reticulate::py_eval("import spacy; spacy.load")[[1]](model)
+        
+        # Create EntityRuler and add patterns
+        ruler <- nlp$add_pipe("entity_ruler", before = "ner")
+        ruler$add_patterns(entity_ruler_patterns)
+        
+        # Update the spacyr session with the modified pipeline
+        spacyr::spacy_finalize()
+        spacyr::spacy_initialize(model = model, entity = TRUE)
+      }, error = function(e){
+        warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
+      })
+    }
+  }
   
   
   #pages is a character vector, in which each element is a string that represents one page of text
