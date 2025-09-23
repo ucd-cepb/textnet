@@ -64,6 +64,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     }
   }
   
+  if(!is.null(entity_ruler_patterns)){
     if(!is.list(entity_ruler_patterns)){
       stop("entity_ruler_patterns must be a list.")
     }
