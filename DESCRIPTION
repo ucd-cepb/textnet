@@ -19,7 +19,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports: 
     magrittr,
     dplyr,
@@ -36,11 +36,12 @@ Imports:
     R.utils,
     methods,
     xml2
-Suggests: 
+Suggests:
     reticulate,
     spacyr,
     rmarkdown (>= 2.21),
-    knitr (>= 1.42)
+    knitr (>= 1.42),
+    ggraph
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5.0)

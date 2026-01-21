@@ -10,9 +10,13 @@
 #' @param parsed_filenames This is a character vector in which each element represents a filepath associated with its respective document. 
 #' The parsed data will be exported to these files.
 #' @param overwrite A boolean. Whether to overwrite existing files
+#' @param test A boolean. If TRUE and overwrite is FALSE, will still run parsing but won't save results. Useful for testing parsing on a subset without affecting saved files.
 #' @param custom_entities A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.
-#' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline before processing.
+#' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline. Use entity_specify() to create patterns from a dictionary.
+#' @param ruler_position A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.
+#' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
 #' @param model A string referencing a spaCy model, currently supports two options: English large and English transformer, see https://spacy.io/models/en
+#' @param use_gpu A string controlling GPU usage: "auto" (default) tries GPU if available and falls back to CPU, "cpu" forces CPU usage, "gpu" requires GPU (will error if unavailable). Transformer models (e.g., en_core_web_trf) benefit from GPU acceleration but work on CPU.
 #' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 #' @importFrom data.table setDT
 #' @importFrom stringr str_detect str_replace_all
@@ -21,9 +25,12 @@
 #' @importFrom utils data
 #' @export
 
-parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA, 
+parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
                               concatenator="_", text_list, parsed_filenames,
-                              overwrite=T, custom_entities = NULL, entity_ruler_patterns = NULL, model = c("en_core_web_lg",'en_core_web_trf'){
+                              overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
+                              ruler_position = c("after", "before"), overwrite_ents = TRUE,
+                              model = c("en_core_web_lg",'en_core_web_trf'),
+                              use_gpu = c("auto", "cpu", "gpu")){
   if(!requireNamespace("spacyr", quietly = T)){
     stop("Package 'spacyr' must be installed to use this function.",
          call.=F)
@@ -56,7 +63,20 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   if(!is.logical(overwrite) || length(overwrite) != 1) {
     stop("'overwrite' must be a single logical value")
   }
-  
+
+  if(!is.logical(test) || length(test) != 1) {
+    stop("'test' must be a single logical value")
+  }
+
+  # Resolve model, use_gpu, and ruler_position from choices
+  model <- match.arg(model)
+  use_gpu <- match.arg(use_gpu)
+  ruler_position <- match.arg(ruler_position)
+
+  if(!is.logical(overwrite_ents) || length(overwrite_ents) != 1) {
+    stop("'overwrite_ents' must be a single logical value")
+  }
+
   if(!is.null(custom_entities)){
     if(!is.list(custom_entities) | is.null(names(custom_entities)) |
        "" %in% names(custom_entities)){
@@ -69,12 +89,37 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       stop("entity_ruler_patterns must be a list.")
     }
     for(i in 1:length(entity_ruler_patterns)){
-      if(!is.list(entity_ruler_patterns[[i]]) || 
+      if(!is.list(entity_ruler_patterns[[i]]) ||
          !all(c("label", "pattern") %in% names(entity_ruler_patterns[[i]]))){
         stop("Each element in entity_ruler_patterns must be a list with 'label' and 'pattern' elements.")
       }
     }
   }
+
+  # Fix OpenMP library conflict (common on macOS with conda)
+  # This prevents crashes from multiple OpenMP runtimes being loaded
+  Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
+
+  # Prevent OpenMP thread conflicts between R packages (e.g., data.table) and PyTorch
+  # Only needed for transformer models which use PyTorch
+  # This must be set before Python is initialized
+  if(grepl("trf", model)){
+    Sys.setenv(OMP_NUM_THREADS = "1")
+    message("Note: Setting OMP_NUM_THREADS=1 to prevent OpenMP conflicts with transformer model. This may reduce data.table performance during this session.")
+  }
+
+  # Set CUDA_VISIBLE_DEVICES BEFORE Python initialization for CPU mode
+  # This must happen before reticulate::py_config() to prevent PyTorch/CUDA crashes
+  if(use_gpu == "cpu"){
+    Sys.setenv(CUDA_VISIBLE_DEVICES = "")
+  } else if(use_gpu == "auto"){
+    # For auto mode, also set CUDA_VISIBLE_DEVICES if we detect transformer model
+    # This prevents crashes when GPU is not properly configured
+    if(grepl("trf", model)){
+      Sys.setenv(CUDA_VISIBLE_DEVICES = "")
+    }
+  }
+
   #prerequisites: step 1, install python
   #step 2, if necessary: install miniconda from https://conda.io/miniconda.html
   #step 3, if necessary: install virtualenv, numpy, conda, and spacy
@@ -86,6 +131,46 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   if(requireNamespace("reticulate", quietly = T)){
     reticulate::py_config()
   }
+
+  # Configure GPU/CPU usage for spaCy
+  # Must be done BEFORE spacyr::spacy_initialize() to prevent crashes
+  if(requireNamespace("reticulate", quietly = T)){
+    spacy <- reticulate::import("spacy")
+
+    if(use_gpu == "cpu"){
+      # Force CPU mode
+      spacy$require_cpu()
+      message("spaCy configured to use CPU")
+    } else if(use_gpu == "gpu"){
+      # Require GPU - will error if unavailable
+      gpu_available <- tryCatch({
+        spacy$require_gpu()
+        TRUE
+      }, error = function(e){
+        stop("GPU requested but not available. Set use_gpu='auto' or use_gpu='cpu' to use CPU instead.")
+      })
+      message("spaCy configured to use GPU")
+    } else {
+      # Auto mode: try GPU, fall back to CPU
+      # Check if CUDA is actually available via PyTorch
+      gpu_available <- tryCatch({
+        torch <- reticulate::import("torch")
+        torch$cuda$is_available()
+      }, error = function(e){
+        FALSE
+      })
+
+      if(gpu_available){
+        spacy$prefer_gpu()
+        message("spaCy configured to use GPU")
+      } else {
+        Sys.setenv(CUDA_VISIBLE_DEVICES = "")
+        spacy$require_cpu()
+        message("GPU not available, spaCy configured to use CPU")
+      }
+    }
+  }
+
   #spacy_install()
   #spacy_download_langmodel(lang_mode = 'en_core_web_lg')
   if(!stringr::str_detect(model, "^en_")){
@@ -98,21 +183,37 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
            error = function(e){
              stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
            })
-  
+
   # Configure EntityRuler if patterns are provided
   if(!is.null(entity_ruler_patterns)){
     if(requireNamespace("reticulate", quietly = T)){
       tryCatch({
-        # Get the spacy nlp object
-        nlp <- reticulate::py_eval("import spacy; spacy.load")[[1]](model)
-        
-        # Create EntityRuler and add patterns
-        ruler <- nlp$add_pipe("entity_ruler", before = "ner")
+        # Access spacyr's nlp object from Python's global namespace
+        # spacyr stores the nlp object there after initialization
+        nlp <- reticulate::py_eval("nlp")
+
+        # Determine position argument based on ruler_position
+        if(ruler_position == "after"){
+          position_arg <- list(after = "ner")
+        } else {
+          position_arg <- list(before = "ner")
+        }
+
+        # Create EntityRuler with appropriate settings
+        # overwrite_ents controls whether EntityRuler can override NER's decisions
+        ruler_config <- list(overwrite_ents = overwrite_ents)
+
+        # Add EntityRuler to the pipeline
+        ruler <- do.call(nlp$add_pipe,
+                         c(list("entity_ruler"),
+                           position_arg,
+                           list(config = ruler_config)))
         ruler$add_patterns(entity_ruler_patterns)
-        
-        # Update the spacyr session with the modified pipeline
-        spacyr::spacy_finalize()
-        spacyr::spacy_initialize(model = model, entity = TRUE)
+
+        message(paste0("EntityRuler configured: position=", ruler_position,
+                      ", overwrite_ents=", overwrite_ents,
+                      ", ", length(entity_ruler_patterns), " patterns loaded"))
+
       }, error = function(e){
         warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
       })
@@ -154,10 +255,13 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   unique_files <- base::unique(file_ids)
   all_parsed <- vector(mode="list",length=length(unique_files))
   for (m in 1:length(unique_files)){
-      if(overwrite==T | (overwrite==F & !(file.exists(parsed_filenames[m])))){
-        
+      file_exists <- file.exists(parsed_filenames[m])
+      should_parse <- overwrite || !file_exists || test
+      should_save <- overwrite || !file_exists
+
+      if(should_parse){
           single_plan_text <- unlist(pages[file_ids==unique_files[m]])
-          
+
           if(requireNamespace("spacyr", quietly = T)){
             parsedtxt <- spacyr::spacy_parse(single_plan_text,
                                              pos = T,
@@ -167,34 +271,41 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
                                              dependency = T,
                                              nounphrase = T)
           }
-          
+
           lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
           lettertokensunicodeescaped <- stri_escape_unicode(lettertokens)
           utils::data(eng_words)
-          pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped) 
-          
+          pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped)
+
           if(pctlettersineng<0.5){
             warning(paste0("Fewer than 50% of letter-containing tokens in the document ", unique_files[m] ," are English words."))
           }
-          print(paste0("parsing complete: ",unique_files[m]))
-        
-        
-      }
-    else{
-      print(paste0("parsed_filenames[",m,"] already exists. Using existing file as element ",m," of the list returned by this function."))
-      parsedtxt <- readRDS(parsed_filenames[m])
-    }
-      all_parsed[[m]] <- parsedtxt
-      if(!is.null(custom_entities)){
-        for(k in 1:length(custom_entities)){
-          custom_entities[[k]] <- stringr::str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
-          #this if condition prevents an error if the custom entity doesn't exist as a token in the doc
-          if(length(all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity)>0){
-            all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
+
+          if(test && file_exists && !overwrite){
+            print(paste0("parsing complete (test mode, not saved): ",unique_files[m]))
+          } else {
+            print(paste0("parsing complete: ",unique_files[m]))
           }
-        }
+
+          all_parsed[[m]] <- parsedtxt
+          if(!is.null(custom_entities)){
+            for(k in 1:length(custom_entities)){
+              custom_entities[[k]] <- stringr::str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
+              #this if condition prevents an error if the custom entity doesn't exist as a token in the doc
+              if(length(all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity)>0){
+                all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
+              }
+            }
+          }
+
+          if(should_save){
+            saveRDS(all_parsed[[m]], parsed_filenames[m])
+          }
+      } else {
+          # overwrite=F, file exists, test=F: skip entirely
+          print(paste0("Skipping parsed_filenames[",m,"] - file already exists (set overwrite=T to reparse or test=T to test without saving)"))
+          all_parsed[[m]] <- NULL
       }
-      saveRDS(all_parsed[[m]], parsed_filenames[m])
   }
   if(requireNamespace("spacyr", quietly = T)){
     spacyr::spacy_finalize()

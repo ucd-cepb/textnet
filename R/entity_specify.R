@@ -7,7 +7,10 @@
 #' @param case_sensitive A logical value indicating whether pattern matching should be case sensitive. Defaults to FALSE. Ignored when reading from file.
 #' @param whole_word_only A logical value indicating whether to match only whole words. Defaults to TRUE. Ignored when reading from file.
 #' @param aliases A character vector of aliases for each entity. Can be semicolon-separated strings for multiple aliases per entity. Defaults to NULL. Ignored when reading from file.
-#' @param file_path Optional. Path to a CSV or TXT file containing entity specifications. File must have columns: entity_names, entity_label, case_sensitive, whole_word_only, aliases.
+#' @param file_path Optional. Path to a CSV or TXT file containing entity specifications. Supports two formats:
+#'   (1) Standard format with columns: entity_names, entity_label, case_sensitive, whole_word_only, aliases
+#'   (2) Reviewed suggestions format from suggest_entities() with columns: phrase, keep, final_label (or suggested_label).
+#'       Rows with keep=TRUE/T/true/yes/Y/1 are included. Uses final_label if provided, otherwise suggested_label.
 #' @return A list of pattern dictionaries formatted for spaCy's EntityRuler
 #' @importFrom utils read.csv read.table
 #' @export
@@ -36,14 +39,52 @@ entity_specify <- function(entity_names = NULL, entity_label = "CUSTOM", case_se
       stop("Supported file formats: .csv, .txt, .tsv")
     }
     
-    # Validate required columns
-    required_cols <- c("entity_names", "entity_label", "case_sensitive", "whole_word_only", "aliases")
-    missing_cols <- setdiff(required_cols, names(entity_data))
-    if(length(missing_cols) > 0) {
-      stop(paste0("Missing required columns: ", paste(missing_cols, collapse = ", ")))
+    # Detect file format: suggest_entities format vs standard format
+    is_suggestions_format <- all(c("phrase", "keep") %in% names(entity_data))
+
+    if(is_suggestions_format) {
+      # Handle suggest_entities() reviewed format
+      message("Detected suggest_entities format, processing reviewed suggestions...")
+
+      # Filter to kept rows
+      keep_values <- tolower(trimws(as.character(entity_data$keep)))
+      kept_rows <- keep_values %in% c("true", "t", "yes", "y", "1")
+      entity_data <- entity_data[kept_rows, ]
+
+      if(nrow(entity_data) == 0) {
+        warning("No rows with keep=TRUE found in suggestions file")
+        return(list())
+      }
+
+      # Determine label: use final_label if provided, otherwise suggested_label
+      if("final_label" %in% names(entity_data)) {
+        entity_data$entity_label <- ifelse(
+          !is.na(entity_data$final_label) & nchar(trimws(entity_data$final_label)) > 0,
+          trimws(entity_data$final_label),
+          entity_data$suggested_label
+        )
+      } else {
+        entity_data$entity_label <- entity_data$suggested_label
+      }
+
+      # Map columns to standard format
+      entity_data$entity_names <- entity_data$phrase
+      entity_data$case_sensitive <- FALSE
+      entity_data$whole_word_only <- TRUE
+      entity_data$aliases <- ""
+
+      message(paste0("Loaded ", nrow(entity_data), " entities from reviewed suggestions"))
+
+    } else {
+      # Standard format - validate required columns
+      required_cols <- c("entity_names", "entity_label", "case_sensitive", "whole_word_only", "aliases")
+      missing_cols <- setdiff(required_cols, names(entity_data))
+      if(length(missing_cols) > 0) {
+        stop(paste0("Missing required columns: ", paste(missing_cols, collapse = ", ")))
+      }
     }
-    
-    # Validate data types
+
+    # Validate and convert data types
     if(!is.character(entity_data$entity_names)) {
       entity_data$entity_names <- as.character(entity_data$entity_names)
     }
@@ -61,10 +102,10 @@ entity_specify <- function(entity_names = NULL, entity_label = "CUSTOM", case_se
     }
     # Replace NA aliases with empty strings
     entity_data$aliases[is.na(entity_data$aliases)] <- ""
-    
+
     # Remove rows with missing entity names
     entity_data <- entity_data[!is.na(entity_data$entity_names) & nchar(entity_data$entity_names) > 0, ]
-    
+
     if(nrow(entity_data) == 0) {
       warning("No valid entity names found in file after filtering")
       return(list())

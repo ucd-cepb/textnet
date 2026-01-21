@@ -12,8 +12,13 @@ parse_text(
   text_list,
   parsed_filenames,
   overwrite = T,
+  test = F,
   custom_entities = NULL,
-  model = "en_core_web_lg"
+  entity_ruler_patterns = NULL,
+  ruler_position = c("after", "before"),
+  overwrite_ents = TRUE,
+  model = c("en_core_web_lg", "en_core_web_trf"),
+  use_gpu = c("auto", "cpu", "gpu")
 )
 }
 \arguments{
@@ -32,7 +37,19 @@ The parsed data will be exported to these files.}
 
 \item{overwrite}{A boolean. Whether to overwrite existing files}
 
+\item{test}{A boolean. If TRUE and overwrite is FALSE, will still run parsing but won't save results. Useful for testing parsing on a subset without affecting saved files.}
+
 \item{custom_entities}{A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.}
+
+\item{entity_ruler_patterns}{A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline. Use entity_specify() to create patterns from a dictionary.}
+
+\item{ruler_position}{A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.}
+
+\item{overwrite_ents}{A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.}
+
+\item{model}{A string referencing a spaCy model, currently supports two options: English large and English transformer, see https://spacy.io/models/en}
+
+\item{use_gpu}{A string controlling GPU usage: "auto" (default) tries GPU if available and falls back to CPU, "cpu" forces CPU usage, "gpu" requires GPU (will error if unavailable). Transformer models (e.g., en_core_web_trf) benefit from GPU acceleration but work on CPU.}
 }
 \value{
 A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file

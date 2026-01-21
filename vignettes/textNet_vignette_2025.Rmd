@@ -3,7 +3,11 @@ title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from T
 author: Elise Zufall and Tyler Scott
 date: 17 July 2025
 bibliography: paper.bib
-output: pdf_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -92,7 +96,7 @@ extracts <- vector(mode="list",length=length(old_new_parsed))
 #'edges' that are missing either a source node
 #or a target node
 for(m in 1:length(old_new_parsed)){
-  extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=4,
+  extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=2,
                    keep_entities = c('ORG','GPE','PERSON','WATER'), 
                    keep_incomplete_edges=T)
    }
