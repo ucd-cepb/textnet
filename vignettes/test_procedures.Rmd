@@ -2,7 +2,11 @@
 title: "Testing Protocol Companion to textNet Vignette"
 author: Elise Zufall and Tyler Scott
 date: 7 November 2024
-output: pdf_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Testing Protocol Companion to textNet Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -19,7 +23,7 @@ library(testthat)
 #these example pdfs are included with the package
 pdfs <- c("old.pdf", 
           "new.pdf")
-   
+
 old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
                      auto_headfoot_remove = T)
@@ -78,7 +82,7 @@ Next we call textnet_extract() to produce the network object:
 ent_types <- c('ORG','GPE','PERSON','WATER')
 extracts <- vector(mode="list",length=length(old_new_parsed))
 for(m in 1:length(old_new_parsed)){
-   extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=4,
+   extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=2,
                    keep_entities = ent_types, keep_incomplete_edges=T)
    }
 
@@ -342,7 +346,7 @@ new_mat <- as.matrix(as.matrix(export_to_network(new_extract_clean, "igraph",
     
 
 
-```{r step8b2}
+```{r step8b2, eval=FALSE}
 paths2 <- diag(old_mat %*% old_mat)
 recip <- 2*paths2 / sna::degree(old_net)
 totalCC <- as.vector(unname(DirectedClustering::ClustF(old_mat, 
@@ -385,7 +389,7 @@ summary(new_node_df)
     
 
 
-```{r step8b3}
+```{r step8b3, eval=FALSE}
 old_node_df$plan_version <- "old"
 new_node_df$plan_version <- "new"
 combineddf <- rbind(old_node_df, new_node_df)
@@ -395,7 +399,7 @@ with(combineddf,table(plan_version,num_graphs_in))
 
 
 
-```{r step8b4}
+```{r step8b4, eval=FALSE}
 library(gridExtra)
 library(ggplot2)
 b1 <- ggplot(old_node_df, aes(x = entity_type, y = deg)) + geom_boxplot() + 

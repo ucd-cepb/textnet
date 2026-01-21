@@ -32,13 +32,21 @@
 #' with a length equal to the number of pages in its respective document. If export_paths
 #' is not null, each character vector of text will be saved to a separate RDS file, where the 
 #' number of files is equal to the number of pdfs. 
-#' @importFrom pdftools pdf_text pdf_ocr_text
 #' @importFrom methods is
 #' @importFrom stringr str_split str_detect str_remove
 #' @export
 #' 
 
 pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
+  if(!requireNamespace("pdftools", quietly = TRUE)) {
+    stop("Package 'pdftools' is required for pdf_clean(). ",
+         "Install it with: install.packages('pdftools')\n",
+         "Note: pdftools requires the poppler library. ",
+         "On Ubuntu/Debian: sudo apt-get install libpoppler-cpp-dev\n",
+         "On macOS: brew install poppler",
+         call. = FALSE)
+  }
+
   if(!is.character(pdfs)) {
     stop("'pdfs' must be a character vector of file names")
   }
@@ -86,9 +94,9 @@ pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=
   
   for(k in 1:length(pdfs)){
     if(suppressWarn==T){
-      texts <- suppressMessages(pdf_text(pdfs[[k]]))
+      texts <- suppressMessages(pdftools::pdf_text(pdfs[[k]]))
     }else{
-      texts <- pdf_text(pdfs[[k]])
+      texts <- pdftools::pdf_text(pdfs[[k]])
     }
     if(!is.null(keep_pages)){
       if(is.logical(keep_pages[[k]])){
@@ -112,7 +120,7 @@ pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=
     if(ocr==T){
       for(i in 1:length(texts)){
         if (nchar(texts[i])< 20){
-          texts[i] <- pdf_ocr_text(pdfs[[k]], pages=i,language = "eng")
+          texts[i] <- pdftools::pdf_ocr_text(pdfs[[k]], pages=i,language = "eng")
         }
       }
     }
