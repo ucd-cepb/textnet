@@ -205,7 +205,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
 
         # Add EntityRuler to the pipeline
         ruler <- do.call(nlp$add_pipe,
-                         c(list("custom_entity_ruler"),
+                         c(list("entity_ruler"),
                            position_arg,
                            list(config = ruler_config)))
         ruler$add_patterns(entity_ruler_patterns)
