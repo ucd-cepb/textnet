@@ -122,18 +122,15 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     stop("Package 'reticulate' must be installed to use this function.",
          call.=F)
   }
-  if(requireNamespace("reticulate", quietly = T)){
-    reticulate::py_config()
-  }
+  reticulate::py_config()
 
   # Configure GPU/CPU usage for spaCy
   # Must be done BEFORE spacyr::spacy_initialize() to prevent crashes
-  if(requireNamespace("reticulate", quietly = T)){
     # Workaround: thinc sometimes fails to detect cupy even when it's installed and working.
     # Force thinc to recognize cupy if it's actually available.
     if(use_gpu != "cpu"){
       tryCatch({
-        reticulate::py_run_string("import cupy; cupy.cuda.runtime.getDeviceCount(); import thinc.util; thinc.util.has_cupy = True; thinc.util.has_cupy_gpu = True; thinc.util.has_gpu = True")
+        reticulate::py_run_string("import cupy; cupy.cuda.runtime.getDeviceCount(); import thinc.util; thinc.util.cupy = cupy; thinc.util.has_cupy = True; thinc.util.has_cupy_gpu = True; thinc.util.has_gpu = True")
       }, error = function(e){
         # cupy not available or not working, leave has_cupy as-is
       })
@@ -163,15 +160,18 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       })
 
       if(gpu_available){
-        spacy$prefer_gpu()
-        message("spaCy configured to use GPU")
+        gpu_enabled <- spacy$prefer_gpu()
+        if(gpu_enabled){
+          message("spaCy configured to use GPU")
+        } else {
+          spacy$require_cpu()
+          message("GPU detected but spaCy GPU init failed, using CPU")
+        }
       } else {
-        Sys.setenv(CUDA_VISIBLE_DEVICES = "")
         spacy$require_cpu()
         message("GPU not available, spaCy configured to use CPU")
       }
     }
-  }
 
   #spacy_install()
   #spacy_download_langmodel(lang_mode = 'en_core_web_lg')
@@ -188,8 +188,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
 
   # Configure EntityRuler if patterns are provided
   if(!is.null(entity_ruler_patterns)){
-    if(requireNamespace("reticulate", quietly = T)){
-      tryCatch({
+    tryCatch({
         # Access spacyr's nlp object from Python's global namespace
         # spacyr stores the nlp object there after initialization
         nlp <- reticulate::py_eval("nlp")
@@ -219,7 +218,6 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       }, error = function(e){
         warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
       })
-    }
   }
   
   
