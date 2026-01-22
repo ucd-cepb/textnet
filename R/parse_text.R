@@ -130,7 +130,15 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     # Force thinc to recognize cupy if it's actually available.
     if(use_gpu != "cpu"){
       tryCatch({
-        reticulate::py_run_string("import cupy; cupy.cuda.runtime.getDeviceCount(); import thinc.util; thinc.util.cupy = cupy; thinc.util.has_cupy = True; thinc.util.has_cupy_gpu = True; thinc.util.has_gpu = True")
+        reticulate::py_run_string("
+import cupy
+cupy.cuda.runtime.getDeviceCount()
+import thinc.util
+thinc.util.cupy = cupy
+thinc.util.has_cupy = True
+thinc.util.has_cupy_gpu = True
+thinc.util.has_gpu = True
+")
       }, error = function(e){
         # cupy not available or not working, leave has_cupy as-is
       })
