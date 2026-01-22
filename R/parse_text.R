@@ -112,12 +112,6 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   # This must happen before reticulate::py_config() to prevent PyTorch/CUDA crashes
   if(use_gpu == "cpu"){
     Sys.setenv(CUDA_VISIBLE_DEVICES = "")
-  } else if(use_gpu == "auto"){
-    # For auto mode, also set CUDA_VISIBLE_DEVICES if we detect transformer model
-    # This prevents crashes when GPU is not properly configured
-    if(grepl("trf", model)){
-      Sys.setenv(CUDA_VISIBLE_DEVICES = "")
-    }
   }
 
   #prerequisites: step 1, install python
@@ -135,6 +129,19 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   # Configure GPU/CPU usage for spaCy
   # Must be done BEFORE spacyr::spacy_initialize() to prevent crashes
   if(requireNamespace("reticulate", quietly = T)){
+    # Workaround: thinc sometimes fails to detect cupy even when it's installed and working.
+    # Force thinc to recognize cupy if it's actually available.
+    if(use_gpu != "cpu"){
+      tryCatch({
+        cupy <- reticulate::import("cupy")
+        cupy$cuda$runtime$getDeviceCount()  # Verify cupy can see GPU
+        thinc_util <- reticulate::import("thinc.util")
+        thinc_util$has_cupy <- TRUE
+      }, error = function(e){
+        # cupy not available or not working, leave has_cupy as-is
+      })
+    }
+
     spacy <- reticulate::import("spacy")
 
     if(use_gpu == "cpu"){
