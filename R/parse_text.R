@@ -183,7 +183,12 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       spacyr::spacy_initialize(model = model)
     },
            error = function(e){
-             stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
+             if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
+                grepl("not found", e$message, ignore.case = TRUE)){
+               stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
+             } else {
+               stop(paste0("Failed to initialize spaCy: ", e$message))
+             }
            })
 
   # Configure EntityRuler if patterns are provided
