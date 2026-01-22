@@ -133,10 +133,7 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     # Force thinc to recognize cupy if it's actually available.
     if(use_gpu != "cpu"){
       tryCatch({
-        cupy <- reticulate::import("cupy")
-        cupy$cuda$runtime$getDeviceCount()  # Verify cupy can see GPU
-        thinc_util <- reticulate::import("thinc.util")
-        thinc_util$has_cupy <- TRUE
+        reticulate::py_run_string("import cupy; cupy.cuda.runtime.getDeviceCount(); import thinc.util; thinc.util.has_cupy = True; thinc.util.has_cupy_gpu = True; thinc.util.has_gpu = True")
       }, error = function(e){
         # cupy not available or not working, leave has_cupy as-is
       })
@@ -149,13 +146,11 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
       spacy$require_cpu()
       message("spaCy configured to use CPU")
     } else if(use_gpu == "gpu"){
-      # Require GPU - will error if unavailable
-      gpu_available <- tryCatch({
-        spacy$require_gpu()
-        TRUE
-      }, error = function(e){
+      # Require GPU - use prefer_gpu which is more reliable, but verify it succeeds
+      gpu_enabled <- spacy$prefer_gpu()
+      if(!gpu_enabled){
         stop("GPU requested but not available. Set use_gpu='auto' or use_gpu='cpu' to use CPU instead.")
-      })
+      }
       message("spaCy configured to use GPU")
     } else {
       # Auto mode: try GPU, fall back to CPU
