@@ -6,7 +6,7 @@
 #' This function is specifically designed for the en_core_web_trf transformer model
 #' with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
 #'
-#' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
+#' @param python_path filepath to python executable with spacy, cupy, and en_core_web_trf installed.
 #' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
 #' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces. These are replaced with their concatenated version in order, from left to right. It is suggested that the most specific phrases, with the most words, are arranged at the left.
 #' @param concatenator This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.
@@ -21,25 +21,29 @@
 #' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
 #' @return A data.frame of tokens with columns: doc_id, sentence_id, token_id, token, lemma, pos, tag, head_token_id, dep_rel, entity.
 #'   Format is compatible with spacyr::spacy_parse output.
-#' @importFrom reticulate py_run_string py_eval py_config
+#' @importFrom jsonlite toJSON fromJSON
 #' @importFrom stringr str_detect str_replace_all
 #' @importFrom stringi stri_replace_all_regex stri_escape_unicode
 #' @importFrom pbapply pblapply
 #' @importFrom utils data
 #' @export
 
-parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
+parse_text_trf <- function(python_path, keep_hyph_together=F, phrases_to_concatenate=NA,
                            concatenator="_", text_list, parsed_filenames,
                            overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
                            ruler_position = c("after", "before"), overwrite_ents = TRUE){
-  if(!requireNamespace("reticulate", quietly = T)){
-    stop("Package 'reticulate' must be installed to use this function.",
-         call.=F)
+
+  if(!requireNamespace("jsonlite", quietly = T)){
+    stop("Package 'jsonlite' must be installed to use this function.", call.=F)
   }
 
   # Input validation
-  if(!is.character(ret_path) || length(ret_path) != 1) {
-    stop("'ret_path' must be a single character string")
+  if(!is.character(python_path) || length(python_path) != 1) {
+    stop("'python_path' must be a single character string")
+  }
+
+  if(!file.exists(python_path)) {
+    stop(paste0("Python executable not found: ", python_path))
   }
 
   if(!is.logical(keep_hyph_together) || length(keep_hyph_together) != 1) {
@@ -95,185 +99,15 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
     }
   }
 
-  # Fix OpenMP library conflict (common on macOS with conda)
-  Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
-
-  # Prevent OpenMP thread conflicts between R packages (e.g., data.table) and PyTorch
-  Sys.setenv(OMP_NUM_THREADS = "1")
-  message("Note: Setting OMP_NUM_THREADS=1 to prevent OpenMP conflicts with transformer model.")
-
-  # Set CUDA_PATH for cupy kernel compilation (if CUDA_HOME is set but CUDA_PATH isn't)
-  if(Sys.getenv("CUDA_PATH") == "" && Sys.getenv("CUDA_HOME") != ""){
-    Sys.setenv(CUDA_PATH = Sys.getenv("CUDA_HOME"))
-    message(paste0("Set CUDA_PATH from CUDA_HOME: ", Sys.getenv("CUDA_PATH")))
-  } else if(Sys.getenv("CUDA_PATH") != ""){
-    message(paste0("CUDA_PATH already set: ", Sys.getenv("CUDA_PATH")))
-  } else {
-    warning("CUDA_PATH and CUDA_HOME are not set - GPU may not work correctly")
+  # Find the Python parsing script
+  script_path <- system.file("python", "parse_gpu.py", package = "textNet")
+  if(script_path == "") {
+    # Fallback for development: look relative to package source
+    script_path <- file.path(dirname(dirname(sys.frame(1)$ofile)), "inst", "python", "parse_gpu.py")
+    if(!file.exists(script_path)) {
+      stop("Could not find parse_gpu.py script. Is the package installed correctly?")
+    }
   }
-
-  # Set up Python environment
-  Sys.setenv(RETICULATE_PYTHON=ret_path)
-  reticulate::py_config()
-
-  # Initialize GPU for spaCy transformer model
-  # Since CUDA_PATH must be set before cupy is imported, we set it in Python too
-  gpu_init_success <- tryCatch({
-    reticulate::py_run_string("
-import os
-
-# Ensure CUDA_PATH is set for cupy kernel compilation
-cuda_path = os.environ.get('CUDA_PATH') or os.environ.get('CUDA_HOME')
-if cuda_path:
-    os.environ['CUDA_PATH'] = cuda_path
-    print(f'Python CUDA_PATH: {cuda_path}')
-else:
-    print('WARNING: No CUDA_PATH or CUDA_HOME found')
-
-# Import and verify cupy FIRST
-import cupy
-device_count = cupy.cuda.runtime.getDeviceCount()
-assert device_count > 0, 'No GPU detected by cupy'
-cupy.cuda.Device(0).use()
-print(f'cupy verified: {device_count} GPU(s) detected')
-
-# Import thinc and set up GPU ops BEFORE importing spacy
-from thinc.api import set_gpu_allocator, require_gpu
-from thinc.backends import set_current_ops
-from thinc.backends.cupy_ops import CupyOps
-
-# Set the memory allocator for cupy
-set_gpu_allocator('pytorch')
-
-# Create and set CupyOps as the current ops
-cupy_ops = CupyOps()
-set_current_ops(cupy_ops)
-
-# Verify ops
-from thinc.api import get_current_ops
-ops = get_current_ops()
-print(f'Ops type: {type(ops).__name__}')
-print(f'Ops xp: {ops.xp}')
-
-# Now import spacy - it will pick up the already-configured ops
-import spacy
-
-# Use require_gpu to ensure GPU is used (more strict than prefer_gpu)
-require_gpu(0)
-print('GPU required successfully')
-
-# Load the transformer model
-print('Loading en_core_web_trf model...')
-nlp = spacy.load('en_core_web_trf')
-print('Model loaded successfully!')
-")
-    TRUE
-  }, error = function(e){
-    stop(paste0("GPU initialization failed: ", e$message,
-                "\n\nThis function requires GPU. For CPU processing, use parse_text() instead."))
-  })
-
-  message("spaCy transformer model loaded with GPU")
-
-  # Define Python parsing function (replaces spacyr::spacy_parse)
-  reticulate::py_run_string("
-def parse_texts(texts, doc_ids):
-    '''Parse texts using the loaded nlp model, returning spacyr-compatible format'''
-    import pandas as pd
-
-    all_tokens = []
-    all_nounphrases = []
-
-    for text, doc_id in zip(texts, doc_ids):
-        if not text or not text.strip():
-            continue
-
-        doc = nlp(text)
-
-        # Process by sentence to get sentence-relative token IDs (spacyr format)
-        for sent_i, sent in enumerate(doc.sents):
-            sent_start = sent.start  # document-level offset of sentence start
-
-            for token in sent:
-                ent_tag = ''
-                if token.ent_type_:
-                    ent_tag = token.ent_type_ + '_' + token.ent_iob_
-
-                # Sentence-relative token_id (1-indexed, resets each sentence)
-                token_id_rel = token.i - sent_start + 1
-
-                # Head token_id is also sentence-relative
-                # If head is outside sentence (e.g., ROOT pointing to itself), handle it
-                if token.head.i >= sent.start and token.head.i < sent.end:
-                    head_token_id_rel = token.head.i - sent_start + 1
-                else:
-                    # ROOT case: head points to itself
-                    head_token_id_rel = token_id_rel
-
-                all_tokens.append({
-                    'doc_id': doc_id,
-                    'sentence_id': sent_i + 1,
-                    'token_id': token_id_rel,
-                    'token': token.text,
-                    'lemma': token.lemma_,
-                    'pos': token.pos_,
-                    'tag': token.tag_,
-                    'head_token_id': head_token_id_rel,
-                    'dep_rel': token.dep_,
-                    'entity': ent_tag
-                })
-
-            # Extract noun phrases for this sentence
-            for chunk in doc.noun_chunks:
-                if chunk.start >= sent.start and chunk.start < sent.end:
-                    all_nounphrases.append({
-                        'doc_id': doc_id,
-                        'sentence_id': sent_i + 1,
-                        'nounphrase': chunk.text,
-                        'root': chunk.root.text
-                    })
-
-    tokens_df = pd.DataFrame(all_tokens)
-    nounphrases_df = pd.DataFrame(all_nounphrases) if all_nounphrases else pd.DataFrame()
-
-    return {'tokens': tokens_df, 'nounphrases': nounphrases_df}
-")
-
-  # Configure EntityRuler if patterns are provided
-  if(!is.null(entity_ruler_patterns)){
-    tryCatch({
-      nlp <- reticulate::py_eval("nlp")
-
-      if(ruler_position == "after"){
-        position_arg <- list(after = "ner")
-      } else {
-        position_arg <- list(before = "ner")
-      }
-
-      ruler_config <- list(overwrite_ents = overwrite_ents)
-
-      ruler <- do.call(nlp$add_pipe,
-                       c(list("entity_ruler"),
-                         position_arg,
-                         list(config = ruler_config)))
-      ruler$add_patterns(entity_ruler_patterns)
-
-      # Verify EntityRuler is in pipeline
-      pipe_names <- nlp$pipe_names
-      if(!"entity_ruler" %in% pipe_names){
-        warning("EntityRuler may not have been added to pipeline correctly")
-      }
-
-      message(paste0("EntityRuler configured: position=", ruler_position,
-                     ", overwrite_ents=", overwrite_ents,
-                     ", ", length(entity_ruler_patterns), " patterns loaded",
-                     "\nPipeline: ", paste(pipe_names, collapse=" -> ")))
-
-    }, error = function(e){
-      warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
-    })
-  }
-
 
   # Process text
   pages <- unlist(text_list)
@@ -303,6 +137,16 @@ def parse_texts(texts, doc_ids):
   unique_files <- base::unique(file_ids)
   all_parsed <- vector(mode="list",length=length(unique_files))
 
+  # Create temp directory for communication with Python
+  temp_dir <- tempdir()
+
+  # Write entity ruler patterns if provided
+  entity_ruler_file <- NULL
+  if(!is.null(entity_ruler_patterns)){
+    entity_ruler_file <- file.path(temp_dir, "entity_ruler_patterns.json")
+    jsonlite::write_json(entity_ruler_patterns, entity_ruler_file, auto_unbox = TRUE)
+  }
+
   for (m in 1:length(unique_files)){
     file_exists <- file.exists(parsed_filenames[m])
     should_parse <- overwrite || !file_exists || test
@@ -314,15 +158,59 @@ def parse_texts(texts, doc_ids):
       # Create doc_ids for each text element (text1, text2, etc.)
       text_doc_ids <- paste0("text", seq_along(single_plan_text))
 
-      # Call Python parsing function directly (bypasses spacyr)
-      parse_fn <- reticulate::py_eval("parse_texts")
-      result <- parse_fn(single_plan_text, text_doc_ids)
+      # Write input JSON
+      input_file <- file.path(temp_dir, paste0("input_", m, ".json"))
+      output_file <- file.path(temp_dir, paste0("output_", m, ".json"))
 
-      parsedtxt <- as.data.frame(result$tokens)
-      nounphrases <- as.data.frame(result$nounphrases)
+      input_data <- list(
+        texts = as.list(single_plan_text),
+        doc_ids = as.list(text_doc_ids)
+      )
+      jsonlite::write_json(input_data, input_file, auto_unbox = TRUE)
 
-      # Attach nounphrases as attribute (matches spacyr behavior for nounphrase_extract())
+      # Build command
+      cmd_args <- c(
+        shQuote(script_path),
+        "--input", shQuote(input_file),
+        "--output", shQuote(output_file),
+        "--ruler-position", ruler_position
+      )
+
+      if(overwrite_ents) {
+        cmd_args <- c(cmd_args, "--overwrite-ents")
+      }
+
+      if(!is.null(entity_ruler_file)) {
+        cmd_args <- c(cmd_args, "--entity-ruler", shQuote(entity_ruler_file))
+      }
+
+      cmd <- paste(shQuote(python_path), paste(cmd_args, collapse = " "))
+
+      # Run Python script
+      message(paste0("Parsing document ", m, " of ", length(unique_files), ": ", unique_files[m]))
+      result <- system(cmd, intern = FALSE, wait = TRUE)
+
+      if(result != 0) {
+        stop(paste0("Python parsing failed for document ", unique_files[m],
+                    ". Check that cupy, spacy, and en_core_web_trf are installed."))
+      }
+
+      # Read output
+      if(!file.exists(output_file)) {
+        stop(paste0("Output file not created for document ", unique_files[m]))
+      }
+
+      output_data <- jsonlite::read_json(output_file, simplifyVector = TRUE)
+
+      parsedtxt <- as.data.frame(output_data$tokens)
+      nounphrases <- as.data.frame(output_data$nounphrases)
+
+      # Attach nounphrases as attribute (matches spacyr behavior)
       attr(parsedtxt, "nounphrases") <- nounphrases
+
+      # Clean up temp files
+      unlink(input_file)
+      unlink(output_file)
 
       lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
       lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
@@ -357,6 +245,11 @@ def parse_texts(texts, doc_ids):
       print(paste0("Skipping parsed_filenames[",m,"] - file already exists (set overwrite=T to reparse or test=T to test without saving)"))
       all_parsed[[m]] <- NULL
     }
+  }
+
+  # Clean up entity ruler file
+  if(!is.null(entity_ruler_file) && file.exists(entity_ruler_file)) {
+    unlink(entity_ruler_file)
   }
 
   return(all_parsed)
