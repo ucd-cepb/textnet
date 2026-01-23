@@ -5,7 +5,7 @@
 \title{Parse text using spaCy transformer model with GPU support}
 \usage{
 parse_text_trf(
-  ret_path,
+  python_path,
   keep_hyph_together = F,
   phrases_to_concatenate = NA,
   concatenator = "_",
@@ -20,7 +20,7 @@ parse_text_trf(
 )
 }
 \arguments{
-\item{ret_path}{filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.}
+\item{python_path}{filepath to python executable with spacy, cupy, and en_core_web_trf installed.}
 
 \item{keep_hyph_together}{Set to true to replace hyphens within a single word with underscores. Defaults to false.}
 
