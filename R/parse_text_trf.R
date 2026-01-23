@@ -1,10 +1,10 @@
 # Exported function
-#parse_text
+#parse_text_trf
 
-#' Parse text using spaCy (CPU, en_core_web_lg model)
+#' Parse text using spaCy transformer model with GPU support
 #'
-#' Creates an edgelist and nodelist for each document using spaCy's en_core_web_lg model.
-#' For GPU-accelerated processing with the transformer model, use parse_text_trf().
+#' This function is specifically designed for the en_core_web_trf transformer model
+#' with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
 #'
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
 #' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
@@ -27,10 +27,10 @@
 #' @importFrom utils data
 #' @export
 
-parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
-                       concatenator="_", text_list, parsed_filenames,
-                       overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
-                       ruler_position = c("after", "before"), overwrite_ents = TRUE){
+parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
+                           concatenator="_", text_list, parsed_filenames,
+                           overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
+                           ruler_position = c("after", "before"), overwrite_ents = TRUE){
   if(!requireNamespace("spacyr", quietly = T)){
     stop("Package 'spacyr' must be installed to use this function.",
          call.=F)
@@ -97,6 +97,10 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   # Fix OpenMP library conflict (common on macOS with conda)
   Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
 
+  # Prevent OpenMP thread conflicts between R packages (e.g., data.table) and PyTorch
+  Sys.setenv(OMP_NUM_THREADS = "1")
+  message("Note: Setting OMP_NUM_THREADS=1 to prevent OpenMP conflicts with transformer model.")
+
   # Set up Python environment
   Sys.setenv(RETICULATE_PYTHON=ret_path)
   if(!requireNamespace("reticulate", quietly = T)){
@@ -105,17 +109,57 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
   }
   reticulate::py_config()
 
-  # Initialize spaCy with en_core_web_lg (CPU)
-  if(!stringr::str_detect("en_core_web_lg", "^en_")){
+  # Initialize GPU for spaCy transformer model
+  # Workaround: thinc's cupy detection is broken on some systems.
+  # We fix cupy detection BEFORE importing spacy, then call prefer_gpu.
+  gpu_init_success <- tryCatch({
+    reticulate::py_run_string("
+import cupy
+
+# Verify cupy can access GPU
+device_count = cupy.cuda.runtime.getDeviceCount()
+assert device_count > 0, 'No GPU detected by cupy'
+
+# Activate GPU device 0
+cupy.cuda.Device(0).use()
+
+# Fix thinc's broken cupy detection BEFORE importing spacy
+import thinc.util
+thinc.util.cupy = cupy
+thinc.util.has_cupy = True
+thinc.util.has_cupy_gpu = True
+thinc.util.has_gpu = True
+
+# Now import spacy and activate GPU
+import spacy
+gpu_activated = spacy.prefer_gpu(0)
+assert gpu_activated, 'spacy.prefer_gpu() returned False'
+
+# Verify ops is set correctly
+from thinc.api import get_current_ops
+ops = get_current_ops()
+assert ops is not None, 'get_current_ops() returned None'
+print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
+")
+    TRUE
+  }, error = function(e){
+    stop(paste0("GPU initialization failed: ", e$message,
+                "\n\nThis function requires GPU. For CPU processing, use parse_text() instead."))
+  })
+
+  message("spaCy transformer configured to use GPU")
+
+  # Initialize spaCy with transformer model
+  if(!stringr::str_detect("en_core_web_trf", "^en_")){
     warning("This package was developed and tested on English texts.")
   }
 
   tryCatch({
-    spacyr::spacy_initialize(model = "en_core_web_lg")
+    spacyr::spacy_initialize(model = "en_core_web_trf")
   }, error = function(e){
     if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
        grepl("not found", e$message, ignore.case = TRUE)){
-      stop("Model en_core_web_lg is not installed. Install via spacyr::spacy_download_langmodel('en_core_web_lg')")
+      stop("Model en_core_web_trf is not installed. Install via spacyr::spacy_download_langmodel('en_core_web_trf')")
     } else {
       stop(paste0("Failed to initialize spaCy: ", e$message))
     }
