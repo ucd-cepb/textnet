@@ -101,6 +101,16 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   Sys.setenv(OMP_NUM_THREADS = "1")
   message("Note: Setting OMP_NUM_THREADS=1 to prevent OpenMP conflicts with transformer model.")
 
+  # Set CUDA_PATH for cupy kernel compilation (if CUDA_HOME is set but CUDA_PATH isn't)
+  if(Sys.getenv("CUDA_PATH") == "" && Sys.getenv("CUDA_HOME") != ""){
+    Sys.setenv(CUDA_PATH = Sys.getenv("CUDA_HOME"))
+    message(paste0("Set CUDA_PATH from CUDA_HOME: ", Sys.getenv("CUDA_PATH")))
+  } else if(Sys.getenv("CUDA_PATH") != ""){
+    message(paste0("CUDA_PATH already set: ", Sys.getenv("CUDA_PATH")))
+  } else {
+    warning("CUDA_PATH and CUDA_HOME are not set - GPU may not work correctly")
+  }
+
   # Set up Python environment
   Sys.setenv(RETICULATE_PYTHON=ret_path)
   if(!requireNamespace("reticulate", quietly = T)){
@@ -110,10 +120,19 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   reticulate::py_config()
 
   # Initialize GPU for spaCy transformer model
-  # Workaround: thinc's cupy detection is broken on some systems.
-  # We fix cupy detection BEFORE importing spacy, then call prefer_gpu.
+  # Since CUDA_PATH must be set before cupy is imported, we set it in Python too
   gpu_init_success <- tryCatch({
     reticulate::py_run_string("
+import os
+
+# Ensure CUDA_PATH is set for cupy kernel compilation
+cuda_path = os.environ.get('CUDA_PATH') or os.environ.get('CUDA_HOME')
+if cuda_path:
+    os.environ['CUDA_PATH'] = cuda_path
+    print(f'Python CUDA_PATH: {cuda_path}')
+else:
+    print('WARNING: No CUDA_PATH or CUDA_HOME found')
+
 import cupy
 
 # Verify cupy can access GPU
