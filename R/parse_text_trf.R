@@ -19,8 +19,9 @@
 #' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline. Use entity_specify() to create patterns from a dictionary.
 #' @param ruler_position A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.
 #' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
-#' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
-#' @importFrom data.table setDT
+#' @return A data.frame of tokens with columns: doc_id, sentence_id, token_id, token, lemma, pos, tag, head_token_id, dep_rel, entity.
+#'   Format is compatible with spacyr::spacy_parse output.
+#' @importFrom reticulate py_run_string py_eval py_config
 #' @importFrom stringr str_detect str_replace_all
 #' @importFrom stringi stri_replace_all_regex stri_escape_unicode
 #' @importFrom pbapply pblapply
@@ -31,8 +32,8 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
                            concatenator="_", text_list, parsed_filenames,
                            overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
                            ruler_position = c("after", "before"), overwrite_ents = TRUE){
-  if(!requireNamespace("spacyr", quietly = T)){
-    stop("Package 'spacyr' must be installed to use this function.",
+  if(!requireNamespace("reticulate", quietly = T)){
+    stop("Package 'reticulate' must be installed to use this function.",
          call.=F)
   }
 
@@ -113,10 +114,6 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
 
   # Set up Python environment
   Sys.setenv(RETICULATE_PYTHON=ret_path)
-  if(!requireNamespace("reticulate", quietly = T)){
-    stop("Package 'reticulate' must be installed to use this function.",
-         call.=F)
-  }
   reticulate::py_config()
 
   # Initialize GPU for spaCy transformer model
@@ -159,6 +156,11 @@ from thinc.api import get_current_ops
 ops = get_current_ops()
 assert ops is not None, 'get_current_ops() returned None'
 print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
+
+# Load the transformer model directly (bypassing spacyr::spacy_initialize which resets state)
+print('Loading en_core_web_trf model...')
+nlp = spacy.load('en_core_web_trf')
+print('Model loaded successfully!')
 ")
     TRUE
   }, error = function(e){
@@ -166,23 +168,72 @@ print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
                 "\n\nThis function requires GPU. For CPU processing, use parse_text() instead."))
   })
 
-  message("spaCy transformer configured to use GPU")
+  message("spaCy transformer model loaded with GPU")
 
-  # Initialize spaCy with transformer model
-  if(!stringr::str_detect("en_core_web_trf", "^en_")){
-    warning("This package was developed and tested on English texts.")
-  }
+  # Define Python parsing function (replaces spacyr::spacy_parse)
+  reticulate::py_run_string("
+def parse_texts(texts, doc_ids):
+    '''Parse texts using the loaded nlp model, returning spacyr-compatible format'''
+    import pandas as pd
 
-  tryCatch({
-    spacyr::spacy_initialize(model = "en_core_web_trf")
-  }, error = function(e){
-    if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
-       grepl("not found", e$message, ignore.case = TRUE)){
-      stop("Model en_core_web_trf is not installed. Install via spacyr::spacy_download_langmodel('en_core_web_trf')")
-    } else {
-      stop(paste0("Failed to initialize spaCy: ", e$message))
-    }
-  })
+    all_tokens = []
+    all_nounphrases = []
+
+    for text, doc_id in zip(texts, doc_ids):
+        if not text or not text.strip():
+            continue
+
+        doc = nlp(text)
+
+        # Process by sentence to get sentence-relative token IDs (spacyr format)
+        for sent_i, sent in enumerate(doc.sents):
+            sent_start = sent.start  # document-level offset of sentence start
+
+            for token in sent:
+                ent_tag = ''
+                if token.ent_type_:
+                    ent_tag = token.ent_type_ + '_' + token.ent_iob_
+
+                # Sentence-relative token_id (1-indexed, resets each sentence)
+                token_id_rel = token.i - sent_start + 1
+
+                # Head token_id is also sentence-relative
+                # If head is outside sentence (e.g., ROOT pointing to itself), handle it
+                if token.head.i >= sent.start and token.head.i < sent.end:
+                    head_token_id_rel = token.head.i - sent_start + 1
+                else:
+                    # ROOT case: head points to itself
+                    head_token_id_rel = token_id_rel
+
+                all_tokens.append({
+                    'doc_id': doc_id,
+                    'sentence_id': sent_i + 1,
+                    'token_id': token_id_rel,
+                    'token': token.text,
+                    'lemma': token.lemma_,
+                    'pos': token.pos_,
+                    'tag': token.tag_,
+                    'head_token_id': head_token_id_rel,
+                    'dep_rel': token.dep_,
+                    'entity': ent_tag
+                })
+
+            # Extract noun phrases for this sentence
+            for chunk in doc.noun_chunks:
+                if chunk.start >= sent.start and chunk.start < sent.end:
+                    root_token_id_rel = chunk.root.i - sent_start + 1
+                    all_nounphrases.append({
+                        'doc_id': doc_id,
+                        'sentence_id': sent_i + 1,
+                        'nounphrase': chunk.text,
+                        'root_token_id': root_token_id_rel
+                    })
+
+    tokens_df = pd.DataFrame(all_tokens)
+    nounphrases_df = pd.DataFrame(all_nounphrases) if all_nounphrases else pd.DataFrame()
+
+    return {'tokens': tokens_df, 'nounphrases': nounphrases_df}
+")
 
   # Configure EntityRuler if patterns are provided
   if(!is.null(entity_ruler_patterns)){
@@ -249,13 +300,15 @@ print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
     if(should_parse){
       single_plan_text <- unlist(pages[file_ids==unique_files[m]])
 
-      parsedtxt <- spacyr::spacy_parse(single_plan_text,
-                                       pos = T,
-                                       tag = T,
-                                       lemma = T,
-                                       entity = T,
-                                       dependency = T,
-                                       nounphrase = T)
+      # Create doc_ids for each text element (text1, text2, etc.)
+      text_doc_ids <- paste0("text", seq_along(single_plan_text))
+
+      # Call Python parsing function directly (bypasses spacyr)
+      parse_fn <- reticulate::py_eval("parse_texts")
+      result <- parse_fn(single_plan_text, text_doc_ids)
+
+      parsedtxt <- as.data.frame(result$tokens)
+      nounphrases <- as.data.frame(result$nounphrases)
 
       lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
       lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
@@ -291,8 +344,6 @@ print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
       all_parsed[[m]] <- NULL
     }
   }
-
-  spacyr::spacy_finalize()
 
   return(all_parsed)
 }

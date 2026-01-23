@@ -46,7 +46,8 @@ The parsed data will be exported to these files.}
 \item{overwrite_ents}{A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.}
 }
 \value{
-A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
+A data.frame of tokens with columns: doc_id, sentence_id, token_id, token, lemma, pos, tag, head_token_id, dep_rel, entity.
+Format is compatible with spacyr::spacy_parse output.
 }
 \description{
 This function is specifically designed for the en_core_web_trf transformer model
