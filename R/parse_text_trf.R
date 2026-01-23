@@ -254,9 +254,16 @@ def parse_texts(texts, doc_ids):
                          list(config = ruler_config)))
       ruler$add_patterns(entity_ruler_patterns)
 
+      # Verify EntityRuler is in pipeline
+      pipe_names <- nlp$pipe_names
+      if(!"entity_ruler" %in% pipe_names){
+        warning("EntityRuler may not have been added to pipeline correctly")
+      }
+
       message(paste0("EntityRuler configured: position=", ruler_position,
                      ", overwrite_ents=", overwrite_ents,
-                     ", ", length(entity_ruler_patterns), " patterns loaded"))
+                     ", ", length(entity_ruler_patterns), " patterns loaded",
+                     "\nPipeline: ", paste(pipe_names, collapse=" -> ")))
 
     }, error = function(e){
       warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
