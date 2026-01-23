@@ -154,9 +154,9 @@ thinc.util.has_cupy = True
 thinc.util.has_cupy_gpu = True
 thinc.util.has_gpu = True
 
-# Set GPU allocator to use cupy's memory pool
+# Set GPU allocator to pytorch (manages GPU memory allocation)
 from thinc.api import set_gpu_allocator
-set_gpu_allocator('cupy')
+set_gpu_allocator('pytorch')
 
 # Create CupyOps and set as current ops backend
 from thinc.backends import CupyOps, set_current_ops
