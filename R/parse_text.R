@@ -126,78 +126,76 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
 
   # Configure GPU/CPU usage for spaCy
   # Must be done BEFORE spacyr::spacy_initialize() to prevent crashes
-    # Workaround: thinc sometimes fails to detect cupy even when it's installed and working.
-    # Force thinc to recognize cupy if it's actually available.
-    if(use_gpu != "cpu"){
-      tryCatch({
-        reticulate::py_run_string("
+  spacy <- reticulate::import("spacy")
+
+  if(use_gpu == "cpu"){
+    # Force CPU mode for spaCy ops
+    spacy$require_cpu()
+    message("spaCy configured to use CPU")
+  } else {
+    # GPU mode (both "gpu" and "auto")
+    # Workaround: thinc's cupy detection is broken on some systems.
+    # Directly initialize GPU backend bypassing the broken detection.
+    gpu_init_success <- tryCatch({
+      reticulate::py_run_string("
 import cupy
-cupy.cuda.runtime.getDeviceCount()
+
+# Verify cupy can access GPU
+device_count = cupy.cuda.runtime.getDeviceCount()
+assert device_count > 0, 'No GPU detected by cupy'
+
+# Activate GPU device 0
+cupy.cuda.Device(0).use()
+
+# Fix thinc's broken cupy detection
 import thinc.util
 thinc.util.cupy = cupy
 thinc.util.has_cupy = True
 thinc.util.has_cupy_gpu = True
 thinc.util.has_gpu = True
+
+# Set GPU allocator to use cupy's memory pool
+from thinc.api import set_gpu_allocator
+set_gpu_allocator('cupy')
+
+# Create CupyOps and set as current ops backend
+from thinc.backends import CupyOps, set_current_ops
+ops = CupyOps()
+set_current_ops(ops)
 ")
-      }, error = function(e){
-        # cupy not available or not working, leave has_cupy as-is
-      })
-    }
-
-    spacy <- reticulate::import("spacy")
-
-    if(use_gpu == "cpu"){
-      # Force CPU mode
-      spacy$require_cpu()
-      message("spaCy configured to use CPU")
-    } else if(use_gpu == "gpu"){
-      # Require GPU - use prefer_gpu which is more reliable, but verify it succeeds
-      gpu_enabled <- spacy$prefer_gpu()
-      if(!gpu_enabled){
-        stop("GPU requested but not available. Set use_gpu='auto' or use_gpu='cpu' to use CPU instead.")
+      TRUE
+    }, error = function(e){
+      if(use_gpu == "gpu"){
+        stop(paste0("GPU requested but initialization failed: ", e$message))
       }
-      message("spaCy configured to use GPU")
+      FALSE
+    })
+
+    if(gpu_init_success){
+      message("spaCy configured to use GPU (direct CupyOps initialization)")
     } else {
-      # Auto mode: try GPU, fall back to CPU
-      # Check if CUDA is actually available via PyTorch
-      gpu_available <- tryCatch({
-        torch <- reticulate::import("torch")
-        torch$cuda$is_available()
-      }, error = function(e){
-        FALSE
-      })
-
-      if(gpu_available){
-        gpu_enabled <- spacy$prefer_gpu()
-        if(gpu_enabled){
-          message("spaCy configured to use GPU")
-        } else {
-          spacy$require_cpu()
-          message("GPU detected but spaCy GPU init failed, using CPU")
-        }
-      } else {
-        spacy$require_cpu()
-        message("GPU not available, spaCy configured to use CPU")
-      }
+      # Auto mode fallback to CPU
+      spacy$require_cpu()
+      message("GPU not available, spaCy configured to use CPU")
     }
+  }
 
   #spacy_install()
   #spacy_download_langmodel(lang_mode = 'en_core_web_lg')
   if(!stringr::str_detect(model, "^en_")){
     warning("This package was developed and tested on English texts. Use of this package to extract event networks in other languages may yield unexpected results.")
   }
-  tryCatch(
-    if(requireNamespace("spacyr", quietly = T)){
+  tryCatch({
       spacyr::spacy_initialize(model = model)
     },
-           error = function(e){
-             if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
-                grepl("not found", e$message, ignore.case = TRUE)){
-               stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
-             } else {
-               stop(paste0("Failed to initialize spaCy: ", e$message))
-             }
-           })
+    error = function(e){
+      if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
+         grepl("not found", e$message, ignore.case = TRUE)){
+        stop(paste0("Model ", model, " is not installed. Install models via spacyr::spacy_download_langmodel('", model, "')"))
+      } else {
+        stop(paste0("Failed to initialize spaCy: ", e$message))
+      }
+    })
 
   # Configure EntityRuler if patterns are provided
   if(!is.null(entity_ruler_patterns)){
@@ -275,15 +273,13 @@ thinc.util.has_gpu = True
       if(should_parse){
           single_plan_text <- unlist(pages[file_ids==unique_files[m]])
 
-          if(requireNamespace("spacyr", quietly = T)){
-            parsedtxt <- spacyr::spacy_parse(single_plan_text,
-                                             pos = T,
-                                             tag = T,
-                                             lemma = T,
-                                             entity = T,
-                                             dependency = T,
-                                             nounphrase = T)
-          }
+          parsedtxt <- spacyr::spacy_parse(single_plan_text,
+                                           pos = T,
+                                           tag = T,
+                                           lemma = T,
+                                           entity = T,
+                                           dependency = T,
+                                           nounphrase = T)
 
           lettertokens <- parsedtxt$token[str_detect(parsedtxt$token, "[a-zA-Z]")]
           lettertokensunicodeescaped <- stri_escape_unicode(lettertokens)
@@ -320,9 +316,7 @@ thinc.util.has_gpu = True
           all_parsed[[m]] <- NULL
       }
   }
-  if(requireNamespace("spacyr", quietly = T)){
-    spacyr::spacy_finalize()
-  }
+  spacyr::spacy_finalize()
   
   
   return(all_parsed)
