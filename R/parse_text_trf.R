@@ -130,34 +130,39 @@ if cuda_path:
 else:
     print('WARNING: No CUDA_PATH or CUDA_HOME found')
 
+# Import and verify cupy FIRST
 import cupy
-
-# Verify cupy can access GPU
 device_count = cupy.cuda.runtime.getDeviceCount()
 assert device_count > 0, 'No GPU detected by cupy'
-
-# Activate GPU device 0
 cupy.cuda.Device(0).use()
+print(f'cupy verified: {device_count} GPU(s) detected')
 
-# Fix thinc's broken cupy detection BEFORE importing spacy
-import thinc.util
-thinc.util.cupy = cupy
-thinc.util.has_cupy = True
-thinc.util.has_cupy_gpu = True
-thinc.util.has_gpu = True
+# Import thinc and set up GPU ops BEFORE importing spacy
+from thinc.api import set_gpu_allocator, require_gpu
+from thinc.backends import set_current_ops
+from thinc.backends.cupy_ops import CupyOps
 
-# Now import spacy and activate GPU
-import spacy
-gpu_activated = spacy.prefer_gpu(0)
-assert gpu_activated, 'spacy.prefer_gpu() returned False'
+# Set the memory allocator for cupy
+set_gpu_allocator('pytorch')
 
-# Verify ops is set correctly
+# Create and set CupyOps as the current ops
+cupy_ops = CupyOps()
+set_current_ops(cupy_ops)
+
+# Verify ops
 from thinc.api import get_current_ops
 ops = get_current_ops()
-assert ops is not None, 'get_current_ops() returned None'
-print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
+print(f'Ops type: {type(ops).__name__}')
+print(f'Ops xp: {ops.xp}')
 
-# Load the transformer model directly (bypassing spacyr::spacy_initialize which resets state)
+# Now import spacy - it will pick up the already-configured ops
+import spacy
+
+# Use require_gpu to ensure GPU is used (more strict than prefer_gpu)
+require_gpu(0)
+print('GPU required successfully')
+
+# Load the transformer model
 print('Loading en_core_web_trf model...')
 nlp = spacy.load('en_core_web_trf')
 print('Model loaded successfully!')
