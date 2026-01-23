@@ -221,12 +221,11 @@ def parse_texts(texts, doc_ids):
             # Extract noun phrases for this sentence
             for chunk in doc.noun_chunks:
                 if chunk.start >= sent.start and chunk.start < sent.end:
-                    root_token_id_rel = chunk.root.i - sent_start + 1
                     all_nounphrases.append({
                         'doc_id': doc_id,
                         'sentence_id': sent_i + 1,
                         'nounphrase': chunk.text,
-                        'root_token_id': root_token_id_rel
+                        'root': chunk.root.text
                     })
 
     tokens_df = pd.DataFrame(all_tokens)
@@ -316,6 +315,9 @@ def parse_texts(texts, doc_ids):
 
       parsedtxt <- as.data.frame(result$tokens)
       nounphrases <- as.data.frame(result$nounphrases)
+
+      # Attach nounphrases as attribute (matches spacyr behavior for nounphrase_extract())
+      attr(parsedtxt, "nounphrases") <- nounphrases
 
       lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
       lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
