@@ -485,13 +485,13 @@ library(stringr)
 #that are included in the package, EXCEPT the package versions have pages that are maps or figures removed to shrink file size.
 
 #URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
-#download.file(URL, destfile = "vignettes/old.pdf", #method="curl")
+#download.file(URL, destfile = "inst/extdata/old.pdf", method="curl")
    
 #URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
-#download.file(URL, destfile = "ivignettes/new.pdf", method="curl")
+#download.file(URL, destfile = "inst/extdata/new.pdf", method="curl")
  
-pdfs <- c("textNet/vignettes/old.pdf", 
-          "textNet/vignettes/new.pdf")
+pdfs <- c(system.file("extdata", "old.pdf", package = "textNet"),         
+            system.file("extdata", "new.pdf", package = "textNet"))
 
 #this is the equivalent of the textNet::old_new_text sample data
 #that travels with the package

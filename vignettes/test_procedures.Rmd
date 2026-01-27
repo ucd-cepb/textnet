@@ -30,8 +30,8 @@ library(testthat)
    
 #URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
 #download.file(URL, destfile = "vignettes/new.pdf", method="curl")
-pdfs <- c("old.pdf", 
-          "new.pdf")
+pdfs <- c(system.file("extdata", "old.pdf", package = "textNet"),         
+            system.file("extdata", "new.pdf", package = "textNet"))
 
 old_new_text <- textNet::pdf_clean(pdfs, ocr=F, maxchar=10000, 
                      export_paths=NULL, return_to_memory=T, suppressWarn = F, 
