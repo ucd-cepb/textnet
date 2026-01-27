@@ -41,7 +41,12 @@ Suggests:
     rmarkdown (>= 2.21),
     knitr (>= 1.42),
     ggraph,
-    pdftools
+    pdftools,
+    DirectedClustering,
+    findpython,
+    ggplot2,
+    gridExtra,
+    testthat
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5.0)

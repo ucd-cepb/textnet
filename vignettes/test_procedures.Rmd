@@ -20,7 +20,16 @@ knitr::opts_chunk$set(echo = TRUE)
 library(textNet)
 library(stringr)
 library(testthat)
-#these example pdfs are included with the package
+
+#download sample pdf data from state website
+#this is the same as vignettes/old.pdf and vignettes/new.pdf
+#that are included in the package, EXCEPT the package versions have pages that are maps or figures removed to shrink file size.
+
+#URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
+#download.file(URL, destfile = "vignettes/old.pdf", #method="curl")
+   
+#URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
+#download.file(URL, destfile = "vignettes/new.pdf", method="curl")
 pdfs <- c("old.pdf", 
           "new.pdf")
 
