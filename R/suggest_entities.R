@@ -7,7 +7,11 @@
 #' may be entities but were not tagged by spaCy's NER. Exports suggestions to a
 #' CSV file for user review. After review, the CSV can be used with entity_specify()
 #' to create EntityRuler patterns.
-#'
+#' 
+#' @description
+#' This function is a work in progress and should not be used yet.
+#' @keywords internal
+#' 
 #' @param parsed_output A list of dataframes from parse_text(), or a single dataframe
 #' @param min_frequency Minimum number of occurrences for a token/phrase to be suggested. Defaults to 2.
 #' @param max_suggestions Maximum number of suggestions to return. Defaults to 100.
