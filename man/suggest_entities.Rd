@@ -30,8 +30,12 @@ suggest_entities(
 A dataframe of suggested entities with columns: phrase, frequency, pos_tags, suggested_label, context_examples, keep, final_label. Also exports to CSV if export_path is provided.
 }
 \description{
+This function is a work in progress and should not be used yet.
+}
+\details{
 Analyzes parsed output from parse_text() to identify tokens and phrases that
 may be entities but were not tagged by spaCy's NER. Exports suggestions to a
 CSV file for user review. After review, the CSV can be used with entity_specify()
 to create EntityRuler patterns.
 }
+\keyword{internal}
