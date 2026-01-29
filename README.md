@@ -27,24 +27,29 @@ To demo the package, see vignettes/textNet_vignette_2025.pdf for a reproducible 
 
 # Installation
 
-Clone this repo and install with `devtools` from within project directory
+Install the `pak` package if you don't already have it:
 
 ```
-devtools::install()
+install.packages("pak")
 ```
 
-or using devtools::install_github():
+Then install textNet from GitHub:
 
 ```
-devtools::install_github('ucd-cepb/textNet')
+pak::pak('ucd-cepb/textNet')
+```
+
+Alternatively, clone this repo and install from within the project directory:
+
+```
+pak::local_install()
 ```
 
 # Suggested packages
 The primary function, textnet_extract(), can be used without the use of spaCy, if the user prefers to import compatible data from a separate tool. A wrapper of the spacyr package is included for convenience, to conduct preprocessing in-house. Use of this functionality requires installation of the reticulate and spacyr packages, as seen below. Use of the spacyr wrapper also requires installing spaCy and a language model; the 'en_core_web_lg' model is recommended (see below). For assistance, please see the spacyr documentation page: https://spacyr.quanteda.io/reference/spacy_install.html
 
 ```
-install.packages("reticulate")
-install.packages("spacyr")
+pak::pak(c("reticulate", "spacyr"))
 library(spacyr)
 spacy_install()
 spacy_download_langmodel('en_core_web_lg')
@@ -54,7 +59,7 @@ spacy_download_langmodel('en_core_web_lg')
 
 Make changes to the code, then run `devtools::load_all()` and test them.
 To update documentation and NAMESPACE file `devtools::document()`.
-To reinstall the package: `devtools::install()`.
+To reinstall the package: `pak::local_install()`.
 Note that the vignettes both end up slightly larger than `devtools::check()` prefers, so running as `devtools::check(build_args = "--compact-vignettes=both")` is preferred.
 
 # Contact

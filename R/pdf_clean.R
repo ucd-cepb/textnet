@@ -40,7 +40,7 @@
 pdf_clean <- function(pdfs, keep_pages=NULL, ocr=F, maxchar=10000, export_paths=NULL, return_to_memory=T, suppressWarn = F, auto_headfoot_remove = T){
   if(!requireNamespace("pdftools", quietly = TRUE)) {
     stop("Package 'pdftools' is required for pdf_clean(). ",
-         "Install it with: install.packages('pdftools')\n",
+         "Install it with: pak::pak('pdftools') or install.packages('pdftools')\n",
          "Note: pdftools requires the poppler library. ",
          "On Ubuntu/Debian: sudo apt-get install libpoppler-cpp-dev\n",
          "On macOS: brew install poppler",
