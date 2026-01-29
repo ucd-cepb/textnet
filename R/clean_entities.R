@@ -56,7 +56,7 @@ clean_entities <- function(v, remove_nums=T, remove_trailing_s=T, concatenator =
   v <- lapply(1:length(v), function(i){
     stri_replace_all_regex(v[i], pattern = maths,
                            replacement = letts,
-                           vectorize= F)
+                           vectorize_all = FALSE)
   })
   
   if(remove_trailing_s==T){

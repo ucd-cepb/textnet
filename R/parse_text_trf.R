@@ -5,7 +5,10 @@
 #'
 #' This function is specifically designed for the en_core_web_trf transformer model
 #' with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
-#'
+
+#' @description
+#' This function is a work in progress and should not be used yet.
+#' @keywords internal
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
 #' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
 #' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces. These are replaced with their concatenated version in order, from left to right. It is suggested that the most specific phrases, with the most words, are arranged at the left.
@@ -209,13 +212,13 @@ print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
     pages <- pbapply::pblapply(1:length(pages), function(i){
       stringi::stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
                                       replacement = phrases_grouped,
-                                      vectorize= F)
+                                      vectorize_all = FALSE)
     })
   }
 
   if(keep_hyph_together){
     pages <- pbapply::pblapply(1:length(pages), function(i){
-      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize=F)
+      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize_all = FALSE)
     })
   }
 

@@ -3,6 +3,7 @@
 ^\.Rproj\.user$
 ^vignettes/paper\.md$
 ^vignettes/paper\.pdf$
-^vignettes/vignette_figures$
-^vignettes/test_procedures\.pdf$
-^vignettes/textNet_vignette_2025\.pdf$
+^create_heximage.R
+^img$
+^.github
+^.claude

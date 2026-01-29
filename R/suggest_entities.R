@@ -363,7 +363,7 @@ suggest_entities <- function(parsed_output,
   # Export to CSV if requested
   # ============================================
   if(!is.null(export_path)) {
-    write.csv(freq_table, export_path, row.names = FALSE)
+    utils::write.csv(freq_table, export_path, row.names = FALSE)
     message(paste0("Exported ", nrow(freq_table), " suggestions to: ", export_path))
   }
 

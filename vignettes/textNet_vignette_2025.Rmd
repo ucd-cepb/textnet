@@ -12,7 +12,7 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/Documents")
+#knitr::opts_knit$set(root.dir = "~/Documents")
 ```
 
 ## Introduction
@@ -477,20 +477,21 @@ This appendix describes the pre-processing tools available through the *textNet*
 
 This is a wrapper for pdftools, which has the option of using pdf_text or OCR. We have also added an optional header/footer removal tool. This optional tool is solely based on carriage returns in the first or last few lines of the document, so may inadvertently remove portions of paragraphs. However, not removing headers or footers can lead to improper inclusion of header and footer material in sentences, artificially inflating the presence of nodes whose entity names are included in the header and footer. Because of the risk of headers and footers to preferentially inflate the presence of a few nodes, the header/footer remover is included by default. It can be turned off if the user has a preferred header/footer removal tool to use instead, or if the input documents lack headers and footers.
 
-```{r pdf_clean, eval = F}
+```{r pdf_clean, eval = T}
 library(textNet)
 library(stringr)
 #download sample pdf data from state website
-#this is the same as old.pdf and new.pdf
-#that are included in the package
-URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
-download.file(URL, destfile = "vignettes/old.pdf", method="curl")
+#this is the same as vignettes/old.pdf and vignettes/new.pdf
+#that are included in the package, EXCEPT the package versions have pages that are maps or figures removed to shrink file size.
+
+#URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
+#download.file(URL, destfile = "inst/extdata/old.pdf", method="curl")
    
-URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
-download.file(URL, destfile = "vignettes/new.pdf", method="curl")
-   
-pdfs <- c("vignettes/old.pdf", 
-          "vignettes/new.pdf")
+#URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/9625"
+#download.file(URL, destfile = "inst/extdata/new.pdf", method="curl")
+ 
+pdfs <- c(system.file("extdata", "old.pdf", package = "textNet"),         
+            system.file("extdata", "new.pdf", package = "textNet"))
 
 #this is the equivalent of the textNet::old_new_text sample data
 #that travels with the package
@@ -506,7 +507,7 @@ This is a wrapper for the pre-trained multipurpose NLP model *spaCy* [@honnibal_
 
 The user may also specify "phrases_to_concatenate", an argument representing a set of phrases for spaCy to keep together during its parsing. The example below demonstrates how to use this feature to supplement the NER capabilities of spaCy with a custom list of entities. This supplementation could be used to ensure that specific known entities are recognized; for instance, spaCy might not detect that a consulting firm such as "Schmidt and Associates" is one entity rather than two. Conversely, this capability could be leveraged to create a new category of entities to detect, that a pretrained model is not designed to specifically recognize. For instance, to create a public health network, one might include a known list of contaminants and diseases and designate custom entity type tags for them, such as "CONTAM" and "DISEASE"). In this example, we investigate the connections between the organizations, people, and geopolitical entities discussed in the plan with the flow of water in the basin. To assist with this, we have input a custom list of known water bodies in the region governed by our test document and have given it the entity designation "WATER". This is carried out by setting the variable "phrases_to_concatenate" to a character vector, including all of the custom entities. Then, the entity type can be set to the desired category. Note that this function is case-sensitive.
 
-```{r parse, eval = F}
+```{r parse, eval = T}
 library(findpython)
 #find the version of python that has the required NLP modules
 ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))

@@ -49,6 +49,10 @@ The parsed data will be exported to these files.}
 A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 }
 \description{
+This function is a work in progress and should not be used yet.
+}
+\details{
 This function is specifically designed for the en_core_web_trf transformer model
 with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
 }
+\keyword{internal}

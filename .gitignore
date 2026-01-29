@@ -4,6 +4,8 @@ notebooks/
 # DataLab Project Directory Structure
 outputs/
 
+# built documents
+inst/doc/*
 
 # R
 *.rds
@@ -36,3 +38,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .Rproj.user
+
+# Claude Code
+.claude
