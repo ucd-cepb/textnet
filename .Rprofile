@@ -1,0 +1,1 @@
+options(devtools.build_args = "--compact-vignettes=both")

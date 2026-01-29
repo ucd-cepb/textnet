@@ -3,6 +3,7 @@
 ^\.Rproj\.user$
 ^vignettes/paper\.md$
 ^vignettes/paper\.pdf$
-^vignettes/paper\.bib$
 ^create_heximage.R
+^img$
 ^.github
+^.claude

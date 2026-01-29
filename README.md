@@ -54,7 +54,8 @@ spacy_download_langmodel('en_core_web_lg')
 
 Make changes to the code, then run `devtools::load_all()` and test them.
 To update documentation and NAMESPACE file `devtools::document()`.
-To reinstall the package: `devtools::install()`	
+To reinstall the package: `devtools::install()`.
+Note that the vignettes both end up slightly larger than `devtools::check()` prefers, so running as `devtools::check(build_args = "--compact-vignettes=both")` is preferred.
 
 # Contact
 

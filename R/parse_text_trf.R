@@ -212,13 +212,13 @@ print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
     pages <- pbapply::pblapply(1:length(pages), function(i){
       stringi::stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
                                       replacement = phrases_grouped,
-                                      vectorize= F)
+                                      vectorize_all = FALSE)
     })
   }
 
   if(keep_hyph_together){
     pages <- pbapply::pblapply(1:length(pages), function(i){
-      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize=F)
+      stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize_all = FALSE)
     })
   }
 
