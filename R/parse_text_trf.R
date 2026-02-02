@@ -1,29 +1,24 @@
-# Exported function
-#parse_text_trf
-
-#' Parse text using spaCy transformer model with GPU support
+#' Parse text using spaCy transformer model
 #'
-#' This function is specifically designed for the en_core_web_trf transformer model
-#' with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
-
-#' @description
-#' This function is a work in progress and should not be used yet.
-#' @keywords internal
+#' This function parses text using spaCy's en_core_web_trf transformer model.
+#' Unlike the CPU version (parse_text()), this function uses a pure Python
+#' implementation that allows PyTorch to handle GPU acceleration automatically.
+#'
 #' @param ret_path filepath to use for Sys.setenv reticulate python call. Note: Python and miniconda must already be installed.
 #' @param keep_hyph_together Set to true to replace hyphens within a single word with underscores. Defaults to false.
 #' @param phrases_to_concatenate character vector of phrases, in which each element is a string consisting of tokens separated by spaces. These are replaced with their concatenated version in order, from left to right. It is suggested that the most specific phrases, with the most words, are arranged at the left.
 #' @param concatenator This is a character or string that will be used to replace the spaces in the phrases_to_concatenate.
 #' @param text_list This is a named list, an object of the type resulting from pdf_clean, in which each list element is a document, and each string within a list element represents the text on one page
 #' @param parsed_filenames This is a character vector in which each element represents a filepath associated with its respective document.
-#' The parsed data will be exported to these files.
+#' The parsed data will be exported to these files (as .parquet files for efficiency).
 #' @param overwrite A boolean. Whether to overwrite existing files
 #' @param test A boolean. If TRUE and overwrite is FALSE, will still run parsing but won't save results. Useful for testing parsing on a subset without affecting saved files.
 #' @param custom_entities A named list. This does not overwrite the entity determination of the NLP engine, but rather catches user-defined entities that are not otherwise detected by the engine. Best used in combination with phrases_to_concatenate, since the custom entity label will only be applied if the entire token matches the definition. Does not search multiple consecutive tokens to define a match. These will be applied to all documents.
 #' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline. Use entity_specify() to create patterns from a dictionary.
 #' @param ruler_position A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.
 #' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
-#' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
-#' @importFrom data.table setDT
+#' @param batch_size Integer. Batch size for spaCy's nlp.pipe() processing. Default 50.
+#' @return A list of data.frames of tokens, one per document. Format matches spacyr::spacy_parse output.
 #' @importFrom stringr str_detect str_replace_all
 #' @importFrom stringi stri_replace_all_regex stri_escape_unicode
 #' @importFrom pbapply pblapply
@@ -33,11 +28,8 @@
 parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
                            concatenator="_", text_list, parsed_filenames,
                            overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
-                           ruler_position = c("after", "before"), overwrite_ents = TRUE){
-  if(!requireNamespace("spacyr", quietly = T)){
-    stop("Package 'spacyr' must be installed to use this function.",
-         call.=F)
-  }
+                           ruler_position = c("after", "before"), overwrite_ents = TRUE,
+                           batch_size = 50L){
 
   # Input validation
   if(!is.character(ret_path) || length(ret_path) != 1) {
@@ -48,7 +40,7 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
     stop("'keep_hyph_together' must be a single logical value")
   }
 
-  if(!is.character(phrases_to_concatenate) && !is.na(phrases_to_concatenate)) {
+  if(!is.character(phrases_to_concatenate) && !all(is.na(phrases_to_concatenate))) {
     stop("'phrases_to_concatenate' must be either NA or a character vector")
   }
 
@@ -97,6 +89,16 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
     }
   }
 
+  if(is.null(names(text_list)) | "" %in% names(text_list)){
+    stop("text_list must be a named list")
+  }
+
+  # Check for arrow package (needed to read Parquet)
+  if(!requireNamespace("arrow", quietly = T)){
+    stop("Package 'arrow' must be installed to use this function (for reading Parquet files).",
+         call.=F)
+  }
+
   # Fix OpenMP library conflict (common on macOS with conda)
   Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
 
@@ -112,174 +114,163 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   }
   reticulate::py_config()
 
-  # Initialize GPU for spaCy transformer model and load model in same context
-  # This bypasses spacyr::spacy_initialize() to avoid contextvars isolation issues
-  # where GPU ops set via prefer_gpu() don't persist to spacyr's py_run_file() call
-  gpu_init_success <- tryCatch({
-    reticulate::py_run_string("
-import cupy
+  # Load the Python parsing module
+  python_module_path <- system.file("python", "parse_text_trf.py", package = "textNet")
+  if(python_module_path == ""){
+    stop("Could not find parse_text_trf.py in textNet package. Please reinstall the package.")
+  }
 
-# Verify cupy can access GPU
-device_count = cupy.cuda.runtime.getDeviceCount()
-assert device_count > 0, 'No GPU detected by cupy'
+  # Source the Python module
+  reticulate::source_python(python_module_path)
 
-# Activate GPU device 0
-cupy.cuda.Device(0).use()
-
-# Fix thinc's broken cupy detection BEFORE importing spacy
-import thinc.util
-thinc.util.cupy = cupy
-thinc.util.has_cupy = True
-thinc.util.has_cupy_gpu = True
-thinc.util.has_gpu = True
-
-# Now import spacy and activate GPU
-import spacy
-gpu_activated = spacy.prefer_gpu(0)
-assert gpu_activated, 'spacy.prefer_gpu() returned False'
-
-# Load model HERE in same context as GPU setup - this is the key fix
-# Loading via spacyr::spacy_initialize() fails because it runs spacy.load()
-# in a separate py_run_file() where the GPU ops context is not available
-nlp = spacy.load('en_core_web_trf')
-
-# Verify ops is set correctly
-from thinc.api import get_current_ops
-ops = get_current_ops()
-assert ops is not None, 'get_current_ops() returned None'
-print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
-print(f'Model loaded: {nlp.meta[\"name\"]}')
-")
-    TRUE
+  # Initialize the parser
+  message("Initializing spaCy transformer model...")
+  tryCatch({
+    initialize(
+      model = "en_core_web_trf",
+      entity_ruler_patterns = entity_ruler_patterns,
+      ruler_position = ruler_position,
+      overwrite_ents = overwrite_ents
+    )
   }, error = function(e){
-    stop(paste0("GPU/model initialization failed: ", e$message,
-                "\n\nThis function requires GPU. For CPU processing, use parse_text() instead."))
+    if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
+       grepl("not found", e$message, ignore.case = TRUE)){
+      stop("Model en_core_web_trf is not installed. Install via: python -m spacy download en_core_web_trf")
+    } else {
+      stop(paste0("Failed to initialize spaCy: ", e$message))
+    }
   })
 
-  # Load spacyr's Python class (it references the global nlp object we just created)
-  spacyr_class_path <- system.file("python", "spacyr_class.py", package = "spacyr")
-  reticulate::py_run_file(spacyr_class_path)
+  message("spaCy transformer model initialized")
 
-  # Set the R options that spacy_parse() checks for
-  options(spacy_initialized = TRUE)
-  options(spacy_entity = TRUE)
-
-  message("spaCy transformer configured to use GPU")
-
-  # Language check
-  if(!stringr::str_detect("en_core_web_trf", "^en_")){
-    warning("This package was developed and tested on English texts.")
-  }
-
-  # Configure EntityRuler if patterns are provided
-  if(!is.null(entity_ruler_patterns)){
-    tryCatch({
-      nlp <- reticulate::py_eval("nlp")
-
-      if(ruler_position == "after"){
-        position_arg <- list(after = "ner")
-      } else {
-        position_arg <- list(before = "ner")
-      }
-
-      ruler_config <- list(overwrite_ents = overwrite_ents)
-
-      ruler <- do.call(nlp$add_pipe,
-                       c(list("entity_ruler"),
-                         position_arg,
-                         list(config = ruler_config)))
-      ruler$add_patterns(entity_ruler_patterns)
-
-      message(paste0("EntityRuler configured: position=", ruler_position,
-                     ", overwrite_ents=", overwrite_ents,
-                     ", ", length(entity_ruler_patterns), " patterns loaded"))
-
-    }, error = function(e){
-      warning(paste0("Failed to configure EntityRuler: ", e$message, ". Proceeding without EntityRuler."))
-    })
-  }
-
-
-  # Process text
+  # Process text - flatten pages and track file IDs
   pages <- unlist(text_list)
-
-  if(is.null(names(text_list)) | "" %in% names(text_list)){
-    stop("text_list must be a named list")
-  }
   file_ids <- unlist(sapply(1:length(text_list), function(q) rep(names(text_list[q]),length(text_list[[q]]))))
 
+  # Apply phrase concatenation
   phrases_to_concatenate <- phrases_to_concatenate[stringr::str_detect(phrases_to_concatenate,"\\s")]
 
-  if(length(phrases_to_concatenate) > 1 || !is.na(phrases_to_concatenate)){
+  if(length(phrases_to_concatenate) > 1 || !all(is.na(phrases_to_concatenate))){
     phrases_grouped <- gsub("\\s+", concatenator, x = phrases_to_concatenate)
     pages <- pbapply::pblapply(1:length(pages), function(i){
       stringi::stri_replace_all_regex(pages[i], pattern = phrases_to_concatenate,
                                       replacement = phrases_grouped,
                                       vectorize_all = FALSE)
     })
+    pages <- unlist(pages)
   }
 
+  # Apply hyphen handling
   if(keep_hyph_together){
     pages <- pbapply::pblapply(1:length(pages), function(i){
       stringi::stri_replace_all_regex(pages[i], pattern= "(?<=\\w)[\\-\\u2013](?=\\w)", replacement ="_", vectorize_all = FALSE)
     })
+    pages <- unlist(pages)
   }
 
+  # Process each unique file
   unique_files <- base::unique(file_ids)
-  all_parsed <- vector(mode="list",length=length(unique_files))
+  all_parsed <- vector(mode="list", length=length(unique_files))
+  names(all_parsed) <- unique_files
+
+  # Load English words data for validation
+  utils::data(eng_words, envir = environment())
 
   for (m in 1:length(unique_files)){
-    file_exists <- file.exists(parsed_filenames[m])
+    # Determine output filename - convert .rds to .parquet if needed
+    output_file <- parsed_filenames[m]
+    if(grepl("\\.rds$", output_file, ignore.case = TRUE)){
+      output_file <- sub("\\.rds$", ".parquet", output_file, ignore.case = TRUE)
+    } else if(!grepl("\\.parquet$", output_file, ignore.case = TRUE)){
+      output_file <- paste0(output_file, ".parquet")
+    }
+
+    file_exists <- file.exists(output_file)
     should_parse <- overwrite || !file_exists || test
-    should_save <- overwrite || !file_exists
+    should_save <- (overwrite || !file_exists) && !test
 
     if(should_parse){
-      single_plan_text <- unlist(pages[file_ids==unique_files[m]])
+      # Get texts for this file
+      file_mask <- file_ids == unique_files[m]
+      file_texts <- pages[file_mask]
+      # Create doc_ids for each page (e.g., "docname_1", "docname_2", etc.)
+      page_doc_ids <- paste0(unique_files[m], "_", seq_along(file_texts))
 
-      parsedtxt <- spacyr::spacy_parse(single_plan_text,
-                                       pos = T,
-                                       tag = T,
-                                       lemma = T,
-                                       entity = T,
-                                       dependency = T,
-                                       nounphrase = T)
+      # Parse using Python
+      message(paste0("Parsing: ", unique_files[m], " (", length(file_texts), " pages)"))
 
+      parsedtxt <- tryCatch({
+        df <- parse_to_dataframe(
+          texts = as.list(file_texts),
+          doc_ids = as.list(page_doc_ids),
+          batch_size = as.integer(batch_size)
+        )
+        # Convert to R data.frame
+        as.data.frame(df)
+      }, error = function(e){
+        stop(paste0("Error parsing ", unique_files[m], ": ", e$message))
+      })
+
+      # English word validation
       lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
       lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
-      utils::data(eng_words)
       pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped)
 
-      if(pctlettersineng<0.5){
+      if(pctlettersineng < 0.5){
         warning(paste0("Fewer than 50% of letter-containing tokens in the document ", unique_files[m] ," are English words."))
       }
 
-      if(test && file_exists && !overwrite){
-        print(paste0("parsing complete (test mode, not saved): ",unique_files[m]))
-      } else {
-        print(paste0("parsing complete: ",unique_files[m]))
-      }
-
-      all_parsed[[m]] <- parsedtxt
-
+      # Apply custom entities
       if(!is.null(custom_entities)){
         for(k in 1:length(custom_entities)){
-          custom_entities[[k]] <- stringr::str_replace_all(custom_entities[[k]] ,"\\s",concatenator)
-          if(length(all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity)>0){
-            all_parsed[[m]][all_parsed[[m]]$token %in% custom_entities[[k]] & all_parsed[[m]]$entity=="",]$entity <- paste0(names(custom_entities[k]), "_B")
+          patterns <- stringr::str_replace_all(custom_entities[[k]], "\\s", concatenator)
+          mask <- parsedtxt$token %in% patterns & parsedtxt$entity == ""
+          if(sum(mask) > 0){
+            parsedtxt$entity[mask] <- paste0(names(custom_entities[k]), "_B")
           }
         }
       }
 
+      all_parsed[[m]] <- parsedtxt
+
+      # Save if appropriate
       if(should_save){
-        saveRDS(all_parsed[[m]], parsed_filenames[m])
+        # Ensure directory exists
+        dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
+        arrow::write_parquet(parsedtxt, output_file)
+        message(paste0("Saved: ", output_file))
+      } else if(test){
+        message(paste0("Parsing complete (test mode, not saved): ", unique_files[m]))
       }
+
     } else {
-      print(paste0("Skipping parsed_filenames[",m,"] - file already exists (set overwrite=T to reparse or test=T to test without saving)"))
-      all_parsed[[m]] <- NULL
+      message(paste0("Skipping ", unique_files[m], " - file already exists (set overwrite=TRUE to reparse)"))
+      # Load existing file
+      all_parsed[[m]] <- arrow::read_parquet(output_file)
     }
   }
 
-  spacyr::spacy_finalize()
+  # Clean up Python resources
+  tryCatch({
+    finalize()
+  }, error = function(e){
+    warning(paste0("Error during cleanup: ", e$message))
+  })
 
   return(all_parsed)
+}
+
+
+#' Read parsed text from Parquet file
+#'
+#' Helper function to read Parquet files created by parse_text_trf().
+#'
+#' @param filepath Path to the .parquet file
+#' @return A data.frame with parsed tokens
+#' @export
+read_parsed_trf <- function(filepath){
+  if(!requireNamespace("arrow", quietly = T)){
+    stop("Package 'arrow' must be installed to read Parquet files.", call.=F)
+  }
+  arrow::read_parquet(filepath)
 }
