@@ -112,9 +112,9 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   }
   reticulate::py_config()
 
-  # Initialize GPU for spaCy transformer model
-  # Workaround: thinc's cupy detection is broken on some systems.
-  # We fix cupy detection BEFORE importing spacy, then call prefer_gpu.
+  # Initialize GPU for spaCy transformer model and load model in same context
+  # This bypasses spacyr::spacy_initialize() to avoid contextvars isolation issues
+  # where GPU ops set via prefer_gpu() don't persist to spacyr's py_run_file() call
   gpu_init_success <- tryCatch({
     reticulate::py_run_string("
 import cupy
@@ -138,35 +138,38 @@ import spacy
 gpu_activated = spacy.prefer_gpu(0)
 assert gpu_activated, 'spacy.prefer_gpu() returned False'
 
+# Load model HERE in same context as GPU setup - this is the key fix
+# Loading via spacyr::spacy_initialize() fails because it runs spacy.load()
+# in a separate py_run_file() where the GPU ops context is not available
+nlp = spacy.load('en_core_web_trf')
+
 # Verify ops is set correctly
 from thinc.api import get_current_ops
 ops = get_current_ops()
 assert ops is not None, 'get_current_ops() returned None'
 print(f'GPU initialized successfully. Ops type: {type(ops).__name__}')
+print(f'Model loaded: {nlp.meta[\"name\"]}')
 ")
     TRUE
   }, error = function(e){
-    stop(paste0("GPU initialization failed: ", e$message,
+    stop(paste0("GPU/model initialization failed: ", e$message,
                 "\n\nThis function requires GPU. For CPU processing, use parse_text() instead."))
   })
 
+  # Load spacyr's Python class (it references the global nlp object we just created)
+  spacyr_class_path <- system.file("python", "spacyr_class.py", package = "spacyr")
+  reticulate::py_run_file(spacyr_class_path)
+
+  # Set the R options that spacy_parse() checks for
+  options(spacy_initialized = TRUE)
+  options(spacy_entity = TRUE)
+
   message("spaCy transformer configured to use GPU")
 
-  # Initialize spaCy with transformer model
+  # Language check
   if(!stringr::str_detect("en_core_web_trf", "^en_")){
     warning("This package was developed and tested on English texts.")
   }
-
-  tryCatch({
-    spacyr::spacy_initialize(model = "en_core_web_trf")
-  }, error = function(e){
-    if(grepl("Can't find model", e$message, ignore.case = TRUE) ||
-       grepl("not found", e$message, ignore.case = TRUE)){
-      stop("Model en_core_web_trf is not installed. Install via spacyr::spacy_download_langmodel('en_core_web_trf')")
-    } else {
-      stop(paste0("Failed to initialize spaCy: ", e$message))
-    }
-  })
 
   # Configure EntityRuler if patterns are provided
   if(!is.null(entity_ruler_patterns)){
