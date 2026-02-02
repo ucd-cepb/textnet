@@ -2,7 +2,7 @@
 % Please edit documentation in R/parse_text_trf.R
 \name{parse_text_trf}
 \alias{parse_text_trf}
-\title{Parse text using spaCy transformer model with GPU support}
+\title{Parse text using spaCy transformer model}
 \usage{
 parse_text_trf(
   ret_path,
@@ -16,7 +16,8 @@ parse_text_trf(
   custom_entities = NULL,
   entity_ruler_patterns = NULL,
   ruler_position = c("after", "before"),
-  overwrite_ents = TRUE
+  overwrite_ents = TRUE,
+  batch_size = 50L
 )
 }
 \arguments{
@@ -31,7 +32,7 @@ parse_text_trf(
 \item{text_list}{This is a named list, an object of the type resulting from pdf_clean, in which each list element is a document, and each string within a list element represents the text on one page}
 
 \item{parsed_filenames}{This is a character vector in which each element represents a filepath associated with its respective document.
-The parsed data will be exported to these files.}
+The parsed data will be exported to these files (as .parquet files for efficiency).}
 
 \item{overwrite}{A boolean. Whether to overwrite existing files}
 
@@ -44,15 +45,14 @@ The parsed data will be exported to these files.}
 \item{ruler_position}{A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.}
 
 \item{overwrite_ents}{A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.}
+
+\item{batch_size}{Integer. Batch size for spaCy's nlp.pipe() processing. Default 50.}
 }
 \value{
-A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
+A list of data.frames of tokens, one per document. Format matches spacyr::spacy_parse output.
 }
 \description{
-This function is a work in progress and should not be used yet.
+This function parses text using spaCy's en_core_web_trf transformer model.
+Unlike the CPU version (parse_text()), this function uses a pure Python
+implementation that allows PyTorch to handle GPU acceleration automatically.
 }
-\details{
-This function is specifically designed for the en_core_web_trf transformer model
-with GPU acceleration. For CPU-only processing with en_core_web_lg, use parse_text().
-}
-\keyword{internal}
