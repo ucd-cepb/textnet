@@ -38,7 +38,7 @@ Imports:
 Suggests:
     reticulate,
     spacyr,
-    arrow,
+    duckdb,
     rmarkdown (>= 2.21),
     knitr (>= 1.42),
     ggraph,

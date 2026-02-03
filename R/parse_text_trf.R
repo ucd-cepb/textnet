@@ -93,9 +93,9 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
     stop("text_list must be a named list")
   }
 
-  # Check for arrow package (needed to read Parquet)
-  if(!requireNamespace("arrow", quietly = T)){
-    stop("Package 'arrow' must be installed to use this function (for reading Parquet files).",
+  # Check for duckdb package (needed for Parquet I/O)
+  if(!requireNamespace("duckdb", quietly = T)){
+    stop("Package 'duckdb' must be installed to use this function (for Parquet file I/O).",
          call.=F)
   }
 
@@ -237,7 +237,11 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
       if(should_save){
         # Ensure directory exists
         dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
-        arrow::write_parquet(parsedtxt, output_file)
+        # Write parquet using duckdb
+        con <- duckdb::dbConnect(duckdb::duckdb())
+        duckdb::duckdb_register(con, "parsed_data", parsedtxt)
+        duckdb::dbExecute(con, sprintf("COPY parsed_data TO '%s' (FORMAT PARQUET)", output_file))
+        duckdb::dbDisconnect(con, shutdown = TRUE)
         message(paste0("Saved: ", output_file))
       } else if(test){
         message(paste0("Parsing complete (test mode, not saved): ", unique_files[m]))
@@ -245,8 +249,10 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
 
     } else {
       message(paste0("Skipping ", unique_files[m], " - file already exists (set overwrite=TRUE to reparse)"))
-      # Load existing file
-      all_parsed[[m]] <- arrow::read_parquet(output_file)
+      # Load existing file using duckdb
+      con <- duckdb::dbConnect(duckdb::duckdb())
+      all_parsed[[m]] <- duckdb::dbGetQuery(con, sprintf("SELECT * FROM '%s'", output_file))
+      duckdb::dbDisconnect(con, shutdown = TRUE)
     }
   }
 
@@ -269,8 +275,10 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
 #' @return A data.frame with parsed tokens
 #' @export
 read_parsed_trf <- function(filepath){
-  if(!requireNamespace("arrow", quietly = T)){
-    stop("Package 'arrow' must be installed to read Parquet files.", call.=F)
+  if(!requireNamespace("duckdb", quietly = T)){
+    stop("Package 'duckdb' must be installed to read Parquet files.", call.=F)
   }
-  arrow::read_parquet(filepath)
+  con <- duckdb::dbConnect(duckdb::duckdb())
+  on.exit(duckdb::dbDisconnect(con, shutdown = TRUE))
+  duckdb::dbGetQuery(con, sprintf("SELECT * FROM '%s'", filepath))
 }
