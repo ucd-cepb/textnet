@@ -52,7 +52,7 @@ relationships in textual data.
 
 ## Statement of Need
 
-Network extraction from documents has typically required manual coding.
+Network extraction from the kinds of documents listed above has typically required manual coding.
 Furthermore, existing network extraction methods that use co-occurrence
 leave a vast amount of data on the table, namely, the rich edge
 attribute data and directionality of each verb phrase defining the
