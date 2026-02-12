@@ -105,7 +105,7 @@ for(m in 1:length(old_new_parsed)){
   allentities <- clean_entities(allentities, remove_nums)
   allentities <- unique(sort(allentities))
   nodentities <- unique(sort(extracts[[m]]$nodelist$entity_name))
-  #sometimes appositives happen in the middle of the entity name, which textnet removes
+  #sometimes appositives happen in the middle of the entity name, which textNet removes
   nodentities <- nodentities |> str_replace_all("_", "_.*_*")
   
   #this method accounts for the fact that the nodentity might be a substring of the 

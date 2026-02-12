@@ -104,7 +104,7 @@ custom NER model.
 The stable version of this package can be installed from Github, using
 the *pak* package [@csardi_pak_2024]:
 
-    pak::pak("ucd-cepb/textnet")
+    pak::pak("ucd-cepb/textNet")
 
 The *textNet* package suggests several convenience wrappers of packages
 such as *spacyr* [@benoit_spacyr_2023], *pdftools* [@ooms__aut_pdftools_2024], *igraph* [@csardi_igraph_2024], and *network* [@butts_network_2023].

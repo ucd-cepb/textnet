@@ -26,13 +26,13 @@ Functions are documented with roxygen2. Please fully document any new changes be
 
 This package uses `testthat` to test functionality against expected behavior.
 
-See [test_procedures.Rmd](https://github.com/ucd-cepb/textnet/blob/main/vignettes/test_procedures.Rmd) for the existing test suite. When submitting a pull request, please demonstrate its functionality by including a testing file in the vignettes folder explaining its usage and incorporating relevant checks.
+See [test_procedures.Rmd](https://github.com/ucd-cepb/textNet/blob/main/vignettes/test_procedures.Rmd) for the existing test suite. When submitting a pull request, please demonstrate its functionality by including a testing file in the vignettes folder explaining its usage and incorporating relevant checks.
 
 # Reporting bugs
 
-Please ensure you are using the latest version of `textNet` and check existing [issues](https://github.com/ucd-cepb/textnet/issues) to ensure there is not already an existing bug report for your issue. 
+Please ensure you are using the latest version of `textNet` and check existing [issues](https://github.com/ucd-cepb/textNet/issues) to ensure there is not already an existing bug report for your issue. 
 
-Please use the [bug report template](https://github.com/ucd-cepb/textnet/tree/main/.github/issue_templates/bug_report.md) when reporting a bug.
+Please use the [bug report template](https://github.com/ucd-cepb/textNet/tree/main/.github/issue_templates/bug_report.md) when reporting a bug.
 
 # Asking questions and getting support
 
@@ -40,4 +40,4 @@ Before asking a question, please search for existing issues that may be relevant
 
 # Feature request template
 
-Please use the [feature request template](https://github.com/ucd-cepb/textnet/tree/main/.github/issue_templates/feature_request.md) to request a feature. Please include a clear, complete description of the requested feature, as well as a step-by-step explanation of the enhancement. Include an explanation of the utility for the general user of the requested feature.
+Please use the [feature request template](https://github.com/ucd-cepb/textNet/tree/main/.github/issue_templates/feature_request.md) to request a feature. Please include a clear, complete description of the requested feature, as well as a step-by-step explanation of the enhancement. Include an explanation of the utility for the general user of the requested feature.

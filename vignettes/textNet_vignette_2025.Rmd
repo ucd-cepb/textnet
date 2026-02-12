@@ -41,7 +41,7 @@ Co-occurrence graphs have the tendency to generate saturated subgraphs, since ev
 The stable version of this package can be installed from Github, using the *pak* package [@csardi_pak_2024]:
 
 ```{r pak, eval=F}
-pak::pak("ucd-cepb/textnet")
+pak::pak("ucd-cepb/textNet")
 ```
 
 The *textNet* package suggests several convenience wrappers of packages such as *spacyr* [@benoit_spacyr_2023], *pdftools* [@ooms__aut_pdftools_2024], *igraph* [@csardi_igraph_2024], and *network* [@butts_network_2023]. To use the full functionality of *textNet*, such as pre-processing tools and post-processing analysis tools, we recommend installing these packages, which for *spacyr* requires integration with Python. However, the user may wish to preprocess and parse data using their own NLP engine, and skip directly to the textnet_extract() function, which does not depend on any of the aforementioned packages. The textnet_extract() function does, however, use functions from *pbapply* [@solymos_pbapply_2023], *data_table* [@barrett_datatable_2024], *dplyr* [@wickham_dplyr_2023], and *tidyr* [@wickham_tidyr_2024].

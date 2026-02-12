@@ -7,7 +7,7 @@
 combine_networks(textnet_igraphs, mode = c("multiplex", "weighted"))
 }
 \arguments{
-\item{textnet_igraphs}{List of textnet igraphs, the outputs of export_to_network(export_format = "igraph)}
+\item{textnet_igraphs}{List of textNet igraphs, the outputs of export_to_network(export_format = "igraph)}
 
 \item{mode}{Either "multiplex" or "weighted" depending on the desired exported network format. If "weighted", collapses multiplex edges into a single weighted edge}
 }

@@ -45,7 +45,7 @@ which may in turn correspond to a 'to' value that is found in 'from', and so on.
 \item{concatenator}{The word boundary to look for when match_partial_entity is true. Defaults to "_".}
 }
 \value{
-a cleaned textnet extract. See textnet_extract help file for structure.
+a cleaned textNet extract. See textnet_extract help file for structure.
 }
 \description{
 Renames entities in a textnet_extract that are supplied in 'from' with those supplied in 'to'.
