@@ -137,6 +137,8 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
 
   #network object
   agency_df <- igraph::as_data_frame(igr, what = "both")
+  nodes_no_iso <- agency_df$vertices %>% filter(name %in% agency_df$edges$from |
+                                                  name %in% agency_df$edges$to)
   if(keep_isolates==T & collapse_edges == F){
     #keep_all
     net <- network::network(x=agency_df$edges, directed = T,
@@ -144,22 +146,22 @@ export_to_network <- function(textnet_extract, export_format, keep_isolates=T, c
                    bipartiate = F, vertices = agency_df$vertices,
                    matrix.type = "edgelist")
   }else if(keep_isolates==T & collapse_edges == T){
-    #TODO keep isolates but use weighted
+    #keep isolates but use weighted
     net <- network::network(x=agency_df$edges, directed = T,
                    hyper = F, loops = self_loops, multiple = F, 
                    bipartiate = F, vertices = agency_df$vertices,
                    matrix.type = "edgelist")
   }else if(keep_isolates==F & collapse_edges == F){
     #remove isolates but use original edges
-    net <- network::network(x=agency_df$edges[,1:2], directed = T,
+    net <- network::network(x=agency_df$edges, directed = T,
                    hyper = F, loops = self_loops, multiple = T, 
-                   bipartiate = F, 
+                   bipartiate = F, vertices = nodes_no_iso,
                    matrix.type = "edgelist")
   }else if(keep_isolates==F & collapse_edges == T){
     #remove isolates and use weighted
     net <- network::network(x=agency_df$edges, directed = T,
                    hyper = F, loops = self_loops, multiple = F,
-                   bipartiate = F, 
+                   bipartiate = F, vertices = nodes_no_iso,
                    matrix.type = "edgelist")
   }
   
