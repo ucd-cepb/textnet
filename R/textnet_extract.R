@@ -99,7 +99,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
     stop("'remove_neg' must be a single logical value")
   }
 
-  ### note this should be an error 
+  ### user must either save output to memory or as a file
   if(is.null(file) && return_to_memory == F){stop("function not set to save output OR return object to memory")}
   x <- data.table::as.data.table(x)
 
