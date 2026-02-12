@@ -18,8 +18,7 @@ output: pdf_document
 ## Introduction
 
 Network measurement in social science typically relies on data collected
-through surveys and interviews. Document-based measurement is
-automatable and scalable, providing opportunities for large scale or
+through surveys and interviews. Document-based measurement can be automated and scaled, providing opportunities for large scale or
 longitudinal research that are not possible through traditional methods.
 A number of tools exist to generate networks based on co-occurrence of
 words within documents (such as the
@@ -73,7 +72,7 @@ dates, or custom-defined categories, to be preserved.
 As a syntax-based network extractor, *textNet* identifies source and
 target nodes. This produces directed graphs that contain information
 about network flow. Methods based on identifying co-occurring nodes in a
-document, by contrast, produce undirected graphs. Co-occurrence graphs also have the tendency to generate saturated subgraphs, since every co-occurring collection of entities has every possible edge drawn amongst them. By contrast, *textNet* draws connections not between every entity in the document or even the sentence, but specifically between pairs of entities that are mediated by an event relationship.
+document, by contrast, produce undirected graphs. Co-occurrence graphs also tend to generate saturated subgraphs, since every co-occurring collection of entities has every possible edge drawn amongst them. By contrast, *textNet* draws connections specifically between pairs of entities that are mediated by an event relationship, rather than between every entity in the document or even in the sentence.
 
 ### Multiplex Graph Output
 
@@ -127,12 +126,12 @@ text removal feature; and parse\_text(), which is a wrapper for the
 *spacyr* package and uses the *spaCy* natural language processing engine
 [@honnibal_spacy_2021] to parse text and perform part of speech tagging, dependency
 parsing, and named entity recognition (NER). Alternatively, the user can 
-skip this step and load parsed text directly into the package. Externally produced data must be converted to standards
+skip this step and load parsed text directly into the package. Externally produced data must be converted to the format requirements
 outlined in the package manual.
 - Network extraction: textnet\_extract(), which generates a graph
 database from parsed text based upon tags and dependency relations. The object returned
 from textnet\_extract() consists of a nodelist, an edgelist with a rich set of
-edge attributes, a verblist, and a list of potential coreferences for disambiguation.
+edge attributes, a verblist, and an appositivelist (containing potential coreferences such as acronyms and their full forms for disambiguation).
 - Disambiguation: tools for cleaning, recoding, and aggregating node and
 edge attributes, such as the find\_acronyms() function, which can be
 paired with the disambiguation() function to identify acronyms in the
@@ -144,14 +143,14 @@ aggregating multiple document-based graphs based on common nodes.
 
 The figure below summarizes the functionality of *textNet* and the flow of function outputs. Optional data cleaning features are shown with dotted arrows.
 
-![Workflow of textNet Functions](vignette_figures/figure-markdown_strict/flowchart.png)
+![Workflow of *textNet* Functions](vignette_figures/figure-markdown_strict/flowchart.png)
 
-## Potential Further Analyses
-*textNet* is compatible with standard network analysis tools in R. Functionality from *ggraph* [@pedersen_ggraph_2024], *sna* [@butts_sna_2024], *igraph* [@csardi_igraph_2024], *network* [@butts_network_2023], and other network visualization 
+## Downstream Analysis
+*textNet* is compatible with standard network analysis tools in R. Functionality provided by *ggraph* [@pedersen_ggraph_2024], *sna* [@butts_sna_2024], *igraph* [@csardi_igraph_2024], *network* [@butts_network_2023], and other network visualization 
 and analysis packages can be used to further explore the extracted networks. 
 
 The *ggraph* package has been used to create the network visualization seen here, 
-using a weighted version of a igraph constructed using the "old_new_parsed" 
+using a weighted version of an igraph constructed using the "old_new_parsed" 
 sample data in *textNet*. 
 
 ![Representation of the Event Network of the New Plan](vignette_figures/figure-markdown_strict/plot-2.png)
@@ -160,7 +159,7 @@ The network-level attributes output from export\_to\_network can also be
 analyzed against exogenous metadata that has been collected separately
 by the researcher regarding the different documents and their real-world
 context. The extracted networks can
-also be analyzed through a variety of tools, such as an Exponential
+also be analyzed through a variety of network analysis tools, such as an Exponential
 Random Graph Model or a Temporal Exponential Random Graph Model.
 
 ## Vignette
