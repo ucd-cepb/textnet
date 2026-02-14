@@ -18,8 +18,8 @@ output: pdf_document
 ## Introduction
 
 The *textNet* package allows a user to input one or more
-PDF documents and create complex directed, multiplex, and
-multimodal network graphs. This enables rich analysis of the relationships between
+PDF documents and create directed, multiplex, and
+multimodal network graphs. This enables analysis of the relationships between
 verb attributes and tenses, entity types, structural motifs, and other network 
 characteristics. Entities mentioned within the input text become nodes, and the 
 verbs connecting them in the sentences of the text become directed edges. [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556)
@@ -31,18 +31,16 @@ regions known to have contrasting characteristics [-@zufall_syntactic_2024].
 *textNet* has applications in social science research, including governance network scholarship, as demonstrated by
 [Zufall and Scott](https://onlinelibrary.wiley.com/doi/full/10.1111/psj.12556) 
 [-@zufall_syntactic_2024] and by ongoing work on water resources governance and environmental impact assessments at the 
-UC Davis Center for Environmental Policy and Behavior. *textNet* also works on arbitrarily 
-long documents, making it well suited for research applications including legal 
-scholarship, social-ecological network analysis, 
-analysis of government planning documents, court proceedings, archival research, communication 
-and media research, and other fields interested in exploring events and entity 
-relationships in textual data.
+UC Davis Center for Environmental Policy and Behavior. *textNet* works on arbitrarily long documents, 
+making it well suited for analyzing legal documents, court proceedings, plans and policy documents, media publications, 
+and other long-form textual data containing events and entity relationships.
+
 
 ## Statement of Need
 
 Network measurement in social science typically relies on data collected
-through surveys and interviews. Document-based measurement can be automated and scaled, providing opportunities for large scale or
-longitudinal research that are not possible through traditional methods.
+through surveys and interviews. Document-based measurement can be automated and scaled, providing opportunities for large-N or
+longitudinal research that are unfeasible through traditional methods.
 A number of tools exist to generate networks based on co-occurrence of
 words within documents (such as the
 [Nocodefunctions](https://nocodefunctions.com/cowo/semantic_networks_tool.html)
@@ -59,11 +57,10 @@ generates network data based on the syntactic relationships between
 entities within a sentence. 
 
 We present an R
-package, *textNet*, designed to enable directed, multiplex, multimodal
-network extraction from text documents through syntactic dependency
-parsing, in a replicable, automated fashion for collections of
-arbitrarily long documents. The *textNet* package facilitates the
-automated analysis and comparison of many documents, based on their
+package, *textNet*, designed to enable directed, multiplex, and multimodal
+network extraction from text of documents through syntactic dependency
+parsing. The *textNet* package facilitates automated and replicable 
+analysis and comparison of many documents, based on their
 respective network characteristics. Its flexibility allows for any
 desired entity categories, such as organizations, geopolitical entities,
 dates, or custom-defined categories, to be preserved.
@@ -73,7 +70,10 @@ dates, or custom-defined categories, to be preserved.
 As a syntax-based network extractor, *textNet* identifies source and
 target nodes. This produces directed graphs that contain information
 about network flow. Methods based on identifying co-occurring nodes in a
-document, by contrast, produce undirected graphs. Co-occurrence graphs also tend to generate saturated subgraphs, since every co-occurring collection of entities has every possible edge drawn amongst them. By contrast, *textNet* draws connections specifically between pairs of entities that are mediated by an event relationship, rather than between every entity in the document or even in the sentence.
+document, by contrast, produce undirected graphs. Co-occurrence graphs also tend to generate saturated subgraphs, 
+since every co-occurring collection of entities 
+has every possible edge drawn amongst them. By contrast, *textNet* draws connections specifically between pairs of entities 
+that are mediated by an event relationship, rather than between every entity in the document or even in the sentence.
 
 ### Multiplex Graph Output
 
@@ -88,9 +88,9 @@ types to simplify representation.
 Multimodal networks, or networks where there are multiple categories of
 nodes, have common use cases such as social-ecological network analysis
 of configurations of actors and environmental features. Existing
-packages such as the manynet package [@hollway_manynet_2024] provide analytical
+packages such as the *manynet* package [@hollway_manynet_2024] provide analytical
 functions for multimodal network statistics. *textNet* provides a
-structure for tagging and organizing arbitrarily complex node labeling
+structure for tagging and organizing node labeling
 schemes that can then be fed into packages for multi-node network
 statistical analysis. Node labels can be automated (e.g., the default
 entity type tags for an NLP engine such as *spaCy* [@honnibal_spacy_2021]),
