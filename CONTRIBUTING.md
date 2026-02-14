@@ -26,7 +26,7 @@ Functions are documented with roxygen2. Please fully document any new changes be
 
 This package uses `testthat` to test functionality against expected behavior.
 
-See [test_procedures.Rmd](https://github.com/ucd-cepb/textNet/blob/main/vignettes/test_procedures.Rmd) for the existing test suite. When submitting a pull request, please demonstrate its functionality by including a testing file in the vignettes folder explaining its usage and incorporating relevant checks.
+See the tests folder for the existing test suite. When submitting a pull request, please demonstrate its functionality by including a testing file in the tests folder explaining its usage and incorporating relevant checks.
 
 # Reporting bugs
 
