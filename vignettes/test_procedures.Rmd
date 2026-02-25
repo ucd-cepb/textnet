@@ -46,9 +46,10 @@ expect_that(length(old_new_text), equals(length(pdfs)))
 
 
 ```{r parse, message=F, warning=F}
-library(findpython)
-ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
-   
+library(reticulate)
+#### RECOMMENDED: CREATE A CONDA ENVIRONMENT FOR OPERATING SPACY, INSTALLING SPACY MODELS
+reticulate::use_condaenv("spacy-env", required = TRUE)
+ret_path <- reticulate::conda_python("spacy-env")
 
 water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", 
                   "San Joaquin River", "Cottonwood Creek", "Chowchilla Canal Bypass", 
@@ -91,7 +92,7 @@ Next we call textnet_extract() to produce the network object:
 ent_types <- c('ORG','GPE','PERSON','WATER')
 extracts <- vector(mode="list",length=length(old_new_parsed))
 for(m in 1:length(old_new_parsed)){
-   extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=2,
+   extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=1,
                    keep_entities = ent_types, keep_incomplete_edges=T)
    }
 

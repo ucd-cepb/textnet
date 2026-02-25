@@ -41,7 +41,7 @@ Co-occurrence graphs have the tendency to generate saturated subgraphs, since ev
 The stable version of this package can be installed from Github, using the *pak* package [@csardi_pak_2024]:
 
 ```{r pak, eval=F}
-pak::pak("ucd-cepb/textnet")
+#pak::pak("ucd-cepb/textnet")
 ```
 
 The *textNet* package suggests several convenience wrappers of packages such as *spacyr* [@benoit_spacyr_2023], *pdftools* [@ooms__aut_pdftools_2024], *igraph* [@csardi_igraph_2024], and *network* [@butts_network_2023]. To use the full functionality of *textNet*, such as pre-processing tools and post-processing analysis tools, we recommend installing these packages, which for *spacyr* requires integration with Python. However, the user may wish to preprocess and parse data using their own NLP engine, and skip directly to the textnet_extract() function, which does not depend on any of the aforementioned packages. The textnet_extract() function does, however, use functions from *pbapply* [@solymos_pbapply_2023], *data_table* [@barrett_datatable_2024], *dplyr* [@wickham_dplyr_2023], and *tidyr* [@wickham_tidyr_2024].
@@ -89,14 +89,13 @@ old_new_parsed <- textNet::old_new_parsed
 #initialize empty list of extracts to populate
 extracts <- vector(mode="list",length=length(old_new_parsed))
 #populate each element of list with results of textnet_extract
-#increasing "cl" to 4 for speed
 #keeping four types of entities: organizations, 
 #geopolitical entities, people, and water bodies
 #keep_incomplete_edges is F by default; T keeps
 #'edges' that are missing either a source node
 #or a target node
 for(m in 1:length(old_new_parsed)){
-  extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=2,
+  extracts[[m]] <- textnet_extract(old_new_parsed[[m]],cl=1,
                    keep_entities = c('ORG','GPE','PERSON','WATER'), 
                    keep_incomplete_edges=T)
    }
@@ -508,9 +507,9 @@ This is a wrapper for the pre-trained multipurpose NLP model *spaCy* [@honnibal_
 The user may also specify "phrases_to_concatenate", an argument representing a set of phrases for spaCy to keep together during its parsing. The example below demonstrates how to use this feature to supplement the NER capabilities of spaCy with a custom list of entities. This supplementation could be used to ensure that specific known entities are recognized; for instance, spaCy might not detect that a consulting firm such as "Schmidt and Associates" is one entity rather than two. Conversely, this capability could be leveraged to create a new category of entities to detect, that a pretrained model is not designed to specifically recognize. For instance, to create a public health network, one might include a known list of contaminants and diseases and designate custom entity type tags for them, such as "CONTAM" and "DISEASE"). In this example, we investigate the connections between the organizations, people, and geopolitical entities discussed in the plan with the flow of water in the basin. To assist with this, we have input a custom list of known water bodies in the region governed by our test document and have given it the entity designation "WATER". This is carried out by setting the variable "phrases_to_concatenate" to a character vector, including all of the custom entities. Then, the entity type can be set to the desired category. Note that this function is case-sensitive.
 
 ```{r parse, eval = T}
-library(findpython)
-#find the version of python that has the required NLP modules
-ret_path <- find_python_cmd(required_modules = c('spacy', 'en_core_web_lg'))
+#### RECOMMENDED: CREATE A CONDA ENVIRONMENT FOR OPERATING SPACY, INSTALLING SPACY MODELS
+reticulate::use_condaenv("spacy-env", required = TRUE)
+ret_path <- reticulate::conda_python("spacy-env")
 
 #example of how to define a custom list for a user-defined entity type
 water_bodies <- c("surface water", "Surface water", "groundwater", "Groundwater", 

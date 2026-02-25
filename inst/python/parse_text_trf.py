@@ -44,6 +44,15 @@ class SpacyParserTRF:
             ruler_position: "after" or "before" NER in pipeline
             overwrite_ents: Whether EntityRuler overrides NER assignments
         """
+        # Activate GPU before loading model — uses MPS on Apple Silicon, CUDA on NVIDIA
+        gpu_activated = spacy.prefer_gpu()
+        if gpu_activated:
+            from thinc.api import get_current_ops
+            ops = get_current_ops()
+            print(f"GPU activated: {type(ops).__name__}")
+        else:
+            print("No GPU available, using CPU")
+
         print(f"Loading spaCy model: {self.model_name}")
         self.nlp = spacy.load(self.model_name)
         print(f"Model loaded: {self.nlp.meta['name']}")
@@ -161,6 +170,9 @@ class SpacyParserTRF:
             import torch
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                # MPS doesn't have empty_cache, but releasing tensors via gc is sufficient
+                pass
         except ImportError:
             pass
 
@@ -236,9 +248,9 @@ def parse_to_dataframe(
     texts: List[str],
     doc_ids: List[str],
     batch_size: int = 50
-) -> pd.DataFrame:
+) -> Dict[str, list]:
     """
-    Parse texts and return DataFrame directly (for small datasets).
+    Parse texts and return as dict of lists (converts cleanly to R data.frame).
 
     Args:
         texts: List of text strings
@@ -246,14 +258,17 @@ def parse_to_dataframe(
         batch_size: Batch size for processing
 
     Returns:
-        DataFrame with parsed tokens
+        Dict of lists with keys: doc_id, sentence_id, token_id, token, lemma,
+                                 pos, tag, entity, head_token_id, dep_rel
     """
     global _parser
 
     if _parser is None:
         raise RuntimeError("Parser not initialized. Call initialize() first.")
 
-    return _parser.parse_texts(texts, doc_ids, batch_size=batch_size)
+    df = _parser.parse_texts(texts, doc_ids, batch_size=batch_size)
+    # Convert to dict of plain Python lists for clean reticulate conversion
+    return {col: df[col].tolist() for col in df.columns}
 
 
 def finalize() -> None:

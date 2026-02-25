@@ -120,8 +120,8 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
     stop("Could not find parse_text_trf.py in textNet package. Please reinstall the package.")
   }
 
-  # Source the Python module
-  reticulate::source_python(python_module_path)
+  # Source the Python module (convert=FALSE to handle conversion explicitly)
+  reticulate::source_python(python_module_path, convert = FALSE)
 
   # Initialize the parser
   message("Initializing spaCy transformer model...")
@@ -144,7 +144,7 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   message("spaCy transformer model initialized")
 
   # Process text - flatten pages and track file IDs
-  pages <- unlist(text_list)
+  pages <- unname(unlist(text_list))
   file_ids <- unlist(sapply(1:length(text_list), function(q) rep(names(text_list[q]),length(text_list[[q]]))))
 
   # Apply phrase concatenation
@@ -200,20 +200,33 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
       message(paste0("Parsing: ", unique_files[m], " (", length(file_texts), " pages)"))
 
       parsedtxt <- tryCatch({
-        df <- parse_to_dataframe(
+        py_result <- parse_to_dataframe(
           texts = as.list(file_texts),
           doc_ids = as.list(page_doc_ids),
           batch_size = as.integer(batch_size)
         )
-        # Convert to R data.frame
-        as.data.frame(df)
+        # Explicitly convert each column by name to avoid reticulate misalignment
+        r_result <- reticulate::py_to_r(py_result)
+        data.frame(
+          doc_id = as.character(r_result[["doc_id"]]),
+          sentence_id = as.integer(r_result[["sentence_id"]]),
+          token_id = as.integer(r_result[["token_id"]]),
+          token = as.character(r_result[["token"]]),
+          lemma = as.character(r_result[["lemma"]]),
+          pos = as.character(r_result[["pos"]]),
+          tag = as.character(r_result[["tag"]]),
+          entity = as.character(r_result[["entity"]]),
+          head_token_id = as.integer(r_result[["head_token_id"]]),
+          dep_rel = as.character(r_result[["dep_rel"]]),
+          stringsAsFactors = FALSE
+        )
       }, error = function(e){
         stop(paste0("Error parsing ", unique_files[m], ": ", e$message))
       })
 
       # English word validation
       lettertokens <- parsedtxt$token[stringr::str_detect(parsedtxt$token, "[a-zA-Z]")]
-      lettertokensunicodeescaped <- stringi::stri_escape_unicode(lettertokens)
+      lettertokensunicodeescaped <- stringi::stri_escape_unicode(tolower(lettertokens))
       pctlettersineng <- sum(lettertokensunicodeescaped %in% eng_words)/length(lettertokensunicodeescaped)
 
       if(pctlettersineng < 0.5){
@@ -238,21 +251,21 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
         # Ensure directory exists
         dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
         # Write parquet using duckdb
-        con <- duckdb::dbConnect(duckdb::duckdb())
+        con <- DBI::dbConnect(duckdb::duckdb())
         duckdb::duckdb_register(con, "parsed_data", parsedtxt)
-        duckdb::dbExecute(con, sprintf("COPY parsed_data TO '%s' (FORMAT PARQUET)", output_file))
-        duckdb::dbDisconnect(con, shutdown = TRUE)
+        DBI::dbExecute(con, sprintf("COPY parsed_data TO '%s' (FORMAT PARQUET)", output_file))
+        DBI::dbDisconnect(con, shutdown = TRUE)
         message(paste0("Saved: ", output_file))
       } else if(test){
         message(paste0("Parsing complete (test mode, not saved): ", unique_files[m]))
       }
 
     } else {
-      message(paste0("Skipping ", unique_files[m], " - file already exists (set overwrite=TRUE to reparse)"))
+      message(paste0("Skipping ", unique_files[m], " - ", output_file, " already exists (set overwrite=TRUE to reparse)"))
       # Load existing file using duckdb
-      con <- duckdb::dbConnect(duckdb::duckdb())
-      all_parsed[[m]] <- duckdb::dbGetQuery(con, sprintf("SELECT * FROM '%s'", output_file))
-      duckdb::dbDisconnect(con, shutdown = TRUE)
+      con <- DBI::dbConnect(duckdb::duckdb())
+      all_parsed[[m]] <- DBI::dbGetQuery(con, sprintf("SELECT * FROM '%s'", output_file))
+      DBI::dbDisconnect(con, shutdown = TRUE)
     }
   }
 
@@ -278,7 +291,7 @@ read_parsed_trf <- function(filepath){
   if(!requireNamespace("duckdb", quietly = T)){
     stop("Package 'duckdb' must be installed to read Parquet files.", call.=F)
   }
-  con <- duckdb::dbConnect(duckdb::duckdb())
-  on.exit(duckdb::dbDisconnect(con, shutdown = TRUE))
-  duckdb::dbGetQuery(con, sprintf("SELECT * FROM '%s'", filepath))
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  DBI::dbGetQuery(con, sprintf("SELECT * FROM '%s'", filepath))
 }

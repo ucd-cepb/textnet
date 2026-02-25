@@ -34,7 +34,10 @@ Imports:
     ohenery,
     R.utils,
     methods,
-    xml2
+    xml2,
+    Rcpp
+LinkingTo:
+    Rcpp
 Suggests:
     reticulate,
     spacyr,
