@@ -170,6 +170,20 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
 
   # Process each unique file
   unique_files <- base::unique(file_ids)
+
+  # Validate alignment between text_list entries and parsed_filenames.
+  # Empty text_list entries produce no file_ids, so unique_files will be
+  # shorter than parsed_filenames, causing outputs to be saved to the
+  # wrong filenames from that point onward.
+  if (length(unique_files) != length(parsed_filenames)) {
+    empty_names <- names(text_list)[sapply(text_list, length) == 0]
+    stop("text_list and parsed_filenames are misaligned: text_list has ",
+         length(unique_files), " non-empty entries but parsed_filenames has ",
+         length(parsed_filenames), " entries. ",
+         "Remove empty text_list entries and their corresponding parsed_filenames before calling this function. ",
+         "Empty entries: ", paste(empty_names, collapse = ", "))
+  }
+
   all_parsed <- vector(mode="list", length=length(unique_files))
   names(all_parsed) <- unique_files
 
