@@ -9,10 +9,11 @@ textnet_extract(
   concatenator = "_",
   file = NULL,
   cl = 1,
-  keep_entities = c("ORG", "GPE", "PERSON"),
+  keep_entities = c("ORG", "GPE", "PERSON", "NORP"),
   return_to_memory = T,
   keep_incomplete_edges = F,
-  remove_neg = T
+  remove_neg = T,
+  progress = TRUE
 )
 }
 \arguments{
@@ -24,13 +25,15 @@ textnet_extract(
 
 \item{cl}{number of cores to crawl sentences in parallel (defaults to 1)}
 
-\item{keep_entities}{character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)}
+\item{keep_entities}{character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), geographic entities (GPE), and nationalities/religious/political groups (NORP)}
 
 \item{return_to_memory}{boolean for whether function should return final result as workspace object}
 
 \item{keep_incomplete_edges}{Boolean. If T, keeps edges with only a source or target but not both}
 
 \item{remove_neg}{Boolean. If T, removes edges whose head token has a negation child}
+
+\item{progress}{logical; whether to show a progress bar while crawling sentences (default TRUE)}
 }
 \value{
 A list with four objects:

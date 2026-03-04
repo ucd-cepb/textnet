@@ -18,6 +18,7 @@
 #' @param ruler_position A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.
 #' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
 #' @param batch_size Integer. Batch size for spaCy's nlp.pipe() processing. Default 50.
+#' @param progress logical; whether to show a progress bar during text preprocessing (default TRUE)
 #' @return A list of data.frames of tokens, one per document. Format matches spacyr::spacy_parse output.
 #' @importFrom stringr str_detect str_replace_all
 #' @importFrom stringi stri_replace_all_regex stri_escape_unicode
@@ -29,7 +30,7 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
                            concatenator="_", text_list, parsed_filenames,
                            overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
                            ruler_position = c("after", "before"), overwrite_ents = TRUE,
-                           batch_size = 50L){
+                           batch_size = 50L, progress = TRUE){
 
   # Input validation
   if(!is.character(ret_path) || length(ret_path) != 1) {
@@ -142,6 +143,11 @@ parse_text_trf <- function(ret_path, keep_hyph_together=F, phrases_to_concatenat
   })
 
   message("spaCy transformer model initialized")
+
+  if (!progress) {
+    op <- pbapply::pboptions(type = "none")
+    on.exit(pbapply::pboptions(op), add = TRUE)
+  }
 
   # Process text - flatten pages and track file IDs
   pages <- unname(unlist(text_list))

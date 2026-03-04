@@ -19,6 +19,7 @@
 #' @param entity_ruler_patterns A list of pattern dictionaries for spaCy's EntityRuler. Each pattern should be a named list with 'label' and 'pattern' elements. The 'pattern' can be a string for exact matches or a list of token attributes for complex patterns. If provided, these patterns will be added to spaCy's NLP pipeline. Use entity_specify() to create patterns from a dictionary.
 #' @param ruler_position A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.
 #' @param overwrite_ents A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.
+#' @param progress logical; whether to show a progress bar during text preprocessing (default TRUE)
 #' @return A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
 #' @importFrom data.table setDT
 #' @importFrom stringr str_detect str_replace_all
@@ -30,7 +31,8 @@
 parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA,
                        concatenator="_", text_list, parsed_filenames,
                        overwrite=T, test=F, custom_entities = NULL, entity_ruler_patterns = NULL,
-                       ruler_position = c("after", "before"), overwrite_ents = TRUE){
+                       ruler_position = c("after", "before"), overwrite_ents = TRUE,
+                       progress = TRUE){
   if(!requireNamespace("spacyr", quietly = T)){
     stop("Package 'spacyr' must be installed to use this function.",
          call.=F)
@@ -149,6 +151,11 @@ parse_text <- function(ret_path, keep_hyph_together=F, phrases_to_concatenate=NA
     })
   }
 
+
+  if (!progress) {
+    op <- pbapply::pboptions(type = "none")
+    on.exit(pbapply::pboptions(op), add = TRUE)
+  }
 
   # Process text
   pages <- unlist(text_list)

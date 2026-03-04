@@ -17,7 +17,8 @@ parse_text_trf(
   entity_ruler_patterns = NULL,
   ruler_position = c("after", "before"),
   overwrite_ents = TRUE,
-  batch_size = 50L
+  batch_size = 50L,
+  progress = TRUE
 )
 }
 \arguments{
@@ -47,6 +48,8 @@ The parsed data will be exported to these files (as .parquet files for efficienc
 \item{overwrite_ents}{A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.}
 
 \item{batch_size}{Integer. Batch size for spaCy's nlp.pipe() processing. Default 50.}
+
+\item{progress}{logical; whether to show a progress bar during text preprocessing (default TRUE)}
 }
 \value{
 A list of data.frames of tokens, one per document. Format matches spacyr::spacy_parse output.

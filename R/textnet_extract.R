@@ -7,10 +7,11 @@
 #' @param concatenator how entity parts are concatenated (defaults to "_")
 #' @param file location where an list object with an edgelist, nodelist, verblist, and appositivelist should be saved as .RDS file
 #' @param cl number of cores to crawl sentences in parallel (defaults to 1)
-#' @param keep_entities character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), and geographic entities (GPE)
+#' @param keep_entities character vector of spacy entity types to retain, defaults to people (PERSON), organizations (ORG), geographic entities (GPE), and nationalities/religious/political groups (NORP)
 #' @param return_to_memory boolean for whether function should return final result as workspace object
 #' @param keep_incomplete_edges Boolean. If T, keeps edges with only a source or target but not both
 #' @param remove_neg Boolean. If T, removes edges whose head token has a negation child
+#' @param progress logical; whether to show a progress bar while crawling sentences (default TRUE)
 #' @return A list with four objects:
 #' \itemize{
 #'    \item nodelist -- data.table of nodes and their attributes
@@ -62,9 +63,9 @@
 #'
 
 textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
-                                    keep_entities = c('ORG','GPE','PERSON'),
+                                    keep_entities = c('ORG','GPE','PERSON','NORP'),
                                     return_to_memory = T, keep_incomplete_edges=F,
-                                    remove_neg = T) {
+                                    remove_neg = T, progress = TRUE) {
 
   doc_sent_parent.y <- NULL # silence R CMD check NOTE
 
@@ -124,6 +125,10 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   
   sentence_splits <- split(x,x$doc_sent)
   print(paste0('crawling ',length(sentence_splits),' sentences'))
+  if (!progress) {
+    op <- pbapply::pboptions(type = "none")
+    on.exit(pbapply::pboptions(op), add = TRUE)
+  }
   parse_list <- pbapply::pblapply(sentence_splits,function(y) data.table::as.data.table(crawl_sentence(y)),cl = cl)
   x <- data.table::rbindlist(mapply(function(x,y) cbind(x,y),x = sentence_splits,y = parse_list,SIMPLIFY = F))
   
@@ -244,7 +249,12 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   source_target_list[,row_id := 1:.N]
   #create all combos of source and target by doc_sent_verb
   st_pivot <- data.table::dcast(source_target_list,doc_sent_verb+row_id~source_or_target, value.var= "entity_name")
-  
+  # dcast only creates columns for values that actually exist in source_or_target;
+  # if a verb has only sources (or only targets), the other column will be absent
+  # and tidyr::expand() will error. Guard against this here.
+  if (!"source" %in% names(st_pivot)) st_pivot[, source := NA_character_]
+  if (!"target" %in% names(st_pivot)) st_pivot[, target := NA_character_]
+
   if(nrow(st_pivot)>0){
     st_pivot <- data.table::as.data.table(st_pivot %>% dplyr::group_by(doc_sent_verb) %>% tidyr::expand(source, target))
     edgelist <- data.table::merge.data.table(st_pivot, verb_dt, by = c("doc_sent_verb"),all.x=F, all.y=F)

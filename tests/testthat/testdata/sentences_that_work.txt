@@ -1,0 +1,28 @@
+Sentence	Test Purpose	textNet::parse_text Arguments	textNet::textnet_extract Arguments	Expected Output
+Beyonce is friends with Rihanna.	one nsubj entity and one pobj entity	NA	"concatenator = ""_"""	Beyonce -is-> Rihanna
+Beyonce is married to Jay-Z.	one nsubj entity and one pobj entity containing punctuation	NA	"concatenator = ""_"""	Beyonce -is-> Jay_Z
+Max Planck mentored Albert Einstein.	one compound nsubj entity and one compound dobj entity	NA	"concatenator = ""_"""	Max_Planck -mentored-> Albert_Einstein
+The University of California Davis is located near Sacramento.	nsubj entity includes det	NA	"concatenator = ""_"""	The_University_of_California_Davis -is located-> Sacramento
+Gary May addressed the students of the University of California Davis.	one nsubj entity and one pobj entity	NA	"concatenator = ""_"""	Gary_May -addressed-> the_University_of_California_Davis
+Gary May reports to The Board of Regents.	Testing whether custom entities overwrites spacy entities (it should not).	"custom_entities = ""Board"""	"concatenator = ""_"""	Gary_May -reports-> The_Board_of_Regents
+Henry Clay was a member of the Whig Party.	Testing whether AUX verbs are preserved	NA	"concatenator = ""_"""	Henry_Clay -was-> the_Whig_Party
+The US Senate is a governing body.	Testing whether custom entities are preserved.	"custom_entities = ""body"""	"concatenator = ""_"""	The_US_Senate -is-> body
+Alexander Hamilton was defeated during a duel with Aaron Burr.	nsubjpass as subject and pobj as object	NA	"concatenator = ""_"""	Alexander_Hamilton -was defeated-> Aaron_Burr
+The New England Patriots were outscored during the Super Bowl.	nsubjpass as subject and pobj as object		"concatenator = ""_"""	The_New_England_Patriots -were outscored-> the_Super_Bowl
+Aaron Burr gave Alexander Hamilton a mortal wound.	dative as object	NA	"concatenator = ""_"""	Aaron_Burr -gave-> Alexander_Hamilton
+The American Association for the Advancement of Science (AAAS) is based in D.C.	appositive restates the nsubj and should not be treated separately	NA	"concatenator = ""_"""	The_American_Association_for_the_Advancement_of_Science -is based-> DC
+PepsiCo and Coca Cola are competitors of Keurig Dr Pepper.	"Two subject entities (nsubj and conj) linked by cc, including a compound entity "	NA	"concatenator = ""_"""	PepsiCo -are-> Keurig_Dr_Pepper AND Coca_Cola -are-> Keurig_Dr_Pepper
+PepsiCo and Chobani are based in America.	"Two subject entities (nsubjpass and conj) in passive voice, with pobj"	NA	"concatenator = ""_"""	PepsiCo -are based-> America AND Chobani -are based-> America
+Elizabeth II was the head of state of England.	nsubj and pobj linked by AUX	NA	"concatenator = ""_"""	Elizabeth_II -was-> England
+February water levels fell an average of 1 foot.	nummod part of object	NA	"concatenator = ""_"""	February -fell-> 1_foot
+"These deposits from Madera are less than 1,000 feet thick."	"amod, quantmod, nummod, and npadvmod as part of object"	NA	"concatenator = ""_"""	Madera -are-> less_than_1000_feet
+"To students at the University of California Davis, the semester system of Berkeley seems long."	leading pobj phrase with daughter of nsubj	NA	"concatenator = ""_"""	Berkeley -seems-> the_University_of_California_Davis
+East of San Antonio is College Station.	pobj daughter of nsubj subject and attr object with aux	NA	"concatenator = ""_"""	San_Antonio -is-> College_Station
+"With the support of the Air Force, Lockheed Martin initiated development of the Trident II program."	leading pobj phrase with nsubj and additional pobj	NA	"concatenator = ""_"""	Lockheed_Martin -initiated-> the_Air_Force AND Lockheed_Martin -initiated-> Trident_II
+Boston is close to the East Coast.	pobj daughter of acomp	NA	"concatenator = ""_"""	Boston -is-> the_East_Coast
+The leader of Canada is Mark Carney.	pobj daughter of nsubj with attr object	NA	"concatenator = ""_"""	Canada -is-> Mark_Carney
+The decisions of the Supreme Court can shape United States law.	pobj daughter of nsubj with dobj obj	NA	"concatenator = ""_"""	the_Supreme_Court -can shape-> United_States
+Great Salt Lake is a Utah treasure.	nsubj with attr obj	NA	"concatenator = ""_"""	Great_Salt_Lake -is-> Utah
+T-Mobile Park is the home of the Seattle Mariners.	nsubj with pobj daughter of attr	NA	"concatenator = ""_"""	T_Mobile_Park -is-> the_Seattle_Mariners
+Ronald is called Ron	nsubjpass with oprd object	NA	"concatenator = ""_"""	Ronald -is called-> Ron
+Roger Smith intends to submit a report to Dean Morales.	includes xcomp	NA	"concatenator = ""_"""	Roger_Smith -intends submit-> Dean_Morales

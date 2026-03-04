@@ -16,7 +16,8 @@ parse_text(
   custom_entities = NULL,
   entity_ruler_patterns = NULL,
   ruler_position = c("after", "before"),
-  overwrite_ents = TRUE
+  overwrite_ents = TRUE,
+  progress = TRUE
 )
 }
 \arguments{
@@ -44,6 +45,8 @@ The parsed data will be exported to these files.}
 \item{ruler_position}{A string controlling where EntityRuler is placed in the pipeline: "after" (default) places it after NER so custom patterns can override, "before" places it before NER so NER has final say.}
 
 \item{overwrite_ents}{A boolean. If TRUE (default), EntityRuler patterns override NER's entity assignments for overlapping spans. If FALSE, EntityRuler only fills gaps where NER found nothing.}
+
+\item{progress}{logical; whether to show a progress bar during text preprocessing (default TRUE)}
 }
 \value{
 A data.frame of tokens. For more information on the format, see the spacyr::spacy_parse help file
