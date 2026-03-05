@@ -77,7 +77,7 @@ empty_list$xcomp_verb <- ifelse(sentence$pos=="VERB" & sentence$dep_rel =="xcomp
         
         #if you find a subject, stop
         #If head_token_id trail traces back to a subject before hitting a verb, --> source
-        sentence[current_token_id,dep_rel] %in% c("nsubj","nsubjpass","csubj","csubjpass","agent","expl") ~ "source",
+        sentence[current_token_id,dep_rel] %in% c("nsubj","nsubjpass","csubj","csubjpass","expl") ~ "source",
         
         #If head_token_id trail traces back to root that is not a verb, --> "root_not_verb"
         sentence[current_token_id,dep_rel] == "ROOT" ~ "root_not_verb",
