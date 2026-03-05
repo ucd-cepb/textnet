@@ -26,3 +26,5 @@ Great Salt Lake is a Utah treasure.	nsubj with attr obj	NA	"concatenator = ""_""
 T-Mobile Park is the home of the Seattle Mariners.	nsubj with pobj daughter of attr	NA	"concatenator = ""_"""	T_Mobile_Park -is-> the_Seattle_Mariners
 Ronald is called Ron	nsubjpass with oprd object	NA	"concatenator = ""_"""	Ronald -is called-> Ron
 Roger Smith intends to submit a report to Dean Morales.	includes xcomp	NA	"concatenator = ""_"""	Roger_Smith -intends submit-> Dean_Morales
+The New England Patriots were outscored by The Seattle Seahawks.    nsubjpass and pobj daughter of agent    NA  "concatenator = ""_"""    The_New_England_Patriots -were outscored-> The_Seattle_Seahawks
+Frank was impressed by Einstein.    nsubjpass and pobj daughter of agent    NA  "concatenator = ""_"""    Frank -was impressed-> Einstein
