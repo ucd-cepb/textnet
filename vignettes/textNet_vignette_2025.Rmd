@@ -1,7 +1,7 @@
 ---
 title: "textNet: Directed, Multiplex, Multimodal Event Network Extraction from Textual Data"
 author: Elise Zufall and Tyler Scott
-date: 17 July 2025
+date: Updated 6 March 2026
 bibliography: paper.bib
 output: rmarkdown::html_vignette
 vignette: >
@@ -57,7 +57,9 @@ The package architecture relies on four sets of functions around core tasks:
 The figure below summarizes the functionality of *textNet* and the flow of function outputs. 
 Optional data cleaning features are shown with dotted arrows.
 
-![Workflow of textNet Functions](vignette_figures/figure-markdown_strict/flowchart.png)
+```{r, out.width = "400px"}
+knitr::include_graphics("vignette_figures/figure-markdown_strict/flowchart.png")
+```
 
 ## Applications
 
