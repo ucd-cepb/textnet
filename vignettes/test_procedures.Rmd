@@ -1,7 +1,7 @@
 ---
 title: "Testing Protocol Companion to textNet Vignette"
 author: Elise Zufall and Tyler Scott
-date: 7 November 2024
+date: Updated 6 March 2026
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Testing Protocol Companion to textNet Vignette}
@@ -23,7 +23,8 @@ library(testthat)
 
 #download sample pdf data from state website
 #this is the same as vignettes/old.pdf and vignettes/new.pdf
-#that are included in the package, EXCEPT the package versions have pages that are maps or figures removed to shrink file size.
+#that are included in the package, EXCEPT the package versions have pages that are maps 
+#or figures removed to shrink file size.
 
 #URL <- "https://sgma.water.ca.gov/portal/service/gspdocument/download/2840"
 #download.file(URL, destfile = "vignettes/old.pdf", #method="curl")

@@ -107,7 +107,7 @@ textnet_extract <- function (x, concatenator = "_",file = NULL,cl = 1,
   #only keeps sentences that have a subject and object
   #does not keep sentences with compound subject and no object
   #list of subj and obj tags from https://github.com/clir/clearnlp-guidelines/blob/master/md/specifications/dependency_labels.md
-  dep_rels_subj_keep <- c('nsubj','nsubjpass','csubj','csubjpass','agent','expl')        
+  dep_rels_subj_keep <- c('nsubj','nsubjpass','csubj','csubjpass','expl')        
   dep_rels_obj_keep <- c('pobj','iobj','dative','attr','dobj','oprd','ccomp','xcomp','acomp','pcom') 
 
   x <- x[,keep:=any(dep_rel %in% dep_rels_subj_keep) & any(dep_rel %in% dep_rels_obj_keep) & any(pos%in%c('VERB','AUX')),by=.(doc_id,sentence_id)]
